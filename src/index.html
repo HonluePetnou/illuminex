@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Illuminex - 3D Lighting Simulation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </head>
+  <body>
+    <div id="app">
+      <header class="app-header">
+        <div class="header-content">
+          <div class="logo">
+            <i class="fas fa-lightbulb"></i>
+            <h1>Illuminex</h1>
+          </div>
+          <nav class="header-nav">
+            <button class="nav-btn" id="newProjectBtn">
+              <i class="fas fa-plus"></i>
+              New Project
+            </button>
+            <button class="nav-btn" id="openProjectBtn">
+              <i class="fas fa-folder-open"></i>
+              Open
+            </button>
+            <button class="nav-btn" id="saveProjectBtn">
+              <i class="fas fa-save"></i>
+              Save
+            </button>
+            <button class="nav-btn" id="exportBtn">
+              <i class="fas fa-file-export"></i>
+              Export PDF
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      <main class="app-main">
+        <aside class="sidebar-left">
+          <div class="panel">
+            <h3>Scene Objects</h3>
+            <div class="scene-objects" id="sceneObjects">
+              <div class="object-item">
+                <i class="fas fa-cube"></i>
+                <span>Room</span>
+              </div>
+              <div class="object-item">
+                <i class="fas fa-lightbulb"></i>
+                <span>Light Source</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <h3>Properties</h3>
+            <div class="properties-panel" id="propertiesPanel">
+              <div class="property-group">
+                <label>Position</label>
+                <div class="property-inputs">
+                  <input type="number" placeholder="X" step="0.1">
+                  <input type="number" placeholder="Y" step="0.1">
+                  <input type="number" placeholder="Z" step="0.1">
+                </div>
+              </div>
+              <div class="property-group">
+                <label>Intensity</label>
+                <input type="range" min="0" max="100" value="50">
+              </div>
+              <div class="property-group">
+                <label>Color</label>
+                <input type="color" value="#ffffff">
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="viewport">
+          <div class="viewport-toolbar">
+            <div class="view-controls">
+              <button class="view-btn active" data-view="perspective">
+                <i class="fas fa-cube"></i>
+                3D
+              </button>
+              <button class="view-btn" data-view="top">
+                <i class="fas fa-arrow-down"></i>
+                Top
+              </button>
+              <button class="view-btn" data-view="front">
+                <i class="fas fa-arrow-right"></i>
+                Front
+              </button>
+              <button class="view-btn" data-view="side">
+                <i class="fas fa-arrow-left"></i>
+                Side
+              </button>
+            </div>
+            <div class="render-controls">
+              <button class="render-btn" id="wireframeBtn">
+                <i class="fas fa-border-all"></i>
+                Wireframe
+              </button>
+              <button class="render-btn" id="gridBtn">
+                <i class="fas fa-th"></i>
+                Grid
+              </button>
+            </div>
+          </div>
+          <div class="canvas-container" id="canvasContainer">
+            <div id="root"></div>
+            <div class="viewport-overlay">
+              <div class="stats">
+                <span>FPS: <span id="fps">60</span></span>
+                <span>Objects: <span id="objectCount">2</span></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="sidebar-right">
+          <div class="panel">
+            <h3>Lighting Presets</h3>
+            <div class="presets-grid">
+              <button class="preset-btn">Natural Light</button>
+              <button class="preset-btn">Warm Interior</button>
+              <button class="preset-btn">Cool Office</button>
+              <button class="preset-btn">Stage Lighting</button>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <h3>Calculations</h3>
+            <div class="calculations-panel">
+              <div class="calc-item">
+                <label>Total Luminosity</label>
+                <span class="calc-value">850 lm</span>
+              </div>
+              <div class="calc-item">
+                <label>Average Illuminance</label>
+                <span class="calc-value">320 lux</span>
+              </div>
+              <div class="calc-item">
+                <label>Power Consumption</label>
+                <span class="calc-value">12.5 W</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Layers</h3>
+            <div class="layers-panel" id="layersPanel">
+              <div class="layer-item active">
+                <input type="checkbox" checked>
+                <span>Lighting</span>
+              </div>
+              <div class="layer-item">
+                <input type="checkbox" checked>
+                <span>Geometry</span>
+              </div>
+              <div class="layer-item">
+                <input type="checkbox">
+                <span>Measurements</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+
+      <footer class="app-footer">
+        <div class="status-bar">
+          <span class="status-item">
+            <i class="fas fa-info-circle"></i>
+            Ready
+          </span>
+          <span class="status-item">
+            <i class="fas fa-mouse-pointer"></i>
+            <span id="coordinates">X: 0.0, Y: 0.0, Z: 0.0</span>
+          </span>
+          <span class="status-item">
+            <i class="fas fa-clock"></i>
+            <span id="timestamp">12:00:00</span>
+          </span>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
