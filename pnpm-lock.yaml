@@ -93,6 +93,9 @@ importers:
       electron:
         specifier: 40.6.0
         version: 40.6.0
+      html-webpack-plugin:
+        specifier: ^5.6.6
+        version: 5.6.6(webpack@5.105.2)
       node-loader:
         specifier: ^2.1.0
         version: 2.1.0(webpack@5.105.2)
