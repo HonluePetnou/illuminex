@@ -4,15 +4,15 @@ import { createRoot } from 'react-dom/client';
 
 import Sidebar from './components/Sidebar';
 import ProjectManager, { useProjectManager } from './components/ProjectManager';
-import UserInputForm from './components/UserInputForm';
 import SimulationDashboard from './components/SimulationDashboard';
 
-// Engines
-import { calculateLighting } from './utils/calculateLighting';
-import { calculateUniformity } from './utils/calculateUniformity';
-import { calculateClimateAdjustment } from './utils/calculateClimateAdjustment';
-import { calculateUsageProfile } from './utils/calculateUsageProfile';
-import { buildReportData } from './utils/reportGenerator';
+import ScreenDimensions from './components/ScreenDimensions';
+import ScreenLuminaires from './components/ScreenLuminaires';
+import ScreenNaturel from './components/ScreenNaturel';
+import ScreenContact from './components/ScreenContact';
+
+// Note : les moteurs de calcul sont utilisés directement dans SimulationDashboard
+
 
 function MainApp() {
   // Navigation State
@@ -34,50 +34,45 @@ function MainApp() {
       if (project.results) {
          setActiveScreen('simulation');
       } else {
-         setActiveScreen('form');
+         setActiveScreen('dimensions');
       }
   };
 
   const handleTemplateSelect = (template) => {
       setCurrentProject({ name: template.name, formData: template.formData });
-      setActiveScreen('form');
+      setActiveScreen('dimensions');
   };
 
-  const handleCalculateForms = async (formData) => {
-      try {
-        // Run all 5 calculations safely
-        const lightingResult = calculateLighting(formData);
-        const uniformityResult = calculateUniformity(formData, lightingResult);
-        const climateResult = calculateClimateAdjustment(formData, lightingResult);
-        const usageResult = calculateUsageProfile(formData, lightingResult, climateResult);
-        
-        // Ensure naturalLightResult object exists (simplification for our Simulation components)
-        const naturalLightResult = {
-           solar: { sunriseHour: 7, sunsetHour: 18, daylightHours: 11 },
-           hourlyProfile: {}, // The Simulation Hook handles fallbacks if this is empty
-           summary: {}
-        };
-        
-        const results = {
-           lighting: lightingResult,
-           uniformity: uniformityResult,
-           climate: climateResult,
-           naturalLight: naturalLightResult,
-           usage: usageResult
-        };
 
-        const reportData = buildReportData(formData, results);
-        results.reportData = reportData;
 
-        // Save everything
-        await saveCurrentProject(formData, results);
-        
-        // Transition securely to dashboard
-        setActiveScreen('simulation');
-      } catch (err) {
-        console.error("Calculation Error : ", err);
-        alert("Erreur lors des calculs. Veuillez vérifier vos données d'entrée ou effacer le projet et recommencer.");
+
+  // State global pour les formulaires
+  const defaultValues = {
+    room: { length: 7.0, width: 6.0, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
+    occupation: { buildingType: 'Bureau/Administration', occupationType: 'Standard', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 },
+    luminaire: { type: 'LED_Philips_150x150', fluxPerUnit: 2250, powerPerUnit: 18 },
+    naturalLight: { hasWindows: true, orientation: 'Sud', windowArea: 5 },
+    location: { zone: 'Sud (Cotonou, Porto-Novo)' }
+  };
+
+  const [formData, setFormData] = React.useState(defaultValues);
+
+  React.useEffect(() => {
+    if (currentProject && currentProject.formData) {
+      setFormData(currentProject.formData);
+    } else {
+      setFormData(defaultValues);
+    }
+  }, [currentProject]);
+
+  const updateFormData = (section, values) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        ...values
       }
+    }));
   };
 
   // Render logic mapper
@@ -91,28 +86,58 @@ function MainApp() {
               onTemplateSelect={handleTemplateSelect} 
            />
          );
-      case 'dimensions':
-      case 'luminaires':
       case 'form':
+      case 'dimensions':
          return (
-           <div style={{ flex: 1, overflowY: 'auto' }}>
-              <UserInputForm 
-                initialData={currentProject?.formData}
-                onSubmit={handleCalculateForms} 
-              />
-           </div>
+           <ScreenDimensions 
+             formData={formData} 
+             updateFormData={updateFormData} 
+             onNext={() => setActiveScreen('luminaires')} 
+             onPrev={() => setActiveScreen('projets')} 
+           />
+         );
+      case 'luminaires':
+         return (
+           <ScreenLuminaires 
+             formData={formData} 
+             updateFormData={updateFormData} 
+             onNext={() => setActiveScreen('naturel')} 
+             onPrev={() => setActiveScreen('dimensions')} 
+           />
+         );
+      case 'naturel':
+         return (
+           <ScreenNaturel 
+             formData={formData} 
+             updateFormData={updateFormData} 
+             onNext={() => {
+                // Sauvegarder et aller à la simulation
+                // On passe formData au projet courant pour persist
+                const projectToSave = {
+                   ...(currentProject || {}),
+                   formData: formData
+                };
+                setCurrentProject(projectToSave);
+                setActiveScreen('simulation');
+             }} 
+             onPrev={() => setActiveScreen('luminaires')} 
+           />
          );
       case 'simulation':
          return (
-           <SimulationDashboard project={currentProject} />
+           <SimulationDashboard 
+             project={{ ...(currentProject || {}), formData: formData }} 
+           />
          );
+      case 'contact':
+         return <ScreenContact />;
       case 'quitter':
          return (
            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#FFF' }}>
              <h2>Êtes-vous sûr de vouloir quitter ?</h2>
              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
                <button className="btn-secondary" onClick={() => setActiveScreen('projets')}>Annuler</button>
-               <button className="btn-primary" style={{ background: '#ef4444' }} onClick={() => window.close()}>Confirmer</button>
+               <button className="btn-primary" style={{ background: '#ef4444', border: 'none', padding: '0.875rem 2rem', color: '#fff', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.close()}>Confirmer</button>
              </div>
            </div>
          );

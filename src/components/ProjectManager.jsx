@@ -1,43 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { storageService } from '../services/storageService';
-import { 
-  FolderPlus, FileJson, HardDrive, Search, Filter, 
-  MoreVertical, Copy, Edit2, Download, FileText, Trash2, 
-  FolderOpen, Calendar, MapPin, Zap, CheckCircle2, Clock, AlertCircle
+import {
+  FolderPlus, FileJson, HardDrive, Search, Filter,
+  MoreVertical, Copy, Edit2, Download, FileText, Trash2,
+  FolderOpen, Calendar, MapPin, Zap, CheckCircle2, Clock,
+  AlertCircle, Lightbulb, ArrowRight
 } from 'lucide-react';
 
-/**
- * Custom hook for project management and persistence
- */
+/* =====================================================
+   HOOK — gestion des projets (inchangé fonctionnellement)
+   ===================================================== */
 export function useProjectManager() {
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(null);
-  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'saving' | 'unsaved'
-  
-  // Load all projects on mount
+  const [saveStatus, setSaveStatus] = useState('saved');
+
   useEffect(() => {
     storageService.init().then(() => {
       loadProjects();
       storageService.initDefaultTemplates();
       storageService.initDefaultSettings();
-    }).catch(err => console.error("Initialize Storage Error:", err));
+    }).catch(err => console.error('Init Storage Error:', err));
   }, []);
-  
+
   const loadProjects = async () => {
     const all = await storageService.getAllProjects();
     setProjects(all || []);
   };
-  
+
   const saveCurrentProject = async (formData, results) => {
     setSaveStatus('saving');
     const projectToSave = {
       ...currentProject,
       name: currentProject?.name || 'Projet Sans Nom',
-      formData,
-      results,
+      formData, results,
       updatedAt: Date.now()
     };
-    
     try {
       const id = await storageService.saveProject(projectToSave);
       setCurrentProject({ ...projectToSave, id });
@@ -48,21 +46,14 @@ export function useProjectManager() {
       setSaveStatus('unsaved');
     }
   };
-  
-  // Trigger auto-save when formData changes
+
   const onFormDataChange = useCallback((formData, results) => {
     if (!currentProject) return;
-    
     setSaveStatus('unsaved');
-    storageService.autoSave({ 
-      ...currentProject, 
-      formData, 
-      results 
-    }, 3000);
-    // Simulating auto-save UI reaction
+    storageService.autoSave({ ...currentProject, formData, results }, 3000);
     setTimeout(() => setSaveStatus('saved'), 3500);
   }, [currentProject]);
-  
+
   const loadProject = async (id) => {
     const p = await storageService.getProject(id);
     if (p) setCurrentProject(p);
@@ -80,9 +71,7 @@ export function useProjectManager() {
     loadProjects();
   };
 
-  const exportProject = (project) => {
-    storageService.exportToJSON(project);
-  };
+  const exportProject = (project) => storageService.exportToJSON(project);
 
   const importProject = async (file) => {
     const id = await storageService.importFromJSON(file);
@@ -91,43 +80,27 @@ export function useProjectManager() {
   };
 
   return {
-    projects,
-    currentProject,
-    setCurrentProject,
-    saveStatus,
-    saveCurrentProject,
-    onFormDataChange,
-    loadProject,
-    deleteProject,
-    duplicateProject,
-    exportProject,
-    importProject
+    projects, currentProject, setCurrentProject, saveStatus,
+    saveCurrentProject, onFormDataChange, loadProject,
+    deleteProject, duplicateProject, exportProject, importProject
   };
 }
 
-/**
- * Full UI Component for Project Manager
- */
+/* =====================================================
+   COMPOSANT PRINCIPAL — ProjectManager
+   ===================================================== */
 export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
-  const { 
-    projects, 
-    deleteProject, 
-    duplicateProject, 
-    exportProject,
-    importProject,
-    saveStatus
-  } = useProjectManager();
+  const { projects, deleteProject, duplicateProject, exportProject, importProject, saveStatus } = useProjectManager();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('Tous');
   const [sortBy, setSortBy] = useState('Date modification');
-  
   const [templates, setTemplates] = useState([]);
-  const [storageInfo, setStorageInfo] = useState({ used: '0', total: '0', percent: '0%' });
+  const [storageInfo, setStorageInfo] = useState({ used: '0 Ko', total: '50 Mo', percent: '0%' });
 
   useEffect(() => {
-    storageService.getAllTemplates().then(t => setTemplates(t));
-    storageService.getStorageInfo().then(info => setStorageInfo(info));
+    storageService.getAllTemplates().then(t => setTemplates(t || []));
+    storageService.getStorageInfo().then(info => setStorageInfo(info || storageInfo));
   }, []);
 
   const handleImport = (e) => {
@@ -136,112 +109,150 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
     e.target.value = null;
   };
 
-  // Filter and sort Logic
-  let filteredProjects = projects.filter(p => 
+  let filteredProjects = projects.filter(p =>
     (p.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
   if (filterType !== 'Tous') {
     filteredProjects = filteredProjects.filter(p => p.formData?.occupation?.buildingType === filterType);
   }
-
   filteredProjects.sort((a, b) => {
-    if (sortBy === 'Date modification') return b.updatedAt - a.updatedAt;
+    if (sortBy === 'Date modification') return (b.updatedAt || 0) - (a.updatedAt || 0);
     if (sortBy === 'Nom') return (a.name || '').localeCompare(b.name || '');
-    if (sortBy === 'Type bâtiment') {
-      const typeA = a.formData?.occupation?.buildingType || '';
-      const typeB = b.formData?.occupation?.buildingType || '';
-      return typeA.localeCompare(typeB);
-    }
     return 0;
   });
 
-  // Building type unique list
   const buildingTypes = ['Tous', ...new Set(projects.map(p => p.formData?.occupation?.buildingType).filter(Boolean))];
 
+  // ── Tokens ──
+  const bg = '#191A1E';
+  const cardBg = '#26272D';
+  const border = '#363741';
+  const inputBg = '#1E1F24';
+
   return (
-    <div className="flex flex-col h-full bg-slate-900 text-slate-200">
-      
-      {/* HEADER */}
-      <div className="px-8 py-6 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: bg, overflowY: 'auto' }}>
+
+      {/* ══ EN-TÊTE ══ */}
+      <div style={{
+        padding: '2rem 2.5rem 1.5rem',
+        borderBottom: `1px solid ${border}`,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem'
+      }}>
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Mes Projets</h1>
-          <div className="flex items-center text-sm text-slate-400 gap-2">
-            <HardDrive size={16} />
-            <span>Utilisé: {storageInfo.used} / {storageInfo.total}</span>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#FFF', marginBottom: '0.375rem' }}>
+            Mes Projets
+          </h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7E7E86', fontSize: '0.8125rem' }}>
+            <HardDrive size={14} />
+            <span>Stockage local : {storageInfo.used} / {storageInfo.total}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          
-          <label className="cursor-pointer border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
-            <FileJson size={18} />
-            Importer JSON
-            <input type="file" accept=".json" className="hidden" onChange={handleImport} />
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: cardBg, border: `1px solid ${border}`,
+            padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer',
+            color: '#A0A0A5', fontSize: '0.8125rem', fontWeight: 500,
+            transition: 'border-color 0.2s',
+          }}>
+            <FileJson size={16} /> Importer JSON
+            <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
           </label>
-          
-          <button 
+
+          <button
             onClick={() => onOpenProject({ name: 'Nouveau Projet', formData: {} })}
-            className="bg-blue-600 hover:bg-blue-500 text-white py-2 px-6 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-blue-500/20"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: '#5A84D5', border: 'none', color: '#FFF',
+              padding: '0.625rem 1.25rem', borderRadius: '8px', cursor: 'pointer',
+              fontWeight: 600, fontSize: '0.875rem',
+              boxShadow: '0 4px 16px rgba(90,132,213,0.3)',
+            }}
           >
-            <FolderPlus size={18} />
-            Nouveau projet
+            <FolderPlus size={17} /> Nouveau projet
           </button>
         </div>
       </div>
 
-      {/* SEARCH & FILTERS */}
-      <div className="px-8 py-4 bg-slate-800/30 flex flex-col md:flex-row gap-4 justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input 
-            type="text" 
-            placeholder="Rechercher un projet..." 
+      {/* ══ BARRE DE FILTRE ══ */}
+      <div style={{
+        padding: '1rem 2.5rem',
+        background: 'rgba(43,44,53,0.4)',
+        borderBottom: `1px solid ${border}`,
+        display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center'
+      }}>
+        {/* Recherche */}
+        <div style={{ position: 'relative', flex: 1, minWidth: '180px', maxWidth: '340px' }}>
+          <Search size={15} color="#7E7E86" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Rechercher un projet..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            style={{
+              width: '100%', background: inputBg, border: `1px solid ${border}`,
+              borderRadius: '8px', padding: '0.5rem 1rem 0.5rem 2.25rem',
+              color: '#FFF', fontSize: '0.8125rem', outline: 'none',
+            }}
           />
         </div>
-        
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1">
-            <Filter size={16} className="text-slate-500" />
-            <select 
-              value={filterType} onChange={e => setFilterType(e.target.value)}
-              className="bg-transparent text-sm border-none outline-none text-slate-300"
-            >
-              {buildingTypes.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          
-          <select 
-            value={sortBy} onChange={e => setSortBy(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm text-slate-300 outline-none"
+
+        {/* Filtre type */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', padding: '0.5rem 0.875rem' }}>
+          <Filter size={14} color="#7E7E86" />
+          <select
+            value={filterType} onChange={e => setFilterType(e.target.value)}
+            style={{ background: 'transparent', border: 'none', color: '#A0A0A5', fontSize: '0.8125rem', outline: 'none', cursor: 'pointer' }}
           >
-            <option>Date modification</option>
-            <option>Nom</option>
-            <option>Type bâtiment</option>
+            {buildingTypes.map(t => <option key={t} value={t} style={{ background: '#26272D' }}>{t}</option>)}
           </select>
         </div>
+
+        {/* Tri */}
+        <select
+          value={sortBy} onChange={e => setSortBy(e.target.value)}
+          style={{ background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', padding: '0.5rem 0.875rem', color: '#A0A0A5', fontSize: '0.8125rem', outline: 'none', cursor: 'pointer' }}
+        >
+          <option style={{ background: '#26272D' }}>Date modification</option>
+          <option style={{ background: '#26272D' }}>Nom</option>
+          <option style={{ background: '#26272D' }}>Type bâtiment</option>
+        </select>
+
+        <AutoSaveIndicator status={saveStatus} />
       </div>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-10">
-        
-        {/* PROJECTS GRID */}
+      {/* ══ CONTENU PRINCIPAL ══ */}
+      <div style={{ padding: '2rem 2.5rem', display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+
+        {/* ─ PROJETS ─ */}
         {filteredProjects.length === 0 ? (
-          <div className="py-20 flex flex-col items-center justify-center text-center border-2 border-dashed border-slate-800 rounded-2xl bg-slate-800/10">
-            <FolderOpen size={64} className="text-slate-600 mb-4" />
-            <h3 className="text-xl font-medium text-white mb-2">Aucun projet sauvegardé</h3>
-            <p className="text-slate-500 max-w-sm">
-              Créez votre premier projet ou utilisez un modèle prédéfini d'ILLUMINEX ci-dessous.
+          <div style={{
+            padding: '4rem 2rem',
+            border: `2px dashed ${border}`, borderRadius: '16px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            background: 'rgba(43,44,53,0.15)', textAlign: 'center',
+          }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#26272D', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+              <FolderOpen size={36} color="#363741" />
+            </div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#FFF', marginBottom: '0.5rem' }}>Aucun projet sauvegardé</h3>
+            <p style={{ color: '#7E7E86', fontSize: '0.875rem', maxWidth: '340px' }}>
+              Créez votre premier projet ou sélectionnez un modèle prédéfini ci-dessous.
             </p>
+            <button
+              onClick={() => onOpenProject({ name: 'Nouveau Projet', formData: {} })}
+              style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#5A84D5', border: 'none', color: '#FFF', padding: '0.675rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}
+            >
+              <FolderPlus size={17} /> Créer un projet
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
             {filteredProjects.map(proj => (
-              <ProjectCard 
-                key={proj.id} 
-                project={proj} 
+              <ProjectCard
+                key={proj.id}
+                project={proj}
                 onOpen={() => onOpenProject(proj)}
                 onDelete={() => deleteProject(proj.id)}
                 onDuplicate={() => duplicateProject(proj.id)}
@@ -251,149 +262,230 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
           </div>
         )}
 
-        <hr className="border-slate-800" />
+        {/* ─ SÉPARATEUR ─ */}
+        <div style={{ height: '1px', background: border }} />
 
-        {/* TEMPLATES */}
+        {/* ─ MODÈLES PRÉDÉFINIS ─ */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Zap size={20} className="text-amber-400" /> 
-            Modèles prédéfinis
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.125rem', fontWeight: 700, color: '#FFF', marginBottom: '1.25rem' }}>
+            <Zap size={18} style={{ color: '#FFB84D' }} /> Démarrer depuis un modèle
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {templates.map(tpl => (
-              <div 
-                key={tpl.id}
-                onClick={() => onTemplateSelect(tpl)}
-                className="bg-slate-800 border border-slate-700 hover:border-amber-500/50 p-5 rounded-xl cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 group"
-              >
-                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Zap size={20} className="text-amber-400" />
-                </div>
-                <h3 className="font-semibold text-white mb-1">{tpl.name}</h3>
-                <p className="text-xs text-slate-400 leading-snug">{tpl.description}</p>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+            {templates.length > 0 ? templates.map(tpl => (
+              <TemplateCard key={tpl.id} template={tpl} onClick={() => onTemplateSelect(tpl)} />
+            )) : (
+              /* Modèles par défaut si pas encore chargés */
+              [
+                { id: 'b', name: 'Bureau Standard', description: '7×6 m, 500 lux, LED', icon: '🏢' },
+                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: '📚' },
+                { id: 'c', name: 'Commerce', description: '10×8 m, 750 lux, dalles LED', icon: '🏪' },
+                { id: 'h', name: 'Hôpital', description: '6×5 m, 500 lux, IRC>90', icon: '🏥' },
+              ].map(tpl => (
+                <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: {} })} />
+              ))
+            )}
           </div>
         </div>
-
       </div>
-      
-      {/* FLOATING AUTO-SAVE INDICATOR (Demonstration only, actual app renders this high up) */}
-      <div className="fixed top-6 right-8">
-         <AutoSaveIndicator status={saveStatus} />
-      </div>
-
     </div>
   );
 }
 
+/* ── Carte Projet ── */
 function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
   const [showMenu, setShowMenu] = useState(false);
-  
+  const [hovered, setHovered] = useState(false);
+
   const bType = project.formData?.occupation?.buildingType || 'Type inconnu';
-  const lumCount = project.results?.lighting?.N || project.formData?.luminaire?.N || '?';
-  const zone = project.formData?.location?.zone || 'Zone Bénin';
-  
-  const dateStr = new Date(project.updatedAt).toLocaleDateString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric'
-  });
+  const lumCount = project.results?.lighting?.N != null ? Math.round(project.results.lighting.N) : '—';
+  const zone = project.formData?.location?.zone || 'Bénin';
+  const dateStr = project.updatedAt
+    ? new Date(project.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+    : '—';
+
+  const border = '#363741';
+  const cardBg = '#26272D';
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden shadow-md flex flex-col hover:border-blue-500/50 transition-colors group relative">
-      
-      {/* Thumbnail placeholder */}
-      <div 
-        className="h-32 bg-slate-900 border-b border-slate-700 flex items-center justify-center relative cursor-pointer"
+    <div
+      style={{
+        background: cardBg,
+        border: `1px solid ${hovered ? '#5A84D5' : border}`,
+        borderRadius: '12px', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+        boxShadow: hovered ? '0 4px 20px rgba(90,132,213,0.12)' : 'none',
+        position: 'relative',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Miniature */}
+      <div
         onClick={onOpen}
+        style={{
+          height: '110px',
+          background: 'linear-gradient(135deg, #1E1F24 0%, #2B2C35 100%)',
+          borderBottom: `1px solid ${border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', position: 'relative',
+        }}
       >
-         <FolderOpen size={40} className="text-slate-700 group-hover:text-blue-500/50 transition-colors" />
-         <div className="absolute top-3 left-3 bg-slate-800/80 px-2 py-1 rounded text-[10px] font-bold text-slate-300 tracking-wider">
-           ILLUMINEX
-         </div>
+        <div style={{ opacity: 0.15 }}>
+          <Lightbulb size={48} color="#FFB84D" />
+        </div>
+        {/* Mini room render hint */}
+        {project.formData?.room?.length && (
+          <div style={{
+            position: 'absolute', bottom: '8px', left: '12px',
+            fontSize: '0.6875rem', color: '#7E7E86', fontFamily: 'monospace',
+          }}>
+            {project.formData.room.length}×{project.formData.room.width} m
+          </div>
+        )}
+        <div style={{ position: 'absolute', top: '8px', left: '10px', background: 'rgba(26,27,32,0.8)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.625rem', fontWeight: 700, color: '#5A84D5', letterSpacing: '0.05em' }}>
+          ILLUMINEX
+        </div>
       </div>
-      
-      <div className="p-5 flex-1 flex flex-col content-between">
-        <div className="flex justify-between items-start mb-2 relative">
-          <h3 className="text-lg font-bold text-white leading-tight pr-6 truncate cursor-pointer" onClick={onOpen}>
-            {project.name || 'Projet Sans Nom'}
-          </h3>
-          
-          <button 
-            onClick={() => setShowMenu(!showMenu)}
-            className="text-slate-500 hover:text-white transition-colors absolute right-0 top-0"
+
+      {/* Corps */}
+      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <h3
+            onClick={onOpen}
+            style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#FFF', cursor: 'pointer', flex: 1, paddingRight: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
           >
-            <MoreVertical size={18} />
+            {project.name || 'Projet sans nom'}
+          </h3>
+          <button
+            onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            style={{ background: 'none', border: 'none', color: '#7E7E86', cursor: 'pointer', padding: '2px', flexShrink: 0 }}
+          >
+            <MoreVertical size={16} />
           </button>
-          
-          {/* Dropdown menu */}
-          {showMenu && (
-            <div className="absolute right-0 top-6 w-48 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-20 py-1 text-sm overflow-hidden">
-              <button className="w-full text-left px-4 py-2 hover:bg-slate-600 flex items-center gap-2"><Edit2 size={14}/> Renommer</button>
-              <button onClick={() => { onDuplicate(); setShowMenu(false); }} className="w-full text-left px-4 py-2 hover:bg-slate-600 flex items-center gap-2"><Copy size={14}/> Dupliquer</button>
-              <button onClick={() => { onExportJSON(); setShowMenu(false); }} className="w-full text-left px-4 py-2 hover:bg-slate-600 flex items-center gap-2"><FileJson size={14}/> Exporter JSON</button>
-              <button className="w-full text-left px-4 py-2 hover:bg-slate-600 flex items-center gap-2"><FileText size={14}/> Exporter PDF</button>
-              <div className="h-px bg-slate-600 my-1"></div>
-              <button 
-                onClick={() => { 
-                  if(window.confirm('Supprimer définitivement ce projet ?')) onDelete(); 
-                  setShowMenu(false); 
-                }} 
-                className="w-full text-left px-4 py-2 hover:bg-red-500/20 text-red-400 flex items-center gap-2"
-              >
-                <Trash2 size={14}/> Supprimer
-              </button>
-            </div>
-          )}
         </div>
-        
-        <div className="text-sm text-slate-400 mb-4">{bType}</div>
-        
-        <div className="mt-auto space-y-2">
-          <div className="flex items-center text-xs text-slate-500 gap-1.5 line-clamp-1">
-            <MapPin size={12} /> {zone} • {lumCount} luminaires
+
+        <span style={{ fontSize: '0.75rem', color: '#7E7E86', background: '#1E1F24', padding: '2px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>
+          {bType}
+        </span>
+
+        <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#7E7E86' }}>
+            <MapPin size={12} /> <span>{zone}</span>
+            <span style={{ color: '#363741' }}>·</span>
+            <Lightbulb size={12} /> <span>{lumCount} lum.</span>
           </div>
-          <div className="flex items-center text-xs text-slate-500 gap-1.5">
-            <Calendar size={12} /> Modifié: {dateStr}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#7E7E86' }}>
+            <Calendar size={12} /> <span>Modifié le {dateStr}</span>
           </div>
         </div>
       </div>
-      
-      {/* Bottom open action */}
-      <button 
+
+      {/* Bouton ouvrir */}
+      <button
         onClick={onOpen}
-        className="bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white w-full py-3 text-sm font-semibold transition-colors flex justify-center items-center gap-2"
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          background: hovered ? '#5A84D5' : 'rgba(90,132,213,0.08)',
+          color: hovered ? '#FFF' : '#5A84D5',
+          border: 'none', padding: '0.625rem',
+          fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer',
+          transition: 'background 0.2s, color 0.2s',
+        }}
       >
-        Ouvrir le projet
+        Ouvrir le projet <ArrowRight size={14} />
       </button>
 
-      {/* Click outside menu closer hack */}
+      {/* Menu contextuel */}
       {showMenu && (
-        <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)}></div>
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowMenu(false)} />
+          <div style={{
+            position: 'absolute', top: '2.5rem', right: '0.75rem', zIndex: 10,
+            background: '#2B2C35', border: '1px solid #363741', borderRadius: '10px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: '180px',
+          }}>
+            {[
+              { label: 'Dupliquer', icon: <Copy size={14} />, action: () => { onDuplicate(); setShowMenu(false); } },
+              { label: 'Exporter JSON', icon: <FileJson size={14} />, action: () => { onExportJSON(); setShowMenu(false); } },
+            ].map(item => (
+              <button key={item.label} onClick={item.action} style={menuItemStyle}>
+                {item.icon} {item.label}
+              </button>
+            ))}
+            <div style={{ height: '1px', background: '#363741', margin: '4px 0' }} />
+            <button
+              onClick={() => { if (window.confirm('Supprimer ce projet ?')) onDelete(); setShowMenu(false); }}
+              style={{ ...menuItemStyle, color: '#ef4444' }}
+            >
+              <Trash2 size={14} /> Supprimer
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-function AutoSaveIndicator({ status }) {
-  if (status === 'saving') {
-    return (
-      <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-500 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg">
-        <Clock size={12} className="animate-spin" /> Sauvegarde...
-      </div>
-    );
-  }
-  
-  if (status === 'unsaved') {
-    return (
-      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-500 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg">
-        <AlertCircle size={12} /> Non sauvegardé
-      </div>
-    );
-  }
+const menuItemStyle = {
+  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
+  background: 'transparent', border: 'none', padding: '0.625rem 1rem',
+  color: '#A0A0A5', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+};
 
+/* ── Carte Modèle ── */
+function TemplateCard({ template, onClick }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-500 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg opacity-80 hover:opacity-100 transition-opacity">
-      <CheckCircle2 size={12} /> Sauvegardé
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: hovered ? '#2B2C35' : '#26272D',
+        border: `1px solid ${hovered ? '#FFB84D50' : '#363741'}`,
+        borderRadius: '12px', padding: '1.25rem', cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        transform: hovered ? 'translateY(-2px)' : 'none',
+        boxShadow: hovered ? '0 6px 20px rgba(0,0,0,0.2)' : 'none',
+      }}
+    >
+      <div style={{
+        width: 40, height: 40, borderRadius: '10px',
+        background: 'rgba(255,184,77,0.12)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '1.25rem', marginBottom: '0.875rem',
+        transition: 'transform 0.2s',
+        transform: hovered ? 'scale(1.1)' : 'scale(1)',
+      }}>
+        {template.icon || <Zap size={20} color="#FFB84D" />}
+      </div>
+      <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFF', marginBottom: '0.25rem' }}>
+        {template.name}
+      </h3>
+      <p style={{ fontSize: '0.75rem', color: '#7E7E86', lineHeight: 1.4 }}>
+        {template.description || 'Modèle prédéfini ILLUMINEX-BJ'}
+      </p>
+    </div>
+  );
+}
+
+/* ── Indicateur de sauvegarde ── */
+function AutoSaveIndicator({ status }) {
+  const configs = {
+    saving: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: '#F59E0B', icon: <Clock size={12} />, label: 'Sauvegarde...' },
+    unsaved: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#ef4444', icon: <AlertCircle size={12} />, label: 'Non sauvegardé' },
+    saved: { bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.3)', color: '#4ade80', icon: <CheckCircle2 size={12} />, label: 'Sauvegardé' },
+  };
+  const c = configs[status] || configs.saved;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '6px',
+      background: c.bg, border: `1px solid ${c.border}`,
+      color: c.color, padding: '0.375rem 0.75rem',
+      borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600,
+    }}>
+      {c.icon} {c.label}
     </div>
   );
 }

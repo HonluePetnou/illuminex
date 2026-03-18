@@ -1,8 +1,8 @@
 {
-  "name": "my-app",
-  "productName": "my-app",
+  "name": "illuminex-bj",
+  "productName": "ILLUMINEX-BJ",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Outil local de dimensionnement d'éclairage intérieur — Bénin",
   "main": ".webpack/main",
   "private": true,
   "scripts": {
@@ -44,6 +44,7 @@
     "@react-three/fiber": "^9.5.0",
     "electron-squirrel-startup": "^1.0.1",
     "jspdf": "^4.2.0",
+    "jspdf-autotable": "3.8.2",
     "lucide-react": "^0.575.0",
     "mathjs": "^15.1.1",
     "react": "^19.2.4",

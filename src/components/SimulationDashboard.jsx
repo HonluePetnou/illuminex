@@ -1,155 +1,249 @@
 import React, { useState } from 'react';
 import RoomSimulation2D from './RoomSimulation2D';
 import RoomSimulation3D from './RoomSimulation3D';
-import { exportToPDF } from '../utils/reportGenerator';
+import { exportToPDF, buildReportData } from '../utils/reportGenerator';
+import { calculateLighting } from '../utils/calculateLighting';
+import { calculateUniformity } from '../utils/calculateUniformity';
+import { calculateClimateAdjustment } from '../utils/calculateClimateAdjustment';
+import { calculateUsageProfile } from '../utils/calculateUsageProfile';
 import { Download, Layers, Box, Tag, Zap, AlertTriangle, CheckCircle } from 'lucide-react';
 
+// ============================================================
+// Tokens de style alignés sur le design system ILLUMINEX-BJ
+// ============================================================
+const S = {
+  page: { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '1.5rem 2rem', gap: '1.5rem', background: '#191A1E' },
+  card: { background: '#26272D', border: '1px solid #363741', borderRadius: '12px', padding: '1.5rem' },
+  headerCard: { background: '#26272D', border: '1px solid #363741', borderRadius: '12px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: '1.5rem', fontWeight: 700, color: '#FFF', display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0 },
+  subtitle: { color: '#A0A0A5', fontSize: '0.875rem', marginTop: '0.25rem' },
+  grid: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', flex: 1 },
+  tabs: { display: 'flex', gap: '0.5rem', background: 'rgba(43,44,53,0.5)', padding: '0.375rem', borderRadius: '12px', border: '1px solid #363741', alignSelf: 'flex-start', marginBottom: '1rem' },
+  tabActive2d: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: '#363741', color: '#FFF', border: 'none' },
+  tabActive3d: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: '#4F46E5', color: '#FFF', border: 'none' },
+  tabInactive: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: 'transparent', color: '#A0A0A5', border: 'none' },
+  kpiGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' },
+  kpiCard: { background: '#26272D', border: '1px solid #363741', borderRadius: '12px', padding: '1rem' },
+  kpiLabel: { fontSize: '0.75rem', color: '#A0A0A5', marginBottom: '0.25rem' },
+  kpiValue: { fontSize: '1.75rem', fontWeight: 700, color: '#FFF' },
+  recCard: { background: '#26272D', border: '1px solid #363741', borderRadius: '12px', overflow: 'hidden', flex: 1 },
+  recHeader: { background: '#1E1F24', borderBottom: '1px solid #363741', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
+  recBody: { padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', maxHeight: '300px' },
+};
+
 export default function SimulationDashboard({ project }) {
-  const [viewMode, setViewMode] = useState('2d'); // '2d' or '3d'
+  const [viewMode, setViewMode] = useState('2d');
   
-  if (!project || !project.results) {
+  // === Calcul à la volée dès que formData change ===
+  const [computedResults, setComputedResults] = React.useState(null);
+  const [reportData, setReportData] = React.useState(null);
+  const [calcError, setCalcError] = React.useState(null);
+
+  React.useEffect(() => {
+    if (project && project.formData) {
+      try {
+        const formData = project.formData;
+        
+        const lighting   = calculateLighting(formData);
+        const climate    = calculateClimateAdjustment(formData, lighting);
+        const uniformity = calculateUniformity(formData, lighting);
+        const usage      = calculateUsageProfile(formData, lighting, climate);
+        
+        const results = {
+          lighting,
+          uniformity,
+          climate,
+          naturalLight: climate?.naturalLight || { solar: {}, hourlyProfile: {}, summary: {} },
+          usage
+        };
+        
+        setComputedResults(results);
+        setReportData(buildReportData(formData, results));
+        setCalcError(null);
+      } catch (err) {
+        console.error('Erreur de calcul SimulationDashboard :', err);
+        setCalcError(err.message);
+      }
+    }
+  }, [project]);
+
+  // === État de chargement / erreur ===
+  if (!project || !project.formData) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
-        <Zap size={64} className="mb-4 text-amber-500/50" />
-        <h2 className="text-xl font-bold text-white mb-2">Aucune Simulation Disponible</h2>
-        <p>Veuillez repasser par l'étape de configuration et calculer les données pour ce projet.</p>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#A0A0A5', padding: '2rem' }}>
+        <Zap size={64} style={{ marginBottom: '1rem', color: '#FFB84D', opacity: 0.5 }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#FFF', marginBottom: '0.5rem' }}>Aucune Simulation Disponible</h2>
+        <p>Complétez les étapes de configuration puis revenez ici.</p>
       </div>
     );
   }
 
-  const { formData, results, reportData } = project;
+  if (calcError) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#A0A0A5', padding: '2rem' }}>
+        <AlertTriangle size={64} style={{ marginBottom: '1rem', color: '#ef4444', opacity: 0.8 }} />
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.5rem' }}>Erreur de Calcul</h2>
+        <p style={{ maxWidth: '500px', textAlign: 'center', fontSize: '0.875rem' }}>{calcError}</p>
+        <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#7E7E86' }}>Vérifiez les valeurs saisies (ex : dimensions non nulles, luminaire sélectionné).</p>
+      </div>
+    );
+  }
+
+  if (!computedResults) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0A0A5' }}>
+        Calcul en cours...
+      </div>
+    );
+  }
+
+  const { formData } = project;
+  const results = computedResults;
   const recs = reportData?.recommendations || [];
 
   return (
-    <div className="flex-1 flex flex-col pt-4 px-8 pb-8 overflow-y-auto space-y-6">
+    <div style={S.page}>
       
-      {/* Header Panel */}
-      <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex justify-between items-center shadow-lg">
+      {/* ---- EN-TÊTE ---- */}
+      <div style={S.headerCard}>
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-             <Zap size={24} className="text-amber-400 fill-amber-400" />
-             Tableau de Bord : {project.name || 'Projet Actuel'}
+          <h1 style={S.title}>
+            <Zap size={24} style={{ color: '#FFB84D' }} />
+            Tableau de Bord — {project.name || 'Projet Actuel'}
           </h1>
-          <p className="text-slate-400 mt-1">
-             Type : {formData.occupation?.buildingType || 'Non Défini'} |
-             Zone : {formData.location?.zone || 'Non Définie'}
+          <p style={S.subtitle}>
+            Type : <strong style={{ color: '#FFF' }}>{formData.occupation?.buildingType || 'Non défini'}</strong>
+            &nbsp;|&nbsp;
+            Zone : <strong style={{ color: '#FFF' }}>{formData.location?.zone || 'Non définie'}</strong>
+            &nbsp;|&nbsp;
+            Pièce : <strong style={{ color: '#FFF' }}>{formData.room?.length} × {formData.room?.width} m</strong>
           </p>
         </div>
-        
-        <div className="flex gap-4">
-          <button 
-             onClick={() => exportToPDF(reportData)}
-             className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-lg shadow-blue-500/20 transition-all"
-          >
-             <Download size={18} /> Télécharger Rapport PDF
-          </button>
-        </div>
+        <button
+          onClick={() => exportToPDF(reportData)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#3B82F6', border: 'none', color: '#FFF', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+        >
+          <Download size={18} /> Télécharger Rapport PDF
+        </button>
       </div>
 
-      {/* Main Grid : Simulations + Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* LEFT / CENTER : The Simulators */}
-        <div className="lg:col-span-2 flex flex-col space-y-4">
-           {/* View Tabs */}
-           <div className="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700 self-start">
-             <button 
-                onClick={() => setViewMode('2d')} 
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === '2d' ? 'bg-slate-700 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
-             >
-                <Layers size={16} /> Mode Plan 2D
-             </button>
-             <button 
-                onClick={() => setViewMode('3d')} 
-                className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold transition-colors ${viewMode === '3d' ? 'bg-indigo-600 text-white shadow shadow-indigo-500/30' : 'text-slate-400 hover:text-slate-200'}`}
-             >
-                <Box size={16} /> Visite 3D Interactive
-             </button>
-           </div>
-           
-           {/* Render appropriate simulation */}
-           {viewMode === '2d' ? (
-             <RoomSimulation2D 
-                formData={formData}
-                lightingResult={results.lighting}
-                uniformityResult={results.uniformity}
-                climateResult={results.climate}
-                naturalLightResult={results.naturalLight}
-                usageResult={results.usage}
-             />
-           ) : (
-             <RoomSimulation3D 
-                formData={formData}
-                lightingResult={results.lighting}
-                uniformityResult={results.uniformity}
-                climateResult={results.climate}
-                naturalLightResult={results.naturalLight}
-                usageResult={results.usage}
-             />
-           )}
+      {/* ---- GRILLE PRINCIPALE ---- */}
+      <div style={S.grid}>
+
+        {/* — COLONNE GAUCHE/CENTRE : Simulateurs — */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          
+          {/* Onglets 2D / 3D */}
+          <div style={S.tabs}>
+            <button
+              onClick={() => setViewMode('2d')}
+              style={viewMode === '2d' ? S.tabActive2d : S.tabInactive}
+            >
+              <Layers size={16} /> Mode Plan 2D
+            </button>
+            <button
+              onClick={() => setViewMode('3d')}
+              style={viewMode === '3d' ? S.tabActive3d : S.tabInactive}
+            >
+              <Box size={16} /> Visite 3D Interactive
+            </button>
+          </div>
+
+          {/* Composant de simulation */}
+          {viewMode === '2d' ? (
+            <RoomSimulation2D
+              formData={formData}
+              lightingResult={results.lighting}
+              uniformityResult={results.uniformity}
+              climateResult={results.climate}
+              naturalLightResult={results.naturalLight}
+              usageResult={results.usage}
+            />
+          ) : (
+            <RoomSimulation3D
+              formData={formData}
+              lightingResult={results.lighting}
+              uniformityResult={results.uniformity}
+              climateResult={results.climate}
+              naturalLightResult={results.naturalLight}
+              usageResult={results.usage}
+            />
+          )}
         </div>
 
-        {/* RIGHT PANEL : Key Metrics & Recommendations */}
-        <div className="flex flex-col space-y-6">
-           
-           {/* KPI Cards */}
-           <div className="grid grid-cols-2 gap-4">
-               <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
-                   <div className="text-xs text-slate-400 mb-1">Nombre de Luminaires</div>
-                   <div className="text-2xl font-bold text-white">{Math.round(results.lighting?.N || 0)}</div>
-               </div>
-               <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
-                   <div className="text-xs text-slate-400 mb-1">Éclairement Cible</div>
-                   <div className="text-2xl font-bold text-blue-400">{Math.round(results.lighting?.E_required || 0)} lx</div>
-               </div>
-               <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md">
-                   <div className="text-xs text-slate-400 mb-1">Uniformité (U0)</div>
-                   <div className="text-2xl font-bold" style={{ color: results.lighting?.U0 >= 0.7 ? '#4ade80' : '#fbbf24' }}>
-                      {(results.uniformity?.U0 || 0).toFixed(2)}
-                   </div>
-               </div>
-               <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md border-b-2 border-b-green-500">
-                   <div className="text-xs text-slate-400 mb-1">Économies (Climat)</div>
-                   <div className="text-2xl font-bold text-green-400">
-                       {(results.climate?.savings?.savingsPercent || 0).toFixed(1)} %
-                   </div>
-               </div>
-           </div>
+        {/* — COLONNE DROITE : KPI + Recommandations — */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-           {/* AI Recommendations */}
-           <div className="bg-slate-800 flex-1 rounded-xl border border-slate-700 shadow-md flex flex-col overflow-hidden">
-               <div className="bg-slate-900 border-b border-slate-700 px-6 py-4 flex items-center gap-2">
-                  <Tag size={18} className="text-indigo-400" />
-                  <h3 className="font-semibold text-white">Expertise Automatique</h3>
-               </div>
-               
-               <div className="p-6 overflow-y-auto space-y-4">
-                  {recs.length === 0 ? (
-                     <div className="flex items-start gap-3 bg-green-500/10 p-3 rounded-lg border border-green-500/20 text-green-400 text-sm">
-                        <CheckCircle size={18} className="shrink-0 mt-0.5" />
-                        <div>L'installation semble parfaitement dimensionnée, aucune recommandation d'alerte spécifique pour ce projet.</div>
-                     </div>
-                  ) : (
-                     recs.map((rec, i) => {
-                       const isAlert = rec.includes('⚠️') || rec.includes('Insuffisant');
-                       return (
-                         <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border text-sm leading-relaxed
-                           ${isAlert 
-                             ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' 
-                             : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'}`
-                         }>
-                             {isAlert ? <AlertTriangle size={18} className="shrink-0 mt-0.5 text-amber-500" />
-                                      : <CheckCircle size={18} className="shrink-0 mt-0.5 text-indigo-500" />}
-                             <div>{rec.replace(/^(⚠️|✅|☀️|🌧️|📚|💡)\s*/, '')}</div>
-                         </div>
-                       )
-                     })
-                  )}
-               </div>
-           </div>
+          {/* KPI Cards */}
+          <div style={S.kpiGrid}>
+            <div style={S.kpiCard}>
+              <div style={S.kpiLabel}>Nombre de Luminaires</div>
+              <div style={S.kpiValue}>{Math.round(results.lighting?.N || 0)}</div>
+            </div>
+            <div style={S.kpiCard}>
+              <div style={S.kpiLabel}>Éclairement Cible</div>
+              <div style={{ ...S.kpiValue, color: '#60A5FA' }}>{Math.round(results.lighting?.E_required || 0)} lx</div>
+            </div>
+            <div style={S.kpiCard}>
+              <div style={S.kpiLabel}>Uniformité (U0)</div>
+              <div style={{ ...S.kpiValue, color: (results.uniformity?.U0 || 0) >= 0.7 ? '#4ade80' : '#fbbf24' }}>
+                {(results.uniformity?.U0 || 0).toFixed(2)}
+              </div>
+            </div>
+            <div style={{ ...S.kpiCard, borderBottom: '2px solid #4ade80' }}>
+              <div style={S.kpiLabel}>Économies Lumière Nat.</div>
+              <div style={{ ...S.kpiValue, color: '#4ade80' }}>
+                {(results.climate?.savings?.savingsPercent || 0).toFixed(1)} %
+              </div>
+            </div>
+            <div style={{ ...S.kpiCard, gridColumn: 'span 2', background: '#1E1F24' }}>
+              <div style={S.kpiLabel}>Puissance Totale Installée</div>
+              <div style={{ ...S.kpiValue, fontSize: '1.25rem', color: '#A0A0A5' }}>
+                {Math.round(results.lighting?.totalPower || 0)} W
+              </div>
+            </div>
+          </div>
+
+          {/* Recommandations automatiques */}
+          <div style={S.recCard}>
+            <div style={S.recHeader}>
+              <Tag size={18} style={{ color: '#818CF8' }} />
+              <h3 style={{ fontWeight: 600, color: '#FFF', margin: 0, fontSize: '0.9375rem' }}>Expertise Automatique</h3>
+            </div>
+            <div style={S.recBody}>
+              {recs.length === 0 ? (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: 'rgba(74,222,128,0.08)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(74,222,128,0.2)', color: '#4ade80', fontSize: '0.875rem' }}>
+                  <CheckCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>L'installation semble parfaitement dimensionnée. Aucune recommandation d'alerte spécifique.</div>
+                </div>
+              ) : (
+                recs.map((rec, i) => {
+                  const isAlert = rec.includes('⚠️') || rec.toLowerCase().includes('insuffisant');
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                        background: isAlert ? 'rgba(251,191,36,0.08)' : 'rgba(99,102,241,0.08)',
+                        border: `1px solid ${isAlert ? 'rgba(251,191,36,0.2)' : 'rgba(99,102,241,0.2)'}`,
+                        borderRadius: '8px', padding: '0.75rem',
+                        color: isAlert ? '#FCD34D' : '#A5B4FC',
+                        fontSize: '0.875rem', lineHeight: '1.5'
+                      }}
+                    >
+                      {isAlert
+                        ? <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#F59E0B' }} />
+                        : <CheckCircle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#818CF8' }} />
+                      }
+                      <div>{rec.replace(/^(⚠️|✅|☀️|🌧️|📚|💡)\s*/, '')}</div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
 
         </div>
-
       </div>
 
     </div>

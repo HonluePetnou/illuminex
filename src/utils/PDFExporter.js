@@ -1,5 +1,9 @@
 import jsPDF from 'jspdf';
 
+/**
+ * PDFExporter - Générateur de rapport PDF bilingue pour ILLUMINEX-BJ
+ * Toutes les étiquettes et titres sont en français.
+ */
 export class PDFExporter {
   constructor() {
     this.doc = new jsPDF();
@@ -14,13 +18,13 @@ export class PDFExporter {
     this.doc.setFont(undefined, 'bold');
     this.doc.text(title, this.margin, 30);
     
-    this.doc.setDrawColor(99, 102, 241);
+    this.doc.setDrawColor(29, 78, 216); // Bleu ILLUMINEX
     this.doc.setLineWidth(0.5);
     this.doc.line(this.margin, 35, this.pageWidth - this.margin, 35);
     
     this.doc.setFontSize(10);
     this.doc.setFont(undefined, 'normal');
-    this.doc.text(`Generated on: ${new Date().toLocaleString()}`, this.margin, 45);
+    this.doc.text(`Généré le : ${new Date().toLocaleString('fr-FR')}`, this.margin, 45);
   }
 
   addSection(title, content) {
@@ -48,7 +52,7 @@ export class PDFExporter {
       startY: yPosition,
       theme: 'grid',
       headStyles: {
-        fillColor: [99, 102, 241],
+        fillColor: [29, 78, 216],
         textColor: 255,
         fontStyle: 'bold'
       },
@@ -64,13 +68,13 @@ export class PDFExporter {
     
     this.doc.setFontSize(14);
     this.doc.setFont(undefined, 'bold');
-    this.doc.text('Lighting Calculations', this.margin, yPosition);
+    this.doc.text('Résultats des Calculs Photométriques', this.margin, yPosition);
     
     const calcData = [
-      ['Total Luminosity', `${calculations.totalLuminosity} lm`],
-      ['Average Illuminance', `${calculations.averageIlluminance} lux`],
-      ['Power Consumption', `${calculations.powerConsumption} W`],
-      ['Energy Efficiency', `${Math.round(calculations.totalLuminosity / calculations.powerConsumption)} lm/W`]
+      ['Flux total installé', `${calculations.totalLuminosity || 0} lm`],
+      ['Éclairement moyen', `${calculations.averageIlluminance || 0} lux`],
+      ['Puissance consommée', `${calculations.powerConsumption || 0} W`],
+      ['Efficacité lumineuse', `${Math.round((calculations.totalLuminosity || 0) / Math.max(calculations.powerConsumption || 1, 1))} lm/W`]
     ];
     
     this.doc.autoTable({
@@ -97,62 +101,62 @@ export class PDFExporter {
     this.doc.addImage(imageData, 'PNG', this.margin, yPosition + 10, imgWidth, imgHeight);
   }
 
-  save(filename = 'illuminex-report.pdf') {
+  save(filename = 'illuminex-bj-rapport.pdf') {
     this.doc.save(filename);
   }
 
   static async exportScene(sceneData, calculations, canvas) {
     const exporter = new PDFExporter();
     
-    // Add header
-    exporter.addHeader('Illuminex Lighting Analysis Report');
+    // En-tête du rapport
+    exporter.addHeader('Rapport de dimensionnement ILLUMINEX-BJ');
     
-    // Add project information
+    // Informations du projet
     let yPosition = exporter.addSection(
-      'Project Information',
-      `This report contains the lighting analysis results for the Illuminex 3D simulation. ` +
-      `The analysis includes luminosity calculations, illuminance measurements, and power consumption estimates.`
+      'Informations du Projet',
+      `Ce rapport contient les résultats de l'analyse d'éclairage ILLUMINEX-BJ. ` +
+      `L'analyse inclut les calculs de flux lumineux, d'éclairement et d'estimation de consommation d'énergie.`
     );
     
-    // Add scene configuration
+    // Configuration de la scène
     const sceneConfig = [
-      ['Parameter', 'Value'],
-      ['Light Position', `(${sceneData.lightPosition.map(v => v.toFixed(2)).join(', ')})`],
-      ['Light Intensity', sceneData.lightIntensity.toFixed(2)],
-      ['Light Color', sceneData.lightColor],
-      ['Room Dimensions', '10m × 10m × 5m'],
-      ['Surface Materials', 'Standard diffuse surfaces']
+      ['Paramètre', 'Valeur'],
+      ['Position du luminaire', `(${(sceneData.lightPosition || [0,0,0]).map(v => v.toFixed(2)).join(', ')})`],
+      ['Intensité lumineuse', (sceneData.lightIntensity || 0).toFixed(2)],
+      ['Couleur de la lumière', sceneData.lightColor || '-'],
+      ['Dimensions de la pièce', '7 m × 6 m × 3 m'],
+      ['Matériaux des surfaces', 'Surfaces diffuses standard']
     ];
     
-    exporter.addTable(['Parameter', 'Value'], sceneConfig);
+    exporter.addTable(['Paramètre', 'Valeur'], sceneConfig);
     
-    // Add calculations
+    // Résultats de calcul
     exporter.addCalculations(calculations);
     
-    // Add canvas screenshot if available
+    // Capture d'écran si disponible
     if (canvas) {
       try {
         const imageData = canvas.toDataURL('image/png');
-        exporter.addImage(imageData, '3D Scene Visualization');
+        exporter.addImage(imageData, 'Visualisation 3D de la Scène');
       } catch (error) {
-        console.warn('Could not capture canvas for PDF export:', error);
+        console.warn('Impossible de capturer le canvas pour le PDF :', error);
       }
     }
     
-    // Add recommendations
+    // Recommandations
     const recommendations = [
-      'Consider using LED bulbs for better energy efficiency',
-      'Optimize light placement to reduce shadows',
-      'Implement daylight harvesting where possible',
-      'Use dimmers for flexible lighting control'
+      'Utiliser des luminaires LED pour une meilleure efficacité énergétique',
+      'Optimiser le placement des luminaires pour réduire les zones d\'ombre',
+      'Implémenter un système de détection de lumière naturelle',
+      'Utiliser des variateurs pour un contrôle flexible de l\'éclairage'
     ];
     
     exporter.addSection(
-      'Recommendations',
+      'Recommandations Techniques',
       recommendations.join('\n• ')
     );
     
-    // Save the PDF
+    // Enregistrer le PDF
     exporter.save();
   }
 }
