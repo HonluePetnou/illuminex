@@ -258,17 +258,22 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
             </div>
           </section>
 
-          {/* Type de bâtiment */}
+          {/* Occupation et Bâtiment */}
           <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '1.25rem' }}>
             <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Home size={14} /> Type de bâtiment
+              <Home size={14} /> Bâtiment & Occupation
             </h2>
-            <SelectRow
-              label="Catégorie"
-              value={occupation.buildingType}
-              onChange={v => updateFormData('occupation', { buildingType: v })}
-              options={buildingOptions}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <SelectRow
+                label="Catégorie"
+                value={occupation.buildingType || 'Bureau/Administration'}
+                onChange={v => updateFormData('occupation', { buildingType: v })}
+                options={buildingOptions}
+              />
+              <FieldRow label="Nb d'occupants" unit="pers." value={occupation.occupants || 4} min={1} max={500} step={1} onChange={v => updateFormData('occupation', { occupants: v })} />
+              <FieldRow label="Horaires / Jour" unit="h/j" value={occupation.hoursPerDay || 8} min={1} max={24} step={0.5} onChange={v => updateFormData('occupation', { hoursPerDay: v })} />
+              <FieldRow label="Jours / Sem." unit="j/s" value={occupation.daysPerWeek || 5} min={1} max={7} step={1} onChange={v => updateFormData('occupation', { daysPerWeek: v })} />
+            </div>
           </section>
 
           {/* Réflectances */}

@@ -13,6 +13,13 @@ import ScreenContact from './components/ScreenContact';
 
 // Note : les moteurs de calcul sont utilisés directement dans SimulationDashboard
 
+const defaultValues = {
+  room: { length: 7.0, width: 6.0, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
+  occupation: { buildingType: 'Bureau/Administration', occupationType: 'Standard', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 },
+  luminaire: { type: 'LED_Philips_150x150', fluxPerUnit: 2250, powerPerUnit: 18 },
+  naturalLight: { hasWindows: true, orientation: 'Sud', windowArea: 5 },
+  location: { zone: 'Sud (Cotonou, Porto-Novo)' }
+};
 
 function MainApp() {
   // Navigation State
@@ -24,14 +31,33 @@ function MainApp() {
       projects,
       currentProject,
       setCurrentProject,
-      saveCurrentProject
+      saveCurrentProject,
+      saveStatus
   } = useProjectManager();
 
   const handleOpenProject = (project) => {
-      setCurrentProject(project);
+      // Fusion profonde pour éviter les propriétés nulles sur les anciens projets (ex: fenêtres grisées ou disparues)
+      const baseRoom = project.formData?.room || {};
+      const baseOccupation = project.formData?.occupation || {};
+      const baseLuminaire = project.formData?.luminaire || {};
+      const baseNaturalLight = project.formData?.naturalLight || {};
+      const baseLocation = project.formData?.location || {};
+
+      const fullProject = {
+          ...project,
+          formData: {
+            room: { ...defaultValues.room, ...baseRoom },
+            occupation: { ...defaultValues.occupation, ...baseOccupation },
+            luminaire: { ...defaultValues.luminaire, ...baseLuminaire },
+            naturalLight: { ...defaultValues.naturalLight, ...baseNaturalLight },
+            location: { ...defaultValues.location, ...baseLocation }
+          }
+      };
+      
+      setCurrentProject(fullProject);
       
       // If project has results already, go to simulation
-      if (project.results) {
+      if (fullProject.results) {
          setActiveScreen('simulation');
       } else {
          setActiveScreen('dimensions');
@@ -39,7 +65,9 @@ function MainApp() {
   };
 
   const handleTemplateSelect = (template) => {
-      setCurrentProject({ name: template.name, formData: template.formData });
+      // On s'assure d'avoir une base robuste même pour les templates
+      const mergedFormData = { ...JSON.parse(JSON.stringify(defaultValues)), ...template.formData };
+      setCurrentProject({ name: template.name, formData: mergedFormData });
       setActiveScreen('dimensions');
   };
 
@@ -47,14 +75,6 @@ function MainApp() {
 
 
   // State global pour les formulaires
-  const defaultValues = {
-    room: { length: 7.0, width: 6.0, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
-    occupation: { buildingType: 'Bureau/Administration', occupationType: 'Standard', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 },
-    luminaire: { type: 'LED_Philips_150x150', fluxPerUnit: 2250, powerPerUnit: 18 },
-    naturalLight: { hasWindows: true, orientation: 'Sud', windowArea: 5 },
-    location: { zone: 'Sud (Cotonou, Porto-Novo)' }
-  };
-
   const [formData, setFormData] = React.useState(defaultValues);
 
   React.useEffect(() => {
@@ -92,8 +112,14 @@ function MainApp() {
            <ScreenDimensions 
              formData={formData} 
              updateFormData={updateFormData} 
-             onNext={() => setActiveScreen('luminaires')} 
-             onPrev={() => setActiveScreen('projets')} 
+             onNext={() => {
+               saveCurrentProject({ formData });
+               setActiveScreen('luminaires');
+             }} 
+             onPrev={() => {
+               saveCurrentProject({ formData });
+               setActiveScreen('projets');
+             }} 
            />
          );
       case 'luminaires':
@@ -101,8 +127,14 @@ function MainApp() {
            <ScreenLuminaires 
              formData={formData} 
              updateFormData={updateFormData} 
-             onNext={() => setActiveScreen('naturel')} 
-             onPrev={() => setActiveScreen('dimensions')} 
+             onNext={() => {
+               saveCurrentProject({ formData });
+               setActiveScreen('naturel');
+             }} 
+             onPrev={() => {
+               saveCurrentProject({ formData });
+               setActiveScreen('dimensions');
+             }} 
            />
          );
       case 'naturel':
@@ -111,16 +143,13 @@ function MainApp() {
              formData={formData} 
              updateFormData={updateFormData} 
              onNext={() => {
-                // Sauvegarder et aller à la simulation
-                // On passe formData au projet courant pour persist
-                const projectToSave = {
-                   ...(currentProject || {}),
-                   formData: formData
-                };
-                setCurrentProject(projectToSave);
+                saveCurrentProject({ formData });
                 setActiveScreen('simulation');
              }} 
-             onPrev={() => setActiveScreen('luminaires')} 
+             onPrev={() => {
+                saveCurrentProject({ formData });
+                setActiveScreen('luminaires');
+             }} 
            />
          );
       case 'simulation':
@@ -136,7 +165,7 @@ function MainApp() {
            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#FFF' }}>
              <h2>Êtes-vous sûr de vouloir quitter ?</h2>
              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-               <button className="btn-secondary" onClick={() => setActiveScreen('projets')}>Annuler</button>
+               <button className="btn-secondary" onClick={() => setActiveScreen('projets')} style={{ background: '#2B2C35', border: 'none', padding: '0.875rem 2rem', color: '#fff', borderRadius: '8px', cursor: 'pointer' }}>Annuler</button>
                <button className="btn-primary" style={{ background: '#ef4444', border: 'none', padding: '0.875rem 2rem', color: '#fff', borderRadius: '8px', cursor: 'pointer' }} onClick={() => window.close()}>Confirmer</button>
              </div>
            </div>
@@ -152,7 +181,13 @@ function MainApp() {
 
   return (
     <div className="app-layout" style={{ display: 'flex', height: '100vh', width: '100vw', background: '#191A1E' }}>
-      <Sidebar activeScreen={activeScreen} setActiveScreen={setActiveScreen} />
+      <Sidebar 
+         activeScreen={activeScreen} 
+         setActiveScreen={setActiveScreen} 
+         currentProject={currentProject}
+         saveCurrentProject={() => saveCurrentProject({ formData })}
+         saveStatus={saveStatus}
+      />
       
       <div className="app-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
          {renderScreen()}

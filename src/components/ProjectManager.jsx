@@ -4,7 +4,7 @@ import {
   FolderPlus, FileJson, HardDrive, Search, Filter,
   MoreVertical, Copy, Edit2, Download, FileText, Trash2,
   FolderOpen, Calendar, MapPin, Zap, CheckCircle2, Clock,
-  AlertCircle, Lightbulb, ArrowRight
+  AlertCircle, Lightbulb, ArrowRight, Building, BookOpen, Store, Activity, Home, Users
 } from 'lucide-react';
 
 /* =====================================================
@@ -97,6 +97,8 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
   const [sortBy, setSortBy] = useState('Date modification');
   const [templates, setTemplates] = useState([]);
   const [storageInfo, setStorageInfo] = useState({ used: '0 Ko', total: '50 Mo', percent: '0%' });
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
 
   useEffect(() => {
     storageService.getAllTemplates().then(t => setTemplates(t || []));
@@ -132,6 +134,54 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: bg, overflowY: 'auto' }}>
 
+      {/* ══ MODAL NOUVEAU PROJET ══ */}
+      {showNewModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(25, 26, 30, 0.8)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#26272D', border: `1px solid ${border}`, borderRadius: '12px', padding: '2rem', width: '90%', maxWidth: '400px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', color: '#FFF' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Nouveau projet</h2>
+            <p style={{ color: '#A0A0A5', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Donnez un nom à votre projet pour l'identifier facilement.</p>
+            <input 
+              autoFocus
+              type="text" 
+              placeholder="Ex: Pharmacie Cotonou" 
+              value={newProjectName}
+              onChange={e => setNewProjectName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && newProjectName.trim()) {
+                  onOpenProject({ name: newProjectName, formData: {} });
+                  setShowNewModal(false);
+                  setNewProjectName('');
+                }
+                if (e.key === 'Escape') {
+                  setShowNewModal(false);
+                  setNewProjectName('');
+                }
+              }}
+              style={{ width: '100%', boxSizing: 'border-box', background: '#1E1F24', border: `1px solid ${border}`, color: '#FFF', padding: '0.875rem 1rem', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', marginBottom: '2rem' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+               <button 
+                 onClick={() => { setShowNewModal(false); setNewProjectName(''); }}
+                 style={{ background: 'transparent', border: 'none', color: '#A0A0A5', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', padding: '0.625rem 1rem' }}
+               >
+                 Annuler
+               </button>
+               <button 
+                 disabled={!newProjectName.trim()}
+                 onClick={() => {
+                   onOpenProject({ name: newProjectName, formData: {} });
+                   setShowNewModal(false);
+                   setNewProjectName('');
+                 }}
+                 style={{ background: '#5A84D5', border: 'none', color: '#FFF', fontWeight: 600, fontSize: '0.875rem', cursor: newProjectName.trim() ? 'pointer' : 'not-allowed', padding: '0.625rem 1.5rem', borderRadius: '8px', opacity: newProjectName.trim() ? 1 : 0.5 }}
+               >
+                 Créer
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ EN-TÊTE ══ */}
       <div style={{
         padding: '2rem 2.5rem 1.5rem',
@@ -161,7 +211,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
           </label>
 
           <button
-            onClick={() => onOpenProject({ name: 'Nouveau Projet', formData: {} })}
+            onClick={() => setShowNewModal(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               background: '#5A84D5', border: 'none', color: '#FFF',
@@ -241,7 +291,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
               Créez votre premier projet ou sélectionnez un modèle prédéfini ci-dessous.
             </p>
             <button
-              onClick={() => onOpenProject({ name: 'Nouveau Projet', formData: {} })}
+              onClick={() => setShowNewModal(true)}
               style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#5A84D5', border: 'none', color: '#FFF', padding: '0.675rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}
             >
               <FolderPlus size={17} /> Créer un projet
@@ -276,10 +326,10 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
             )) : (
               /* Modèles par défaut si pas encore chargés */
               [
-                { id: 'b', name: 'Bureau Standard', description: '7×6 m, 500 lux, LED', icon: '🏢' },
-                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: '📚' },
-                { id: 'c', name: 'Commerce', description: '10×8 m, 750 lux, dalles LED', icon: '🏪' },
-                { id: 'h', name: 'Hôpital', description: '6×5 m, 500 lux, IRC>90', icon: '🏥' },
+                { id: 'b', name: 'Bureau Standard', description: '7×6 m, 500 lux, LED', icon: <Building size={20} color="#FFB84D" /> },
+                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: <BookOpen size={20} color="#FFB84D" /> },
+                { id: 'c', name: 'Commerce', description: '10×8 m, 750 lux, dalles LED', icon: <Store size={20} color="#FFB84D" /> },
+                { id: 'h', name: 'Hôpital', description: '6×5 m, 500 lux, IRC>90', icon: <Activity size={20} color="#FFB84D" /> },
               ].map(tpl => (
                 <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: {} })} />
               ))
@@ -436,6 +486,18 @@ const menuItemStyle = {
 /* ── Carte Modèle ── */
 function TemplateCard({ template, onClick }) {
   const [hovered, setHovered] = useState(false);
+
+  const getDynamicIcon = (name) => {
+    const n = name.toLowerCase();
+    if (n.includes('classe') || n.includes('école')) return <BookOpen size={20} color="#FFB84D" />;
+    if (n.includes('bureau') || n.includes('open space')) return <Building size={20} color="#FFB84D" />;
+    if (n.includes('commerce') || n.includes('magasin')) return <Store size={20} color="#FFB84D" />;
+    if (n.includes('logement') || n.includes('résidentiel')) return <Home size={20} color="#FFB84D" />;
+    if (n.includes('réunion')) return <Users size={20} color="#FFB84D" />;
+    if (n.includes('hôpital') || n.includes('santé')) return <Activity size={20} color="#FFB84D" />;
+    return <Zap size={20} color="#FFB84D" />;
+  };
+
   return (
     <div
       onClick={onClick}
@@ -458,7 +520,7 @@ function TemplateCard({ template, onClick }) {
         transition: 'transform 0.2s',
         transform: hovered ? 'scale(1.1)' : 'scale(1)',
       }}>
-        {template.icon || <Zap size={20} color="#FFB84D" />}
+        {template.icon || getDynamicIcon(template.name || '')}
       </div>
       <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFF', marginBottom: '0.25rem' }}>
         {template.name}

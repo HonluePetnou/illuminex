@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Lightbulb, Folder, Layout, SunMedium, BarChart2,
-  Mail, Power, ChevronRight
+  Mail, Power, ChevronRight, Save, CheckCircle2, AlertCircle, Clock
 } from 'lucide-react';
 
 const SIDEBAR_WIDTH = '240px';
@@ -19,7 +19,7 @@ const menuItems = [
 /* Flow steps badges — pour montrer la progression */
 const FLOW_ORDER = ['dimensions', 'luminaires', 'naturel', 'simulation'];
 
-export default function Sidebar({ activeScreen, setActiveScreen }) {
+export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus }) {
   const flowIndex = FLOW_ORDER.indexOf(activeScreen);
 
   const renderGroup = (group, label) => {
@@ -115,6 +115,31 @@ export default function Sidebar({ activeScreen, setActiveScreen }) {
           </div>
         </div>
       </div>
+
+      {/* ── Action: Sauvegarde dynamique ── */}
+      {activeScreen !== 'projets' && activeScreen !== 'accueil' && currentProject && (
+        <div style={{ padding: '1rem 1.25rem 0' }}>
+           <button 
+             onClick={saveCurrentProject}
+             style={{
+               width: '100%', padding: '0.625rem', borderRadius: '8px', 
+               background: '#5A84D5', color: '#fff', border: 'none', 
+               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+               cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
+               boxShadow: '0 4px 12px rgba(90,132,213,0.3)', transition: 'background 0.2s'
+             }}
+             onMouseEnter={e => e.currentTarget.style.background = '#4A71C0'}
+             onMouseLeave={e => e.currentTarget.style.background = '#5A84D5'}
+           >
+             <Save size={16} /> Sauvegarder
+           </button>
+           <div style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.6875rem', color: saveStatus === 'saving' ? '#FFB84D' : saveStatus === 'saved' ? '#4ade80' : '#ef4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
+              {saveStatus === 'saving' && <><Clock size={12} /> Sauvegarde...</>}
+              {saveStatus === 'saved' && <><CheckCircle2 size={12} /> À jour dans la BDD</>}
+              {saveStatus === 'unsaved' && <><AlertCircle size={12} /> Non sauvegardé</>}
+           </div>
+        </div>
+      )}
 
       {/* ── Navigation ── */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0', display: 'flex', flexDirection: 'column' }}>

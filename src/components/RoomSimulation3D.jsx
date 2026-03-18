@@ -178,7 +178,7 @@ export default function RoomSimulation3D({
     }
 
     // Sun & Ambient
-    const sunObj = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 16), new THREE.MeshBasicMaterial({ color: 0xFFD700 }));
+    const sunObj = new THREE.Mesh(new THREE.SphereGeometry(Math.max(length, width) * 0.08, 16, 16), new THREE.MeshBasicMaterial({ color: 0xFFD700 }));
     scene.add(sunObj); sunObjRef.current = sunObj;
 
     const sunLight = new THREE.DirectionalLight(0xFFFFF0, 0);
@@ -288,7 +288,7 @@ export default function RoomSimulation3D({
     if (sunObjRef.current && sunLightRef.current && ambientLightRef.current) {
       const omega = (currentHour - 12) * 15 * Math.PI / 180;
       const elevation = Math.cos(omega) * Math.PI/2 * 0.8; 
-      const sunRad = Math.max(length, width) * 2;
+      const sunRad = Math.max(length, width) * 1.1;
       const sunX = centerX + sunRad * Math.cos(elevation) * Math.sin(omega);
       const sunY = sunRad * Math.sin(elevation);
       const sunZ = centerZ - sunRad * Math.cos(elevation) * Math.cos(omega);
