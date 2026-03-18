@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import CustomSlider from './CustomSlider';
 
 export default function ScreenDimensions({ onNext, onPrev }) {
+  const [reflectance, setReflectance] = useState({
+    Plafond: 70,
+    Murs: 50,
+    Sol: 20
+  });
+
   return (
     <div className="page-container" style={{ padding: '3rem', flex: 1, overflowY: 'auto' }}>
       
@@ -114,40 +121,25 @@ export default function ScreenDimensions({ onNext, onPrev }) {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {[
-              { label: 'Plafond', value: '70%', bounds: ['50%', '90%'], progress: 60 },
-              { label: 'Murs', value: '50%', bounds: ['20-80%', '20-60'], progress: 30 },
-              { label: 'Sol', value: '20%', bounds: ['10-40%', '10-40'], progress: 20 }
+              { label: 'Plafond', min: 50, max: 90, bounds: ['50%', '90%'] },
+              { label: 'Murs', min: 20, max: 80, bounds: ['20%', '80%'] },
+              { label: 'Sol', min: 10, max: 40, bounds: ['10%', '40%'] }
             ].map((item) => (
               <div key={item.label}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ color: '#FFF', fontSize: '1rem' }}>{item.label}</span>
-                  <div style={{ position: 'relative', width: '100px' }}>
-                    <select
-                      style={{
-                        width: '100%',
-                        background: '#2B2C35',
-                        border: '1px solid #363741',
-                        borderRadius: '6px',
-                        padding: '0.5rem',
-                        color: '#FFF',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        appearance: 'none',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <option>{item.value}</option>
-                    </select>
-                    <ChevronDown size={12} color="#FFF" style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                  <div style={{ position: 'relative', width: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#2B2C35', border: '1px solid #363741', borderRadius: '6px', padding: '0.5rem', color: '#FFF', fontSize: '0.875rem' }}>
+                    {reflectance[item.label]}%
                   </div>
                 </div>
-                {/* Custom slider with bounds labels */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <span style={{ color: '#7E7E86', fontSize: '0.75rem', minWidth: '40px' }}>{item.bounds[0]}</span>
-                  <div style={{ flex: 1, height: '4px', background: '#363741', borderRadius: '2px', position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${item.progress}%`, background: '#5A84D5', borderRadius: '2px' }}></div>
-                    <div style={{ position: 'absolute', left: `${item.progress}%`, top: '50%', transform: 'translate(-50%, -50%)', width: '12px', height: '12px', background: '#FFF', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 0 5px rgba(0,0,0,0.5)' }}></div>
-                  </div>
+                  <CustomSlider 
+                     value={reflectance[item.label]}
+                     min={item.min}
+                     max={item.max}
+                     onChange={(e) => setReflectance({ ...reflectance, [item.label]: Number(e.target.value) })}
+                  />
                   <span style={{ color: '#7E7E86', fontSize: '0.75rem', minWidth: '40px' }}>{item.bounds[1]}</span>
                 </div>
               </div>

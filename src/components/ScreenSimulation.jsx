@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, ChevronDown, Download, Grid, Eye, Maximize } from 'lucide-react';
+import CustomSlider from './CustomSlider';
 
 export default function ScreenSimulation({ onPrev }) {
+  const [transparency, setTransparency] = useState(35);
+
   return (
     <div className="page-container" style={{ padding: '2rem 3rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
@@ -53,10 +56,14 @@ export default function ScreenSimulation({ onPrev }) {
 
       <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2rem', alignItems: 'center' }}>
         <span style={{ color: '#A0A0A5', fontSize: '0.875rem' }}>Transparency</span>
-        <span style={{ color: '#FFF', fontSize: '0.875rem', fontWeight: 500 }}>35%</span>
-        <div style={{ width: '200px', height: '4px', background: '#363741', borderRadius: '2px', position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `35%`, background: '#FFB84D', borderRadius: '2px' }}></div>
-          <div style={{ position: 'absolute', left: `35%`, top: '50%', transform: 'translate(-50%, -50%)', width: '12px', height: '12px', background: '#FFB84D', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 0 10px rgba(255,184,77,0.5)' }}></div>
+        <span style={{ color: '#FFF', fontSize: '0.875rem', fontWeight: 500, minWidth: '40px' }}>{transparency}%</span>
+        <div style={{ width: '200px' }}>
+          <CustomSlider 
+            value={transparency} 
+            min={0} max={100} 
+            onChange={(e) => setTransparency(Number(e.target.value))} 
+            color="#FFB84D" 
+          />
         </div>
       </div>
 

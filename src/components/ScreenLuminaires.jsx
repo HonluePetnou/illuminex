@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { Search, ChevronDown, Filter, LayoutGrid, List } from 'lucide-react';
+import CustomSlider from './CustomSlider';
 
 export default function ScreenLuminaires({ onNext }) {
   const [selectedCards, setSelectedCards] = useState([true, true, true]);
+  const [filters, setFilters] = useState({
+    flux: 7300, watt: 25, temp: 3500, irc: 85, fluxContext: 6500
+  });
 
   const cards = [
     { id: 1, title: 'LED_Philips_150x150', lm: '2250 lm', w: '18 W', eff: '125 lm/W', tc: '4000 K', irc: '>80' },
@@ -65,22 +69,23 @@ export default function ScreenLuminaires({ onNext }) {
           </div>
 
           {[
-            { label: 'Flux lumineux (lm)', min: '1000 lm', max: '10000 lm', val: 70 },
-            { label: 'W', min: '10-40 V', max: '40 W', val: 40 },
-            { label: 'Temperature colorée (K)', min: '2700 6300 K', max: '3000-4000 K', val: 60 },
-            { label: 'IRC', min: '801 x 150 >', max: '90 >', val: 50 }
-          ].map((item, idx) => (
-            <div key={idx}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            { id: 'flux', label: 'Flux lumineux (lm)', minText: '1000 lm', maxText: '10000 lm', minVal: 1000, maxVal: 10000 },
+            { id: 'watt', label: 'W', minText: '10 W', maxText: '40 W', minVal: 10, maxVal: 40 },
+            { id: 'temp', label: 'Temperature colorée (K)', minText: '2700 K', maxText: '6000 K', minVal: 2700, maxVal: 6000 },
+            { id: 'irc', label: 'IRC', minText: '70', maxText: '100', minVal: 70, maxVal: 100 }
+          ].map((item) => (
+            <div key={item.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                 <span style={{ color: '#FFF', fontSize: '1rem' }}>{item.label}</span>
+                <span style={{ color: '#A0A0A5', fontSize: '0.875rem' }}>{filters[item.id]}</span>
               </div>
-              <div style={{ width: '100%', height: '4px', background: '#363741', borderRadius: '2px', position: 'relative', marginBottom: '0.5rem' }}>
-                <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${item.val}%`, background: '#5A84D5', borderRadius: '2px' }}></div>
-                <div style={{ position: 'absolute', left: `${item.val}%`, top: '50%', transform: 'translate(-50%, -50%)', width: '12px', height: '12px', background: '#FFF', borderRadius: '50%', cursor: 'pointer', boxShadow: '0 0 5px rgba(0,0,0,0.5)' }}></div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#7E7E86', fontSize: '0.75rem' }}>{item.min}</span>
-                <span style={{ color: '#7E7E86', fontSize: '0.75rem' }}>{item.max}</span>
+              <CustomSlider 
+                 value={filters[item.id]} min={item.minVal} max={item.maxVal} 
+                 onChange={(e) => setFilters(prev => ({ ...prev, [item.id]: Number(e.target.value) }))} 
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                <span style={{ color: '#7E7E86', fontSize: '0.75rem' }}>{item.minText}</span>
+                <span style={{ color: '#7E7E86', fontSize: '0.75rem' }}>{item.maxText}</span>
               </div>
             </div>
           ))}
@@ -138,12 +143,12 @@ export default function ScreenLuminaires({ onNext }) {
           <div style={{ width: '100%', maxWidth: '500px', marginBottom: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <span style={{ color: '#FFF', fontSize: '0.875rem' }}>Flux lumineux (lm)</span>
-              <span style={{ color: '#A0A0A5', fontSize: '0.875rem' }}>10000 lm</span>
+              <span style={{ color: '#A0A0A5', fontSize: '0.875rem' }}>{filters.fluxContext} lm</span>
             </div>
-            <div style={{ width: '100%', height: '4px', background: '#363741', borderRadius: '2px', position: 'relative' }}>
-              <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `100%`, background: '#5A84D5', borderRadius: '2px' }}></div>
-              <div style={{ position: 'absolute', left: `100%`, top: '50%', transform: 'translate(-50%, -50%)', width: '12px', height: '12px', background: '#FFF', borderRadius: '50%', cursor: 'pointer' }}></div>
-            </div>
+            <CustomSlider
+               value={filters.fluxContext} min={1000} max={10000}
+               onChange={(e) => setFilters(prev => ({ ...prev, fluxContext: Number(e.target.value) }))}
+            />
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
