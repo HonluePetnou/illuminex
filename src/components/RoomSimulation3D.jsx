@@ -81,8 +81,8 @@ export default function RoomSimulation3D({
     if (!containerRef.current) return;
     
     const container = containerRef.current;
-    const containerW = container.clientWidth;
-    const containerH = container.clientHeight || 500;
+    const containerW = container.clientWidth || container.offsetWidth || 600;
+    const containerH = container.clientHeight || container.offsetHeight || 500;
     
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(containerW, containerH);
@@ -105,10 +105,15 @@ export default function RoomSimulation3D({
 
     // Floor
     const floorGeo = new THREE.PlaneGeometry(length, width);
-    const floorMat = new THREE.MeshLambertMaterial({ color: 0xD4C5A9 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.set(centerX, 0, centerZ); floor.receiveShadow = true;
     scene.add(floor);
+
+    // Lignes de contour du sol
+    const floorEdges = new THREE.LineSegments(new THREE.EdgesGeometry(floorGeo), new THREE.LineBasicMaterial({ color: 0x8B5CF6, opacity: 0.6, transparent: true }));
+    floorEdges.rotation.x = -Math.PI / 2; floorEdges.position.set(centerX, 0.01, centerZ);
+    scene.add(floorEdges);
 
     // Work Plane
     const workGeo = new THREE.PlaneGeometry(length, width);
@@ -118,7 +123,7 @@ export default function RoomSimulation3D({
     scene.add(workPlane);
 
     // Walls
-    const wallMat = new THREE.MeshLambertMaterial({ color: 0xF5F5F0, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
     const wallPts = [
       { p: [centerX, ceilingHeight / 2, 0], r: [0,0,0], s: [length, ceilingHeight] }, // Back
       { p: [centerX, ceilingHeight / 2, width], r: [0,0,0], s: [length, ceilingHeight] }, // Front
@@ -126,14 +131,19 @@ export default function RoomSimulation3D({
       { p: [length, ceilingHeight / 2, centerZ], r: [0,Math.PI/2,0], s: [width, ceilingHeight] }, // Right
     ];
     wallPts.forEach(w => {
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w.s[0], w.s[1]), wallMat);
+      const g = new THREE.PlaneGeometry(w.s[0], w.s[1]);
+      const mesh = new THREE.Mesh(g, wallMat);
       mesh.position.set(...w.p); mesh.rotation.set(...w.r); mesh.receiveShadow = true;
       scene.add(mesh);
+      
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({ color: 0x5A84D5, opacity: 0.9, transparent: true }));
+      edges.position.set(...w.p); edges.rotation.set(...w.r);
+      scene.add(edges);
     });
 
     // Ceiling
     const ceilGeo = new THREE.PlaneGeometry(length, width);
-    const ceilMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+    const ceilMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false });
     const ceiling = new THREE.Mesh(ceilGeo, ceilMat);
     ceiling.rotation.x = Math.PI / 2; ceiling.position.set(centerX, ceilingHeight, centerZ); ceiling.visible = showCeiling;
     ceilingRef.current = ceiling; scene.add(ceiling);
@@ -151,7 +161,7 @@ export default function RoomSimulation3D({
       panel.position.y = -0.026; panel.rotation.x = Math.PI / 2; group.add(panel);
 
       const light = new THREE.PointLight(0xFFF8DC, 0, Math.sqrt(fluxPerUnit) * 1.5, 2);
-      light.position.y = -0.1; light.castShadow = showShadows;
+      light.position.y = -0.1; light.castShadow = false; // Désactivé pour éviter le crash MAX_TEXTURE_IMAGE_UNITS (>16 lampes)
       light.shadow.mapSize.width = 512; light.shadow.mapSize.height = 512; light.shadow.bias = -0.001; 
       group.add(light);
 
@@ -166,7 +176,7 @@ export default function RoomSimulation3D({
       const windowH = windowArea / windowW;
       
       const winGeo = new THREE.PlaneGeometry(windowW, windowH);
-      const winMat = new THREE.MeshBasicMaterial({ color: 0x87CEEB, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+      const winMat = new THREE.MeshStandardMaterial({ color: 0x3B82F6, transparent: true, opacity: 0.65, side: THREE.DoubleSide, depthWrite: false });
       const windowMesh = new THREE.Mesh(winGeo, winMat);
       
       const wy = workPlaneHeight + windowH/2;
@@ -175,6 +185,10 @@ export default function RoomSimulation3D({
       else if (orientation === 'Est') { windowMesh.position.set(length - 0.01, wy, centerZ); windowMesh.rotation.y = Math.PI / 2; }
       else if (orientation === 'Ouest') { windowMesh.position.set(0.01, wy, centerZ); windowMesh.rotation.y = Math.PI / 2; }
       scene.add(windowMesh);
+
+      const winEdges = new THREE.LineSegments(new THREE.EdgesGeometry(winGeo), new THREE.LineBasicMaterial({ color: 0x60A5FA, opacity: 0.7, transparent: true, linewidth: 2 }));
+      winEdges.position.copy(windowMesh.position); winEdges.rotation.copy(windowMesh.rotation);
+      scene.add(winEdges);
     }
 
     // Sun & Ambient
@@ -201,8 +215,8 @@ export default function RoomSimulation3D({
       for (let z = 0; z < segCountZ; z++) {
         const segCenterMx = x * segW + segW/2; const segCenterMz = z * segZ + segZ/2;
         const hmPlane = new THREE.Mesh(
-          new THREE.PlaneGeometry(segW, segZ),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+          new THREE.PlaneGeometry(segW * 0.9, segZ * 0.9),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, side: THREE.DoubleSide, depthWrite: false })
         );
         hmPlane.rotation.x = -Math.PI / 2; hmPlane.position.set(segCenterMx, 0.02, segCenterMz);
         scene.add(hmPlane);
@@ -210,11 +224,17 @@ export default function RoomSimulation3D({
       }
     }
 
-    const onResize = () => {
-      const cw = container.clientWidth; const ch = container.clientHeight || 500;
-      renderer.setSize(cw, ch); camera.aspect = cw / ch; camera.updateProjectionMatrix();
-    };
-    window.addEventListener('resize', onResize);
+    const observer = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        if (!rendererRef.current || !cameraRef.current) return;
+        const cw = container.clientWidth || container.offsetWidth || 600;
+        const ch = container.clientHeight || container.offsetHeight || 500;
+        rendererRef.current.setSize(cw, ch);
+        cameraRef.current.aspect = cw / ch;
+        cameraRef.current.updateProjectionMatrix();
+      });
+    });
+    observer.observe(container);
 
     updateCameraMath();
 
@@ -225,7 +245,7 @@ export default function RoomSimulation3D({
     animate();
 
     return () => {
-      window.removeEventListener('resize', onResize);
+      observer.disconnect();
       if (reqAnimRef.current) cancelAnimationFrame(reqAnimRef.current);
       if (rendererRef.current) { container.removeChild(rendererRef.current.domElement); rendererRef.current.dispose(); }
       scene.traverse(obj => { if (obj.geometry) obj.geometry.dispose(); if (obj.material) obj.material.dispose(); });
@@ -336,6 +356,7 @@ export default function RoomSimulation3D({
 
     if (ceilingRef.current) ceilingRef.current.visible = showCeiling;
     if (rendererRef.current) rendererRef.current.shadowMap.enabled = showShadows;
+    if (sunLightRef.current) sunLightRef.current.castShadow = showShadows;
   }, [currentHour, showHeatmap, showCeiling, showShadows, getActiveProfileAtHour, centerX, centerZ, positions, fluxPerUnit, E_required, ceilingHeight, length, width]);
 
   useEffect(() => {
@@ -444,7 +465,7 @@ export default function RoomSimulation3D({
         <div 
           ref={containerRef}
           onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp} onWheel={onWheel}
-          style={{ flex: 1, minWidth: '300px', background: '#000', cursor: isDraggingRef.current ? 'grabbing' : 'grab', touchAction: 'none', position: 'relative' }}
+          style={{ flex: 1, minHeight: '500px', height: '500px', background: '#1a1a2e', position: 'relative', overflow: 'hidden', cursor: isDraggingRef.current ? 'grabbing' : 'grab', touchAction: 'none' }}
         >
            <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.625rem', color: 'rgba(255,255,255,0.7)', pointerEvents: 'none' }}>
              Glissez pour tourner | Molette pour zoom

@@ -301,7 +301,25 @@ export default function RoomSimulation2D({
     getActiveProfileAtHour, formData, E_required, fluxPerUnit, N_total
   ]);
 
-  useEffect(() => { drawSimulation(); }, [drawSimulation]);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      window.requestAnimationFrame(() => {
+        drawSimulation();
+      });
+    });
+    observer.observe(container);
+
+    // Premier appel manuel après un tick pour laisser le DOM se stabiliser
+    const timeout = setTimeout(() => drawSimulation(), 50);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, [drawSimulation]);
 
   useEffect(() => {
     if (isPlaying) {
@@ -413,7 +431,7 @@ export default function RoomSimulation2D({
         </div>
 
         {/* ── Canvas ── */}
-        <div ref={containerRef} style={{ flex: 1, minWidth: '300px', background: '#111216', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', position: 'relative' }}>
+        <div ref={containerRef} style={{ flex: 1, minWidth: '300px', minHeight: '500px', background: '#111216', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', position: 'relative' }}>
            <canvas ref={canvasRef} style={{ maxWidth: '100%', borderRadius: '8px', border: `1px solid ${C.border}`, background: '#1A1B20', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }} />
         </div>
 

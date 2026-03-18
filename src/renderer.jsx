@@ -13,6 +13,15 @@ import ScreenContact from './components/ScreenContact';
 
 // Note : les moteurs de calcul sont utilisés directement dans SimulationDashboard
 
+// Ignore ResizeObserver loop errors (harmless visual rendering loop messages in dev overlay)
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', e => {
+    if (e.message === 'ResizeObserver loop limit exceeded' || e.message === 'ResizeObserver loop completed with undelivered notifications.') {
+      e.stopImmediatePropagation();
+    }
+  });
+}
+
 const defaultValues = {
   room: { length: 7.0, width: 6.0, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
   occupation: { buildingType: 'Bureau/Administration', occupationType: 'Standard', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 },
