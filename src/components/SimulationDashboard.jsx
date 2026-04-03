@@ -6,61 +6,117 @@ import { calculateLighting } from '../utils/calculateLighting';
 import { calculateUniformity } from '../utils/calculateUniformity';
 import { calculateClimateAdjustment } from '../utils/calculateClimateAdjustment';
 import { calculateUsageProfile } from '../utils/calculateUsageProfile';
-import { Download, Layers, Box, Tag, Zap, AlertTriangle, CheckCircle, ArrowLeft, ArrowRight, Activity } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LayoutGrid, AlertTriangle, Eye, Sun, Download, Search, Check, FileText } from 'lucide-react';
 
 const C = {
-  bg: '#1A1D2E',
-  surface: 'rgba(30,34,55,0.85)',
-  surface2: 'rgba(255,255,255,0.04)',
-  border: 'rgba(255,255,255,0.06)',
-  primary: '#3B82F6',
-  accent: '#F0A500',
-  text: '#fff',
-  muted: '#94A3B8',
-  dim: '#64748B',
+  bg: '#1C1D24',
+  surface: '#23242B',
+  surface2: '#2B2C35',
+  border: '#3A3A44',
+  primary: '#5A84D5',
+  accent: '#FFB84D',
+  text: '#FFFFFF',
+  muted: '#A0A0A5',
+  dim: '#6D6D78',
+  input: '#15151B',
 };
 
-const S = {
-  page: { flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', padding: '1.5rem 2rem', gap: '1.5rem', background: C.bg },
-  headerCard: { background: 'rgba(26,29,46,0.95)', border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: '1.5rem', fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0 },
-  subtitle: { color: C.muted, fontSize: '0.875rem', marginTop: '0.375rem' },
-  grid: { display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', flex: 1 },
-  tabs: { display: 'flex', gap: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.375rem', borderRadius: '12px', border: `1px solid ${C.border}`, alignSelf: 'flex-start', marginBottom: '1rem' },
-  tabActive2d: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: 'rgba(255,255,255,0.1)', color: C.text, border: 'none', transition: 'all 0.2s' },
-  tabActive3d: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', background: C.primary, color: C.text, border: 'none', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' },
-  tabInactive: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.5rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer', background: 'transparent', color: C.muted, border: 'none', transition: 'all 0.2s' },
-  kpiGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' },
-  kpiCard: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '1rem' },
-  kpiLabel: { fontSize: '0.75rem', color: C.muted, marginBottom: '0.25rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  kpiValue: { fontSize: '1.75rem', fontWeight: 800, color: C.text },
-  recCard: { background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' },
-  recHeader: { background: 'rgba(59,130,246,0.1)', borderBottom: `1px solid rgba(59,130,246,0.2)`, padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' },
-  recBody: { padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', maxHeight: '300px' },
-};
+// False Color Lux Scale Component
+function FalseColorScale({ minVal, maxVal, onChange }) {
+  const scale = [
+    { v: 0.1,  c: '#000000', t: '#fff' },
+    { v: 0.2,  c: '#1a0519', t: '#aaa' },
+    { v: 0.3,  c: '#340a33', t: '#aaa' },
+    { v: 0.5,  c: '#4b0082', t: '#aaa' },
+    { v: 0.75, c: '#8a2be2', t: '#fff' },
+    { v: 1.0,  c: '#0000ff', t: '#fff' },
+    { v: 3.0,  c: '#1e90ff', t: '#fff' },
+    { v: 5.0,  c: '#00bfff', t: '#000' },
+    { v: 7.5,  c: '#00ffff', t: '#000' },
+    { v: 10,   c: '#40e0d0', t: '#000' },
+    { v: 20,   c: '#00fa9a', t: '#000' },
+    { v: 30,   c: '#00ff00', t: '#000' },
+    { v: 50,   c: '#adff2f', t: '#000' },
+    { v: 75,   c: '#ffff00', t: '#000' },
+    { v: 100,  c: '#ffd700', t: '#000' },
+    { v: 200,  c: '#ffa500', t: '#000' },
+    { v: 300,  c: '#ff4500', t: '#fff' },
+    { v: 500,  c: '#ff0000', t: '#fff' },
+    { v: 750,  c: '#b22222', t: '#fff' },
+    { v: 1000, c: '#8b0000', t: '#fff' },
+    { v: 2000, c: '#a52a2a', t: '#fff' },
+    { v: 3000, c: '#d2691e', t: '#fff' },
+    { v: 5000, c: '#ff8c00', t: '#fff' },
+    { v: 10000, c: '#ffb6c1', t: '#000' },
+    { v: 15000, c: '#ffffff', t: '#000' }
+  ];
+
+  const handleIndex = scale.findIndex(s => s.v >= maxVal);
+  const safeIndex = handleIndex === -1 ? scale.length - 1 : handleIndex;
+
+  return (
+    <div style={{ position: 'relative', width: '100%', padding: '20px 0 10px', userSelect: 'none' }}>
+      {/* Slider Inputs Wrapper */}
+      <div style={{ position: 'relative', height: '24px', display: 'flex' }}>
+         {scale.map((item, idx) => (
+            <div 
+              key={item.v} 
+              style={{ 
+                flex: 1, 
+                background: item.c, 
+                color: item.t,
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                fontSize: '0.625rem',
+                fontWeight: 600,
+                borderRight: '1px solid rgba(255,255,255,0.1)',
+                opacity: idx > safeIndex ? 0.3 : 1, // Visual indication of filtered range
+                transition: 'opacity 0.2s',
+                cursor: 'pointer'
+              }}
+              onClick={() => onChange(item.v)}
+            >
+              {item.v >= 1000 ? (item.v/1000 + 'k') : item.v}
+            </div>
+         ))}
+      </div>
+
+      {/* Floating Value Markers */}
+      <div style={{ 
+        position: 'absolute', top: 0, 
+        left: 'calc(' + ((safeIndex / scale.length) * 100) + '% + ' + (50 / scale.length) + '%)',
+        transform: 'translateX(-50%)',
+        background: '#333', border: '1px solid #666', color: '#fff',
+        padding: '2px 6px', fontSize: '0.6875rem', borderRadius: '4px',
+        pointerEvents: 'none', transition: 'left 0.2s'
+      }}>
+         {scale[safeIndex].v}
+         <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #666' }} />
+      </div>
+    </div>
+  );
+}
 
 export default function SimulationDashboard({ project, onNext, onPrev }) {
-  const [viewMode, setViewMode] = useState('3d');
+  const [viewMode, setViewMode] = useState('2d');
   
-  // === Calcul à la volée dès que formData change ===
   const [computedResults, setComputedResults] = React.useState(null);
   const [reportData, setReportData] = React.useState(null);
   const [calcError, setCalcError] = React.useState(null);
+  const [luxLimit, setLuxLimit] = useState(3000);
 
   React.useEffect(() => {
     if (project && project.formData) {
       try {
         const formData = project.formData;
-        
         const lighting   = calculateLighting(formData);
         const climate    = calculateClimateAdjustment(formData, lighting);
         const uniformity = calculateUniformity(formData, lighting);
         const usage      = calculateUsageProfile(formData, lighting, climate);
         
         const results = {
-          lighting,
-          uniformity,
-          climate,
+          lighting, uniformity, climate,
           naturalLight: climate?.naturalLight || { solar: {}, hourlyProfile: {}, summary: {} },
           usage
         };
@@ -75,205 +131,154 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
     }
   }, [project]);
 
-  // === État de chargement / erreur ===
   if (!project || !project.formData) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.muted, padding: '2rem', background: C.bg }}>
-        <Zap size={64} style={{ marginBottom: '1rem', color: C.accent, opacity: 0.5 }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text, marginBottom: '0.5rem' }}>Aucune Simulation Disponible</h2>
-        <p>Complétez les étapes de configuration puis revenez ici.</p>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.muted, background: C.bg }}>
+        <h2 style={{ color: C.text }}>Aucune Simulation Disponible</h2>
       </div>
     );
   }
 
   if (calcError) {
     return (
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.muted, padding: '2rem', background: C.bg }}>
-        <AlertTriangle size={64} style={{ marginBottom: '1rem', color: '#ef4444', opacity: 0.8 }} />
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ef4444', marginBottom: '0.5rem' }}>Erreur de Calcul</h2>
-        <p style={{ maxWidth: '500px', textAlign: 'center', fontSize: '0.875rem' }}>{calcError}</p>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: C.dim }}>Vérifiez les valeurs saisies (ex : dimensions non nulles, luminaire sélectionné).</p>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ef4444', background: C.bg }}>
+        <AlertTriangle size={64} style={{ marginBottom: '1rem', opacity: 0.8 }} />
+        <h2>Erreur de Calcul</h2>
+        <p>{calcError}</p>
       </div>
     );
   }
 
   if (!computedResults) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, background: C.bg }}>
-        Calcul de la trame 3D en cours...
-      </div>
-    );
+    return <div style={{ flex: 1, background: C.bg }} />;
   }
 
   const { formData } = project;
   const results = computedResults;
-  const recs = reportData?.recommendations || [];
+
+  // Generate dynamic data for graph based on lighting result and natural light savings
+  const avgLux = results.lighting?.E_average || 500;
+  const savings = results.climate?.savings?.savingsPercent || 0;
+  
+  const mockGraphData = Array(12).fill(0).map((_, i) => {
+    // A simple sine wave simulation over the day (6am to 6pm)
+    // with some random noise based on the computed average and savings
+    const baseLight = avgLux * 0.5; // Always on base light
+    const natLightCurve = Math.sin((i / 11) * Math.PI); // 0 to 1 curve
+    const noise = (Math.random() - 0.5) * 50;
+    return baseLight + (natLightCurve * avgLux * (savings / 100)) + noise;
+  });
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.bg, overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.bg, overflow: 'hidden', color: C.text, fontFamily: 'Inter, sans-serif' }}>
       
-      {/* ---- EN-TÊTE ---- */}
-      <div style={{
-        padding: '1.25rem 2rem 1rem', borderBottom: `1px solid ${C.border}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(26,29,46,0.95)'
-      }}>
-        <div>
-          <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: C.text, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-            <Activity size={24} color={C.accent} />
-            Visualisation 3D — {project.name || 'Projet Actuel'}
-          </h1>
-          <p style={S.subtitle}>
-            Bâtiment : <strong style={{ color: '#FFF' }}>{formData.occupation?.buildingType || 'Non défini'}</strong>
-            &nbsp;|&nbsp;
-            Zone : <strong style={{ color: '#FFF' }}>{formData.location?.city} ({formData.location?.country})</strong>
-            &nbsp;|&nbsp;
-            Dimensions : <strong style={{ color: '#FFF' }}>{formData.room?.length} × {formData.room?.width} m</strong>
-          </p>
-        </div>
-      </div>
-
-      {/* ---- GRILLE PRINCIPALE ---- */}
-      <div style={{ flex: 1, display: 'flex', padding: '1.5rem 2rem', gap: '1.5rem', overflowY: 'auto' }}>
-
-        {/* — COLONNE GAUCHE/CENTRE : Simulateurs — */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 2 }}>
-          
-          {/* Onglets 2D / 3D */}
-          <div style={S.tabs}>
-            <button
-              onClick={() => setViewMode('2d')}
-              style={viewMode === '2d' ? S.tabActive2d : S.tabInactive}
-              onMouseEnter={e => { if(viewMode!=='2d') e.currentTarget.style.color = C.text }}
-              onMouseLeave={e => { if(viewMode!=='2d') e.currentTarget.style.color = C.muted }}
-            >
-              <Layers size={16} /> Mode Plan 2D
-            </button>
-            <button
-              onClick={() => setViewMode('3d')}
-              style={viewMode === '3d' ? S.tabActive3d : S.tabInactive}
-              onMouseEnter={e => { if(viewMode!=='3d') e.currentTarget.style.color = C.text }}
-              onMouseLeave={e => { if(viewMode!=='3d') e.currentTarget.style.color = C.muted }}
-            >
-              <Box size={16} /> Visite 3D Interactive
-            </button>
-          </div>
-
-          {/* Composant de simulation */}
-          <div style={{ flex: 1, background: '#000', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${C.border}` }}>
-            {viewMode === '2d' ? (
-              <RoomSimulation2D
-                formData={formData}
-                lightingResult={results.lighting}
-                uniformityResult={results.uniformity}
-                climateResult={results.climate}
-                naturalLightResult={results.naturalLight}
-                usageResult={results.usage}
-              />
-            ) : (
-              <RoomSimulation3D
-                formData={formData}
-                lightingResult={results.lighting}
-                uniformityResult={results.uniformity}
-                climateResult={results.climate}
-                naturalLightResult={results.naturalLight}
-                usageResult={results.usage}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* — COLONNE DROITE : KPI + Recommandations — */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
-
-          {/* KPI Cards */}
-          <div style={S.kpiGrid}>
-            <div style={S.kpiCard}>
-              <div style={S.kpiLabel}>Nombre de Luminaires</div>
-              <div style={S.kpiValue}>{Math.round(results.lighting?.N || 0)}</div>
-            </div>
-            <div style={S.kpiCard}>
-              <div style={S.kpiLabel}>Éclairement Cible</div>
-              <div style={{ ...S.kpiValue, color: C.primary }}>{Math.round(results.lighting?.E_required || 0)} <span style={{fontSize:'1rem'}}>lx</span></div>
-            </div>
-            <div style={S.kpiCard}>
-              <div style={S.kpiLabel}>Uniformité (U0)</div>
-              <div style={{ ...S.kpiValue, color: (results.uniformity?.U0 || 0) >= 0.7 ? '#22c55e' : '#f59e0b' }}>
-                {(results.uniformity?.U0 || 0).toFixed(2)}
-              </div>
-            </div>
-            <div style={{ ...S.kpiCard, borderBottom: '2px solid #22c55e' }}>
-              <div style={S.kpiLabel}>Apport Lumière Nat.</div>
-              <div style={{ ...S.kpiValue, color: '#22c55e' }}>
-                {(results.climate?.savings?.savingsPercent || 0).toFixed(1)} <span style={{fontSize:'1rem'}}>%</span>
-              </div>
-            </div>
-            <div style={{ ...S.kpiCard, gridColumn: 'span 2', background: 'rgba(0,0,0,0.2)' }}>
-              <div style={S.kpiLabel}>Puissance Totale Installée</div>
-              <div style={{ ...S.kpiValue, fontSize: '1.5rem', color: C.accent }}>
-                {Math.round(results.lighting?.totalPower || 0)} <span style={{fontSize:'1rem'}}>W</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recommandations automatiques */}
-          <div style={S.recCard}>
-            <div style={S.recHeader}>
-              <Tag size={18} style={{ color: C.primary }} />
-              <h3 style={{ fontWeight: 700, color: C.text, margin: 0, fontSize: '0.9375rem' }}>Aperçu & Recommandations</h3>
-            </div>
-            <div style={S.recBody}>
-              {recs.length === 0 ? (
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: 'rgba(34,197,94,0.1)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', fontSize: '0.875rem' }}>
-                  <CheckCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>L'installation semble parfaitement dimensionnée. Aucune recommandation d'alerte spécifique.</div>
-                </div>
-              ) : (
-                recs.map((rec, i) => {
-                  const isAlert = rec.toLowerCase().includes('insuffisant') || rec.toLowerCase().includes('trop grand') || rec.toLowerCase().includes('faible') || rec.toLowerCase().includes('incertain');
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                        background: isAlert ? 'rgba(240,165,0,0.1)' : 'rgba(59,130,246,0.1)',
-                        border: `1px solid ${isAlert ? 'rgba(240,165,0,0.3)' : 'rgba(59,130,246,0.3)'}`,
-                        borderRadius: '10px', padding: '1rem',
-                        color: isAlert ? '#FDE68A' : '#BFDBFE',
-                        fontSize: '0.875rem', lineHeight: '1.5'
-                      }}
-                    >
-                      {isAlert
-                        ? <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px', color: C.accent }} />
-                        : <CheckCircle size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#93C5FD' }} />
-                      }
-                      <div style={{ color: '#fff' }}>{rec}</div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Pied de page ── */}
-      <div style={{ padding: '1rem 2rem', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(26,29,46,0.98)' }}>
-        <div style={{ fontSize: '0.875rem', color: C.muted }}>
-          Étape 5/7 — 3D Viewer Interactive
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={onPrev} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.text, padding: '0.75rem 1.75rem', borderRadius: '10px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-          >
-            ← Éclairage Naturel
+      {/* Top Context Header (matches Screenshot 3 header) */}
+      <div style={{ padding: '1.5rem 3rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: C.muted, fontSize: '0.875rem' }}>
+          <button onClick={onPrev} style={{ background: 'transparent', border: 'none', color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+            <ArrowLeft size={16} />
           </button>
-          <button onClick={onNext} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', border: 'none', color: '#FFF', padding: '0.75rem 2.25rem', borderRadius: '10px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(59,130,246,0.4)', transition: 'filter 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.15)'}
-            onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+          <span>Simulation d'éclairage de salle</span>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+           <button style={{ background: C.surface, border: `1px solid ${C.border}`, padding: '0.5rem 1rem', borderRadius: '6px', color: C.text, fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Eye size={14} /> Filtres
+           </button>
+           <button style={{ background: C.surface, border: `1px solid ${C.border}`, padding: '0.5rem 1rem', borderRadius: '6px', color: C.text, fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={14} /> Plans
+           </button>
+        </div>
+      </div>
+
+      {/* Main Grid Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 3rem' }}>
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Top Area: Room View (Full Width) */}
+            <div className="animate-scale-in" style={{ animationDelay: '0.1s', opacity: 0, width: '100%', minHeight: '650px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+               
+               {/* Internal top toolbar */}
+               <div style={{ padding: '1rem', display: 'flex', gap: '1rem', borderBottom: `1px solid ${C.border}`, background: C.surface2, alignItems: 'center', position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+                  <div style={{ display: 'flex', background: C.input, borderRadius: '4px', padding: '2px' }}>
+                    <button onClick={() => setViewMode('2d')} style={{ background: viewMode === '2d' ? C.primary : 'transparent', color: viewMode === '2d' ? '#FFF' : C.dim, border: 'none', padding: '4px 12px', borderRadius: '2px', fontSize: '0.6875rem', cursor: 'pointer', fontWeight: 600 }}>2D</button>
+                    <button onClick={() => setViewMode('3d')} style={{ background: viewMode === '3d' ? C.primary : 'transparent', color: viewMode === '3d' ? '#FFF' : C.dim, border: 'none', padding: '4px 12px', borderRadius: '2px', fontSize: '0.6875rem', cursor: 'pointer', fontWeight: 600 }}>3D</button>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: C.muted, marginLeft: 'auto' }}>Aperçu avec grille des lux</span>
+               </div>
+
+               <div style={{ flex: 1, position: 'relative', marginTop: '55px', display: 'flex' }}>
+                  {viewMode === '2d' ? (
+                     <RoomSimulation2D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} luxLimit={luxLimit} />
+                  ) : (
+                     <RoomSimulation3D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} />
+                  )}
+               </div>
+            </div>
+
+            {/* Middle Configuration/KPI Panel (Horizontal) */}
+            <div className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
+               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text, margin: '0 0 1rem' }}>Détails (KPIs)</h3>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                     <div style={{ flex: 1, minWidth: '180px', background: C.surface2, border: `1px solid ${C.border}`, padding: '1.25rem', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.6875rem', color: C.dim, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Indice d'Éblouissement UGR</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>13 <span style={{fontSize:'0.8125rem', color:C.muted}}>UGR</span></div>
+                     </div>
+                     <div style={{ flex: 1, minWidth: '180px', background: C.surface2, border: `1px solid ${C.border}`, padding: '1.25rem', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.6875rem', color: C.dim, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Efficacité Énergétique LPD</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>{((results.lighting?.totalPower || 0)/((formData?.room?.length || 1) * (formData?.room?.width || 1))).toFixed(1)} <span style={{fontSize:'0.8125rem', color:C.muted}}>W/m²</span></div>
+                     </div>
+                     <div style={{ flex: 1, minWidth: '180px', background: C.surface2, border: `1px solid ${C.border}`, padding: '1.25rem', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.6875rem', color: C.dim, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Uniformité U0</div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>{(results.uniformity?.U0 || 0).toFixed(2)}</div>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Summary small block */}
+               <div style={{ width: '320px', background: C.input, padding: '1.5rem', borderRadius: '6px', border: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h4 style={{ fontSize: '0.8125rem', margin: '0 0 1rem', color: C.muted }}>Résumé de l'Éclairage</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
+                     <span style={{ color: C.dim }}>Moyenne:</span>
+                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round(results.lighting?.E_average || 0)} Lux</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
+                     <span style={{ color: C.dim }}>Min:</span>
+                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round((results.lighting?.E_average || 0) * (results.uniformity?.U0 || 0))} Lux</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                     <span style={{ color: C.dim }}>Total (Flux):</span>
+                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round((results.lighting?.N || 0) * (formData?.luminaire?.fluxPerUnit || 0))} lm</span>
+                  </div>
+               </div>
+            </div>
+
+            {/* Bottom Area: False Color Settings */}
+            <div className="animate-slide-up" style={{ animationDelay: '0.3s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.5rem', marginBottom: '2rem' }}>
+               <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: C.text, margin: '0 0 0.5rem' }}>Échelle de Couleurs (Lux)</h3>
+               <div style={{ fontSize: '0.6875rem', color: C.dim, marginBottom: '0.5rem' }}>Cliquez sur une valeur pour filtrer le rendu des couleurs simulées en temps réel.</div>
+               <FalseColorScale minVal={0.1} maxVal={luxLimit} onChange={setLuxLimit} />
+            </div>
+
+         </div>
+      </div>
+
+      {/* ── Footer ── */}
+      <div style={{ padding: '1rem 3rem', borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#1C1D24' }}>
+        <div style={{ fontSize: '0.8125rem', color: C.dim }}>
+          Dernière analyse effectuée à 14:02
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <div style={{ fontSize: '0.875rem', color: C.muted, marginRight: '1rem' }}>
+            Avrg. Lux: <span style={{ color: C.text }}>{Math.round(results.lighting?.E_average || 0)}</span> <span style={{margin:'0 8px', color:C.border}}>|</span> Max: <span style={{ color: C.text }}>{Math.round((results.lighting?.E_average || 0)*1.3)}</span>
+          </div>
+
+          <button onClick={onNext} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: C.primary, border: 'none', color: '#FFF', padding: '0.625rem 1.5rem', borderRadius: '6px', fontSize: '0.875rem', cursor: 'pointer', fontWeight: 500, boxShadow: '0 4px 16px rgba(90,132,213,0.2)', transition: 'background 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
+            onMouseLeave={e => e.currentTarget.style.background = C.primary}
           >
-            Analyse Conformité →
+            Continuer l'analyse
           </button>
         </div>
       </div>

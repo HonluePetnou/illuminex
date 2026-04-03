@@ -105,15 +105,21 @@ export default function RoomSimulation3D({
 
     // Floor
     const floorGeo = new THREE.PlaneGeometry(length, width);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+    const floorMat = new THREE.MeshStandardMaterial({ 
+      color: 0x2A3441, 
+      roughness: 0.2, 
+      metalness: 0.1 
+    });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.set(centerX, 0, centerZ); floor.receiveShadow = true;
     scene.add(floor);
 
-    // Lignes de contour du sol
-    const floorEdges = new THREE.LineSegments(new THREE.EdgesGeometry(floorGeo), new THREE.LineBasicMaterial({ color: 0x8B5CF6, opacity: 0.6, transparent: true }));
-    floorEdges.rotation.x = -Math.PI / 2; floorEdges.position.set(centerX, 0.01, centerZ);
-    scene.add(floorEdges);
+    // Lignes de contour du sol (GridHelper for realism)
+    const gridHelper = new THREE.GridHelper(Math.max(length, width) * 1.5, Math.ceil(Math.max(length, width) * 2), 0x5A84D5, 0x475569);
+    gridHelper.position.set(centerX, 0.01, centerZ);
+    gridHelper.material.opacity = 0.15;
+    gridHelper.material.transparent = true;
+    scene.add(gridHelper);
 
     // Work Plane
     const workGeo = new THREE.PlaneGeometry(length, width);
@@ -160,17 +166,21 @@ export default function RoomSimulation3D({
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ color: 0x444444 }));
       panel.position.y = -0.026; panel.rotation.x = Math.PI / 2; group.add(panel);
 
-      const light = new THREE.PointLight(0xFFF8DC, 0, Math.sqrt(fluxPerUnit) * 1.5, 2);
-      light.position.y = -0.1; light.castShadow = false; // Désactivé pour éviter le crash MAX_TEXTURE_IMAGE_UNITS (>16 lampes)
+      const light = new THREE.SpotLight(0xFFFFF0, 0, ceilingHeight * 3.5, Math.PI / 3.5, 0.8, 2);
+      light.position.y = -0.1;
+      const target = new THREE.Object3D();
+      target.position.set(0, -ceilingHeight, 0); // target straight down relative to the group
+      group.add(target);
+      light.target = target;
+      light.castShadow = false; // Désactivé pour éviter le crash MAX_TEXTURE_IMAGE_UNITS (>16 lampes)
       light.shadow.mapSize.width = 512; light.shadow.mapSize.height = 512; light.shadow.bias = -0.001; 
       group.add(light);
 
       scene.add(group); luminairesRef.current.push({ group, housing, panel, light });
     });
 
-    // Windows
-    if (formData?.naturalLight?.hasWindows) {
-      const orientation = formData?.naturalLight?.orientation || 'Sud';
+    if (formData?.naturalLight?.hasWindows !== false) {
+      const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'Sud';
       const windowArea = parseFloat(formData?.naturalLight?.windowArea) || 2;
       const windowW = Math.min(windowArea / 1.5, Math.max(length, width) * 0.6);
       const windowH = windowArea / windowW;
@@ -238,8 +248,31 @@ export default function RoomSimulation3D({
 
     updateCameraMath();
 
+    // Add subtle dust particles for 3D realism
+    const particlesGeo = new THREE.BufferGeometry();
+    const particlesCount = 200;
+    const posArray = new Float32Array(particlesCount * 3);
+    for(let i=0; i < particlesCount * 3; i+=3) {
+      posArray[i] = Math.random() * length;
+      posArray[i+1] = Math.random() * ceilingHeight;
+      posArray[i+2] = Math.random() * width;
+    }
+    particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const particlesMat = new THREE.PointsMaterial({ size: 0.04, color: 0xFFFFFF, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
+    const particles = new THREE.Points(particlesGeo, particlesMat);
+    scene.add(particles);
+
     const animate = () => {
       reqAnimRef.current = requestAnimationFrame(animate);
+      // subtle camera idle rotation if not dragging
+      if (!isDraggingRef.current) {
+         cameraAngleRef.current.theta += 0.03;
+         updateCameraMath();
+      }
+      // slow particle drift
+      if (particles) {
+         particles.rotation.y += 0.0005;
+      }
       renderer.render(scene, camera);
     };
     animate();
@@ -331,8 +364,12 @@ export default function RoomSimulation3D({
       const isActive = idx < profile.N_active && profile.isOccupied;
       lum.housing.material.color.setHex(isActive ? 0xFFD700 : 0x888888);
       lum.panel.material.color.setHex(isActive ? 0xFFFFFF : 0xaaadbf);
-      if (isActive) lum.light.intensity = fluxPerUnit / 1500;
-      else lum.light.intensity = 0;
+      if (isActive) {
+         lum.light.intensity = fluxPerUnit / 800; // Adjusted for SpotLight
+         lum.light.penumbra = 0.8; 
+      } else {
+         lum.light.intensity = 0;
+      }
     });
 
     if (showHeatmap && profile.isOccupied) {

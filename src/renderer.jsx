@@ -1,5 +1,6 @@
 import './index.css';
 import React, { useState } from 'react';
+import { LogOut } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 
 import Sidebar from './components/Sidebar';
@@ -279,7 +280,9 @@ function MainApp() {
             justifyContent: 'center', flexDirection: 'column', color: '#FFF',
             background: '#1A1D2E',
           }}>
-            <div style={{ fontSize: 48, marginBottom: '1rem' }}>👋</div>
+            <div style={{ marginBottom: '1.5rem', background: 'rgba(239, 68, 68, 0.1)', padding: '1.5rem', borderRadius: '50%' }}>
+              <LogOut size={48} color="#ef4444" />
+            </div>
             <h2 style={{ marginBottom: '0.5rem' }}>Êtes-vous sûr de vouloir quitter ?</h2>
             <p style={{ color: '#64748B', marginBottom: '2rem' }}>Vos données sont sauvegardées automatiquement.</p>
             <div style={{ display: 'flex', gap: '1rem' }}>

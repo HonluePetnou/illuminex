@@ -126,8 +126,8 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
   const buildingTypes = ['Tous', ...new Set(projects.map(p => p.formData?.occupation?.buildingType).filter(Boolean))];
 
   // ── Tokens Design System ──
-  const bg = '#1A1D2E';
-  const cardBg = 'rgba(30,34,55,0.85)';
+  const bg = '#1C1D24';
+  const cardBg = '#23242B';
   const border = 'rgba(255,255,255,0.06)';
   const inputBg = 'rgba(255,255,255,0.04)';
 
@@ -136,7 +136,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
 
       {/* ══ MODAL NOUVEAU PROJET ══ */}
       {showNewModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,29,46,0.8)', backdropFilter: 'blur(8px)' }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1C1D24', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: '#1E2237', border: `1px solid ${border}`, borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#fff' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Nouveau projet</h2>
             <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Donnez un nom à votre projet pour l'identifier facilement.</p>
@@ -193,7 +193,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
         padding: '2rem 2.5rem 1.5rem',
         borderBottom: `1px solid ${border}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem',
-        background: 'rgba(26,29,46,0.95)'
+        background: '#1C1D24'
       }}>
         <div>
           <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#fff', marginBottom: '0.375rem' }}>
@@ -372,7 +372,7 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
     : '—';
 
   const border = 'rgba(255,255,255,0.08)';
-  const cardBg = 'rgba(30,34,55,0.6)';
+  const cardBg = '#23242B';
 
   return (
     <div
@@ -394,7 +394,7 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
         onClick={onOpen}
         style={{
           height: '110px',
-          background: 'linear-gradient(135deg, rgba(30,34,55,1) 0%, rgba(20,24,35,1) 100%)',
+          background: 'linear-gradient(135deg, #23242B 0%, rgba(20,24,35,1) 100%)',
           borderBottom: `1px solid ${border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', position: 'relative',

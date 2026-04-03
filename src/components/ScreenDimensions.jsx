@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Settings2, Maximize2, Home,
-  LayoutDashboard, ChevronDown, MapPin, Compass
+  LayoutDashboard, ChevronDown, MapPin, Compass, Globe
 } from 'lucide-react';
 import { DEFAULT_LOCATIONS } from '../data/default-locations';
 
 /* ── Tokens Design System ── */
 const C = {
-  bg: '#1A1D2E',
-  surface: 'rgba(30,34,55,0.85)',
+  bg: '#1C1D24',
+  surface: '#23242B',
   surface2: 'rgba(255,255,255,0.04)',
   border: 'rgba(255,255,255,0.06)',
   borderFocus: 'rgba(59,130,246,0.5)',
@@ -159,7 +159,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
         padding: '1.25rem 2rem 1rem',
         borderBottom: `1px solid ${C.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(26,29,46,0.95)',
+        background: '#1C1D24',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div>
@@ -190,10 +190,10 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', gap: '2rem' }}>
 
         {/* ─── PRÉVISUALISATION 3D ─── */}
-        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, maxWidth: '600px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0 }}>
 
           {/* Boîte 3D stylisée */}
-          <div style={{
+          <div className="animate-scale-in" style={{
             flex: 1,
             background: 'linear-gradient(160deg, #1E2237 0%, #131624 100%)',
             border: `1px solid ${C.border}`,
@@ -201,7 +201,9 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
             position: 'relative',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             overflow: 'hidden', minHeight: '300px',
-            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)'
+            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)',
+            opacity: 0,
+            animationDelay: '0.05s'
           }}>
             {/* Room 3D wireframe */}
             <div style={{
@@ -231,7 +233,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
             {/* Légende surface (gauche) */}
             <div style={{
               position: 'absolute', bottom: '16px', left: '16px',
-              background: 'rgba(30,34,55,0.85)', backdropFilter: 'blur(8px)',
+              background: '#23242B', backdropFilter: 'blur(8px)',
               border: `1px solid ${C.border}`, borderRadius: '10px',
               padding: '0.625rem 1rem',
               display: 'flex', gap: '1.5rem',
@@ -254,14 +256,14 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
               borderRadius: '8px', padding: '0.4rem 0.75rem',
               display: 'flex', alignItems: 'center', gap: '0.5rem'
             }}>
-              <span style={{ fontSize: '0.875rem' }}>🌍</span>
+              <Globe size={16} color={C.accent} style={{ flexShrink: 0 }} />
               <div>
                  <div style={{ fontSize: '0.625rem', color: C.accent, fontWeight: 700, letterSpacing: '0.05em' }}>{location.country.toUpperCase()}</div>
                  <div style={{ fontSize: '0.6875rem', color: '#fff', opacity: 0.9 }}>{location.climate}</div>
               </div>
             </div>
 
-            <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(30,34,55,0.7)', border: `1px solid ${C.border}`, borderRadius: '6px', padding: '6px', color: C.muted, cursor: 'pointer', display: 'flex' }}
+            <button style={{ position: 'absolute', top: '16px', right: '16px', background: '#23242B', border: `1px solid ${C.border}`, borderRadius: '6px', padding: '6px', color: C.muted, cursor: 'pointer', display: 'flex' }}
               onMouseEnter={e => e.currentTarget.style.color = C.text}
               onMouseLeave={e => e.currentTarget.style.color = C.muted}
             >
@@ -270,7 +272,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
           </div>
 
           {/* Stats rapides (Dimensions raw) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+          <div className="animate-scale-in" style={{ animationDelay: '0.15s', opacity: 0, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
             {[
               { label: 'Longueur (L)', value: room.length, unit: 'm' },
               { label: 'Largeur (W)',  value: room.width,  unit: 'm' },
@@ -288,7 +290,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
         <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           {/* Dimensions */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+          <section className="animate-slide-up" style={{ animationDelay: '0.1s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <LayoutDashboard size={16} color={C.primary} /> Dimensions de la pièce
             </h2>
@@ -301,7 +303,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
           </section>
 
           {/* Localisation et Orientation */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+          <section className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <MapPin size={16} color={C.accent} /> Localisation & Orientation
             </h2>
@@ -344,7 +346,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
           </section>
 
           {/* Occupation et Bâtiment */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+          <section className="animate-slide-up" style={{ animationDelay: '0.3s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Home size={16} color={C.primary} /> Usage & Occupation
             </h2>
@@ -369,7 +371,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
         padding: '1rem 2rem',
         borderTop: `1px solid ${C.border}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(26,29,46,0.98)',
+        background: '#1C1D24',
       }}>
         <div style={{ fontSize: '0.875rem', color: C.muted }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><div style={{width: 8, height: 8, borderRadius: '50%', background: C.primary}}/> Étape validée</span>

@@ -4,9 +4,9 @@ import { NORMS, NORMS_U0 } from '../data/norms';
 
 function MetricCard({ label, value, unit, subValue, color = '#3B82F6' }) {
   return (
-    <div style={{
-      background: 'rgba(30,34,55,0.85)',
-      border: '1px solid rgba(255,255,255,0.06)',
+    <div className="animate-slide-up" style={{
+      background: '#23242B',
+      border: '1px solid #3A3A44',
       borderRadius: 12,
       padding: '1.25rem',
       display: 'flex',
@@ -107,19 +107,19 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1A1D2E' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1C1D24' }} className="animate-fade-in">
       {/* Header */}
       <div style={{
         padding: '1.25rem 2rem 1rem',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid #3A3A44',
         display: 'flex',
         alignItems: 'center',
         gap: '1rem',
-        background: 'rgba(26,29,46,0.98)',
+        background: '#1C1D24',
       }}>
         <div>
           <h1 style={{ margin: 0, color: '#fff', fontSize: 22, fontWeight: 700 }}>
-            Analyse <span style={{ color: '#F0A500' }}>&amp;</span> Optimisation
+            Analyse <span style={{ color: '#FFB84D' }}>&amp;</span> Optimisation
           </h1>
           <p style={{ margin: '0.2rem 0 0', color: '#64748B', fontSize: 12 }}>
             {roomType} — {room.length} × {room.width} m — {N} luminaires
@@ -169,7 +169,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
           <div>
             {/* Carte thermique pseudo */}
             <div style={{
-              background: 'rgba(30,34,55,0.85)',
+              background: '#23242B',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: 12,
               padding: '1.25rem',
@@ -253,7 +253,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
             {/* Tableau Analyse détaillée */}
             {showDetails && (
               <div style={{
-                background: 'rgba(30,34,55,0.85)',
+                background: '#23242B',
                 border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: 12,
                 padding: '1.25rem',
@@ -290,7 +290,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
 
             {/* Résultats globaux */}
             <div style={{
-              background: 'rgba(30,34,55,0.85)',
+              background: '#23242B',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: 12,
               padding: '1.25rem',
@@ -336,7 +336,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
           <div>
             {/* Conformité */}
             <div style={{
-              background: 'rgba(30,34,55,0.85)',
+              background: '#23242B',
               border: '1px solid rgba(255,255,255,0.06)',
               borderRadius: 12,
               padding: '1.25rem',
@@ -422,7 +422,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
         borderTop: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
         justifyContent: 'space-between',
-        background: 'rgba(26,29,46,0.98)',
+        background: '#1C1D24',
       }}>
         <button
           onClick={onPrev}

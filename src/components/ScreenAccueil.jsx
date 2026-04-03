@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Lightbulb } from 'lucide-react';
 
 export default function ScreenAccueil({ onNewSimulation }) {
   const projects = [
@@ -26,7 +26,7 @@ export default function ScreenAccueil({ onNewSimulation }) {
           gap: '8px',
           cursor: 'pointer'
         }}>
-          💡 Mode Simple <ChevronDown size={14} />
+          <Lightbulb size={16} /> Mode Simple <ChevronDown size={14} />
         </button>
       </div>
 

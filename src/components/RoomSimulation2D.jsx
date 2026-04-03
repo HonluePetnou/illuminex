@@ -14,7 +14,8 @@ export default function RoomSimulation2D({
   uniformityResult = {},
   climateResult = {},
   naturalLightResult = {},
-  usageResult = {}
+  usageResult = {},
+  luxLimit = 3000
 }) {
   const [currentHour, setCurrentHour] = useState(8);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -75,7 +76,7 @@ export default function RoomSimulation2D({
   }, [naturalLightResult, usageResult, climateResult, N_total]);
 
 
-  const drawSimulation = useCallback(() => {
+  const drawSimulation = useCallback((timestamp = 0) => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
@@ -131,14 +132,33 @@ export default function RoomSimulation2D({
       for (let y = 0; y <= width; y++) ctx.fillText(`${y}m`, originX - 10, originY + y * scale);
     }
 
-    // 3. Heatmap
+    // 3. Heatmap (False Color Lux Representation)
     if (showHeatmap && profile.isOccupied) {
-      ctx.globalAlpha = 0.5;
-      const cellW = roomPixelW / 20;
-      const cellH = roomPixelH / 20;
+      ctx.globalAlpha = 0.85; // Increase opacity for better false colors
       
-      for (let cx = 0; cx < 20; cx++) {
-        for (let cy = 0; cy < 20; cy++) {
+      const falseColors = [
+        { v: 0.1,  c: '#000000' }, { v: 0.2,  c: '#1a0519' }, { v: 0.3,  c: '#340a33' },
+        { v: 0.5,  c: '#4b0082' }, { v: 0.75, c: '#8a2be2' }, { v: 1.0,  c: '#0000ff' },
+        { v: 3.0,  c: '#1e90ff' }, { v: 5.0,  c: '#00bfff' }, { v: 7.5,  c: '#00ffff' },
+        { v: 10,   c: '#40e0d0' }, { v: 20,   c: '#00fa9a' }, { v: 30,   c: '#00ff00' },
+        { v: 50,   c: '#adff2f' }, { v: 75,   c: '#ffff00' }, { v: 100,  c: '#ffd700' },
+        { v: 200,  c: '#ffa500' }, { v: 300,  c: '#ff4500' }, { v: 500,  c: '#ff0000' },
+        { v: 750,  c: '#b22222' }, { v: 1000, c: '#8b0000' }, { v: 2000, c: '#a52a2a' },
+        { v: 3000, c: '#d2691e' }, { v: 5000, c: '#ff8c00' }, { v: 10000, c: '#ffb6c1' },
+        { v: 15000, c: '#ffffff' }
+      ];
+
+      const getFalseColor = (lux) => {
+        if (lux > luxLimit) return '#111216'; // Mask out if above user limit to simulate dynamic clipping
+        const match = falseColors.find(s => s.v >= lux);
+        return match ? match.c : falseColors[falseColors.length - 1].c;
+      };
+
+      const cellW = roomPixelW / 30; // Higher resolution grid
+      const cellH = roomPixelH / 30;
+      
+      for (let cx = 0; cx < 30; cx++) {
+        for (let cy = 0; cy < 30; cy++) {
           const cellPx = originX + cx * cellW + cellW/2;
           const cellPy = originY + cy * cellH + cellH/2;
           
@@ -151,22 +171,19 @@ export default function RoomSimulation2D({
             const dz = (parseFloat(formData?.room?.ceilingHeight) || 3) * scale;
             let d = Math.sqrt(dx*dx + dy*dy + dz*dz) / scale;
             if (d < 0.5) d = 0.5;
-            e_local += (fluxPerUnit / (4 * Math.PI * d * d));
+            e_local += (fluxPerUnit / (4 * Math.PI * d * d)) * 2; // Added multiplier for realistic scaling
           }
           
-          if (e_local >= E_required) ctx.fillStyle = '#4ade80';
-          else if (e_local >= E_required * 0.5) ctx.fillStyle = '#facc15';
-          else ctx.fillStyle = '#f87171';
-          
-          ctx.fillRect(originX + cx * cellW, originY + cy * cellH, cellW, cellH);
+          ctx.fillStyle = getFalseColor(e_local);
+          ctx.fillRect(originX + cx * cellW, originY + cy * cellH, cellW + 0.5, cellH + 0.5); // Add 0.5 to prevent bleeding
         }
       }
       ctx.globalAlpha = 1.0;
     }
 
     // 4. Windows
-    if (showWindows && formData?.naturalLight?.hasWindows) {
-      const orientation = formData?.naturalLight?.orientation || 'Sud';
+    if (showWindows && (formData?.naturalLight?.hasWindows !== false)) {
+      const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'Sud';
       ctx.strokeStyle = '#3B82F6';
       ctx.lineWidth = 6;
       ctx.lineCap = 'round';
@@ -197,7 +214,7 @@ export default function RoomSimulation2D({
       ctx.fillStyle = '#FFF';
       ctx.font = '16px serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(isSunUp ? '☀️' : '🌙', sunX, sunY);
+      ctx.fillText(isSunUp ? 'Soleil' : 'Nuit', sunX, sunY);
     }
 
     // 5. Luminaires
@@ -208,11 +225,13 @@ export default function RoomSimulation2D({
       const isActive = i < activeCount && profile.isOccupied;
 
       if (isActive) {
-        const grd = ctx.createRadialGradient(px, py, 0, px, py, 25);
-        grd.addColorStop(0, 'rgba(255, 184, 77, 0.6)');
+        const pulse = Math.sin(timestamp / 400 + i) * 2;
+        const effRadius = Math.max(10, 26 + pulse);
+        const grd = ctx.createRadialGradient(px, py, 0, px, py, effRadius);
+        grd.addColorStop(0, 'rgba(255, 184, 77, 0.65)');
         grd.addColorStop(1, 'rgba(255, 184, 77, 0)');
         ctx.fillStyle = grd;
-        ctx.beginPath(); ctx.arc(px, py, 25, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(px, py, effRadius, 0, Math.PI * 2); ctx.fill();
 
         ctx.fillStyle = '#FFB84D';
         ctx.strokeStyle = '#B45309';
@@ -234,10 +253,15 @@ export default function RoomSimulation2D({
 
     // 6. Occupants
     if (showOccupants && profile.isOccupied) {
-      ctx.font = '16px serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      randomOccupants.forEach(occ => {
-        ctx.fillText('🧑', originX + occ.x * scale, originY + occ.y * scale);
+      ctx.fillStyle = C.text;
+      randomOccupants.forEach((occ, idx) => {
+        const driftX = Math.sin(timestamp / 800 + idx) * 3;
+        const driftY = Math.cos(timestamp / 800 + idx) * 3;
+        ctx.beginPath();
+        ctx.arc(originX + occ.x * scale + driftX, originY + occ.y * scale + driftY, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = C.bg;
+        ctx.stroke();
       });
     }
 
@@ -251,7 +275,7 @@ export default function RoomSimulation2D({
     ctx.fillStyle = '#FFF';
     ctx.font = 'bold 13px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`🕐 ${currentHour.toString().padStart(2, '0')}h00`, 20, 30);
+    ctx.fillText(`Heure: ${currentHour.toString().padStart(2, '0')}h00`, 20, 30);
     
     ctx.fillStyle = '#A0A0A5';
     ctx.font = '12px sans-serif';
@@ -305,19 +329,21 @@ export default function RoomSimulation2D({
     const container = containerRef.current;
     if (!container) return;
 
+    let animId;
     const observer = new ResizeObserver(() => {
-      window.requestAnimationFrame(() => {
-        drawSimulation();
-      });
+      // Container resized, the loop handles redrawing inherently.
     });
     observer.observe(container);
 
-    // Premier appel manuel après un tick pour laisser le DOM se stabiliser
-    const timeout = setTimeout(() => drawSimulation(), 50);
+    const loop = () => {
+      drawSimulation(Date.now());
+      animId = requestAnimationFrame(loop);
+    };
+    loop();
 
     return () => {
       observer.disconnect();
-      clearTimeout(timeout);
+      if (animId) cancelAnimationFrame(animId);
     };
   }, [drawSimulation]);
 
@@ -415,7 +441,7 @@ export default function RoomSimulation2D({
               {[
                 { label: 'Grille', icon: GridIcon, state: showGrid, setState: setShowGrid },
                 { label: 'Heatmap', icon: Sun, state: showHeatmap, setState: setShowHeatmap },
-                { label: 'Fenêtres', icon: Layers, state: showWindows, setState: setShowWindows, disabled: !formData?.naturalLight?.hasWindows },
+                { label: 'Fenêtres', icon: Layers, state: showWindows, setState: setShowWindows, disabled: formData?.naturalLight?.hasWindows === false },
                 { label: 'Occupants', icon: Users, state: showOccupants, setState: setShowOccupants },
                 { label: 'Étiquettes', icon: Tag, state: showLabels, setState: setShowLabels },
               ].map(item => (

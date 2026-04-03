@@ -11,24 +11,31 @@ export default function ScreenProjets() {
 
   return (
     <div className="page-container" style={{ padding: '3rem', flex: 1, overflowY: 'auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '2.5rem', fontWeight: 600, color: '#FFF', margin: 0 }}>
+      <div style={{ marginBottom: '3rem', marginTop: '1rem' }}>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 700, color: '#FFF', margin: 0, letterSpacing: '-0.02em' }}>
+          Bienvenue sur Illuminex
+        </h1>
+        <p style={{ color: '#A0A0A5', fontSize: '1.125rem', marginTop: '0.5rem' }}>Gérez vos projets de dimensionnement d'éclairage.</p>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#FFF', margin: 0 }}>
           Mes Projets
         </h2>
-        <button className="btn-primary" style={{ padding: '0.875rem 1.5rem', fontSize: '1rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Plus size={18} /> Nouveau projet
+        <button className="btn-primary" style={{ padding: '0.75rem 1.25rem', fontSize: '0.875rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Plus size={16} /> Nouveau projet
         </button>
       </div>
 
       <div style={{ background: '#26272D', borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5rem', borderBottom: '1px solid #363741', background: '#212228', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1.25rem 1.5rem', borderBottom: '1px solid #363741', background: '#212228', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
             <button style={{ background: 'transparent', border: 'none', color: '#FFF', fontWeight: 500, paddingBottom: '0.5rem', borderBottom: '2px solid #5A84D5', cursor: 'pointer' }}>Tous les projets ({projects.length})</button>
             <button style={{ background: 'transparent', border: 'none', color: '#7E7E86', fontWeight: 500, paddingBottom: '0.5rem', cursor: 'pointer' }}>En cours ({projects.filter(p => p.status === 'En cours').length})</button>
             <button style={{ background: 'transparent', border: 'none', color: '#7E7E86', fontWeight: 500, paddingBottom: '0.5rem', cursor: 'pointer' }}>Terminés ({projects.filter(p => p.status === 'Terminé').length})</button>
           </div>
           <div style={{ position: 'relative' }}>
-            <Search size={16} color="#7E7E86" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={14} color="#7E7E86" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input 
               type="text" 
               placeholder="Rechercher un projet..." 
@@ -36,9 +43,10 @@ export default function ScreenProjets() {
                 background: '#191A1E',
                 border: '1px solid #363741',
                 borderRadius: '6px',
-                padding: '0.6rem 1rem 0.6rem 2.5rem',
+                padding: '0.5rem 1rem 0.5rem 2.25rem',
                 color: '#FFF',
-                width: '240px',
+                fontSize: '0.8125rem',
+                width: '200px',
                 outline: 'none'
               }}
             />
@@ -51,7 +59,7 @@ export default function ScreenProjets() {
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'space-between',
-              padding: '1.5rem', 
+              padding: '1rem 1.5rem', 
               borderBottom: idx < projects.length - 1 ? '1px solid #363741' : 'none',
               cursor: 'pointer',
               transition: 'background 0.2s',
@@ -59,13 +67,13 @@ export default function ScreenProjets() {
             onMouseEnter={(e) => e.currentTarget.style.background = '#2A2D35'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
                 <div style={{ 
-                  width: '60px', height: '60px', borderRadius: '8px', 
+                  width: '45px', height: '45px', borderRadius: '8px', 
                   background: '#191A1E', border: '1px solid #363741',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
-                  <Folder size={24} color="#5A84D5" />
+                  <Folder size={20} color="#5A84D5" />
                 </div>
                 <div>
                   <h4 style={{ color: '#FFF', fontSize: '1.125rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

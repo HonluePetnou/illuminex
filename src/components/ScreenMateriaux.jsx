@@ -46,7 +46,7 @@ function SurfaceSection({ config, value, onChange, room }) {
 
   return (
     <div style={{
-      background: 'rgba(30,34,55,0.85)',
+      background: '#23242B',
       border: '1px solid rgba(255,255,255,0.06)',
       borderRadius: 12,
       padding: '1.25rem 1.5rem',
@@ -241,12 +241,12 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1A1D2E' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1C1D24' }}>
       {/* Header */}
       <div style={{
         padding: '1.5rem 2rem 1rem',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(26,29,46,0.95)',
+        background: '#1C1D24',
       }}>
         <h1 style={{ margin: 0, color: '#fff', fontSize: 26, fontWeight: 700 }}>
           Matériaux <span style={{ color: '#F0A500' }}>&amp;</span> Surfaces
@@ -260,7 +260,7 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
       <div style={{ flex: 1, overflow: 'auto', padding: '1.5rem 2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '1.5rem', maxWidth: 1100 }}>
           {/* Left - Surfaces */}
-          <div>
+          <div className="animate-slide-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
             <p style={{ color: '#94A3B8', fontSize: 13, marginBottom: '1rem', marginTop: 0 }}>
               Sélectionnez une couleur <strong>ou</strong> un matériau pour chaque surface. La réflectance sera calculée automatiquement.
             </p>
@@ -276,9 +276,9 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
           </div>
 
           {/* Right - Récapitulatif */}
-          <div>
+          <div className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
             <div style={{
-              background: 'rgba(30,34,55,0.95)',
+              background: '#23242B',
               border: '1px solid rgba(255,255,255,0.08)',
               borderRadius: 14,
               padding: '1.5rem',
@@ -397,7 +397,7 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
         borderTop: '1px solid rgba(255,255,255,0.06)',
         display: 'flex',
         justifyContent: 'space-between',
-        background: 'rgba(26,29,46,0.98)',
+        background: '#1C1D24',
       }}>
         <button
           onClick={onPrev}
