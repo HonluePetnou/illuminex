@@ -1,23 +1,35 @@
 import React from 'react';
 import {
   Lightbulb, Folder, Layout, SunMedium, BarChart2,
-  Mail, Power, ChevronRight, Save, CheckCircle2, AlertCircle, Clock
+  Mail, Power, ChevronRight, Save, CheckCircle2, AlertCircle, Clock,
+  Layers, CheckSquare, FileText
 } from 'lucide-react';
 
 const SIDEBAR_WIDTH = '240px';
 
 const menuItems = [
   { id: 'projets',    label: 'Projets',              icon: Folder,      group: 'main' },
-  { id: 'dimensions', label: 'Dimensions',            icon: Layout,      group: 'flow' },
-  { id: 'luminaires', label: 'Luminaires',            icon: Lightbulb,   group: 'flow' },
-  { id: 'naturel',    label: 'Éclairage Naturel',     icon: SunMedium,   group: 'flow' },
-  { id: 'simulation', label: 'Résultats',             icon: BarChart2,   group: 'flow' },
-  { id: 'contact',    label: 'Nous contacter',        icon: Mail,        group: 'bottom' },
-  { id: 'quitter',    label: 'Quitter',               icon: Power,       group: 'bottom' },
+  { id: 'dimensions', label: 'Dimensions',           icon: Layout,      group: 'flow' },
+  { id: 'materiaux',  label: 'Matériaux',            icon: Layers,      group: 'flow' },
+  { id: 'luminaires', label: 'Luminaires',           icon: Lightbulb,   group: 'flow' },
+  { id: 'naturel',    label: 'Éclairage Naturel',    icon: SunMedium,   group: 'flow' },
+  { id: 'simulation', label: 'Simulation 2D/3D',     icon: BarChart2,   group: 'flow' },
+  { id: 'analyse',    label: 'Analyse',              icon: CheckSquare, group: 'flow' },
+  { id: 'rapport',    label: 'Rapport & Export',     icon: FileText,    group: 'flow' },
+  { id: 'contact',    label: 'Nous contacter',       icon: Mail,        group: 'bottom' },
+  { id: 'quitter',    label: 'Quitter',              icon: Power,       group: 'bottom' },
 ];
 
-/* Flow steps badges — pour montrer la progression */
-const FLOW_ORDER = ['dimensions', 'luminaires', 'naturel', 'simulation'];
+/* Flow steps order */
+const FLOW_ORDER = [
+  'dimensions',
+  'materiaux',
+  'luminaires',
+  'naturel',
+  'simulation',
+  'analyse',
+  'rapport'
+];
 
 export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus }) {
   const flowIndex = FLOW_ORDER.indexOf(activeScreen);
@@ -49,11 +61,11 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
                 padding: '0.625rem 1.25rem',
                 width: '100%',
                 background: isActive
-                  ? 'linear-gradient(90deg, rgba(90,132,213,0.18) 0%, rgba(90,132,213,0.04) 100%)'
+                  ? 'linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.04) 100%)'
                   : 'transparent',
                 border: 'none',
-                borderLeft: `3px solid ${isActive ? '#5A84D5' : 'transparent'}`,
-                color: isActive ? '#FFF' : isDone ? '#A0A0A5' : '#7E7E86',
+                borderLeft: `3px solid ${isActive ? '#3B82F6' : 'transparent'}`,
+                color: isActive ? '#FFF' : isDone ? '#94A3B8' : '#64748B',
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontSize: '0.8125rem',
@@ -71,9 +83,6 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
             >
               <Icon size={16} strokeWidth={isActive ? 2.5 : 1.75} />
               <span style={{ flex: 1 }}>{item.label}</span>
-              {isDone && (
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
-              )}
               {isActive && <ChevronRight size={14} style={{ opacity: 0.5, flexShrink: 0 }} />}
             </button>
           );
@@ -86,8 +95,8 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
     <div style={{
       width: SIDEBAR_WIDTH,
       minWidth: SIDEBAR_WIDTH,
-      background: '#191A1E',
-      borderRight: '1px solid #2B2C35',
+      background: '#1A1D2E',
+      borderRight: '1px solid rgba(255,255,255,0.06)',
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
@@ -95,13 +104,13 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
     }}>
 
       {/* ── Logo ── */}
-      <div style={{ padding: '1.5rem 1.25rem 1rem', borderBottom: '1px solid #2B2C35' }}>
+      <div style={{ padding: '1.5rem 1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: 34, height: 34, borderRadius: '10px',
-            background: 'linear-gradient(135deg, #FFB84D 0%, #FF8A00 100%)',
+            background: 'linear-gradient(135deg, #F0A500 0%, #E65C00 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(255,184,77,0.3)',
+            boxShadow: '0 0 16px rgba(240,165,0,0.3)',
           }}>
             <Lightbulb size={18} color="#fff" fill="#fff" />
           </div>
@@ -109,8 +118,8 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
             <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#FFF', letterSpacing: '1px', lineHeight: 1 }}>
               ILLUMINEX
             </div>
-            <div style={{ fontSize: '0.625rem', color: '#7E7E86', letterSpacing: '0.05em', marginTop: '2px' }}>
-              BJ — Bénin
+            <div style={{ fontSize: '0.625rem', color: '#94A3B8', letterSpacing: '0.05em', marginTop: '2px' }}>
+              Afrique subsaharienne
             </div>
           </div>
         </div>
@@ -123,19 +132,19 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
              onClick={saveCurrentProject}
              style={{
                width: '100%', padding: '0.625rem', borderRadius: '8px', 
-               background: '#5A84D5', color: '#fff', border: 'none', 
+               background: '#3B82F6', color: '#fff', border: 'none', 
                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600,
-               boxShadow: '0 4px 12px rgba(90,132,213,0.3)', transition: 'background 0.2s'
+               boxShadow: '0 4px 12px rgba(59,130,246,0.3)', transition: 'background 0.2s'
              }}
-             onMouseEnter={e => e.currentTarget.style.background = '#4A71C0'}
-             onMouseLeave={e => e.currentTarget.style.background = '#5A84D5'}
+             onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
+             onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
            >
              <Save size={16} /> Sauvegarder
            </button>
-           <div style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.6875rem', color: saveStatus === 'saving' ? '#FFB84D' : saveStatus === 'saved' ? '#4ade80' : '#ef4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
+           <div style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.6875rem', color: saveStatus === 'saving' ? '#F0A500' : saveStatus === 'saved' ? '#22c55e' : '#ef4444', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
               {saveStatus === 'saving' && <><Clock size={12} /> Sauvegarde...</>}
-              {saveStatus === 'saved' && <><CheckCircle2 size={12} /> À jour dans la BDD</>}
+              {saveStatus === 'saved' && <><CheckCircle2 size={12} /> À jour</>}
               {saveStatus === 'unsaved' && <><AlertCircle size={12} /> Non sauvegardé</>}
            </div>
         </div>
@@ -145,16 +154,20 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
       <nav style={{ flex: 1, overflowY: 'auto', padding: '0.75rem 0', display: 'flex', flexDirection: 'column' }}>
         {renderGroup('main')}
 
-        <div style={{ margin: '0.5rem 1.25rem', height: '1px', background: '#2B2C35' }} />
-        <p style={{ fontSize: '0.6875rem', color: '#7E7E86', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.5rem 1.25rem 0.375rem', fontWeight: 600 }}>
-          Workflow
+        <div style={{ margin: '0.5rem 1.25rem', height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+        <p style={{ fontSize: '0.6875rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.5rem 1.25rem 0.375rem', fontWeight: 600 }}>
+          Workflow de conception
         </p>
+        
         {/* Workflow steps with progress dots */}
         {FLOW_ORDER.map((id, idx) => {
           const item = menuItems.find(m => m.id === id);
+          if(!item) return null;
+          
           const Icon = item.icon;
           const isActive = activeScreen === id || (activeScreen === 'form' && id === 'dimensions');
           const isDone = idx < flowIndex;
+          
           return (
             <button
               key={id}
@@ -166,11 +179,11 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
                 padding: '0.625rem 1.25rem',
                 width: '100%',
                 background: isActive
-                  ? 'linear-gradient(90deg, rgba(90,132,213,0.18) 0%, rgba(90,132,213,0.04) 100%)'
+                  ? 'linear-gradient(90deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.04) 100%)'
                   : 'transparent',
                 border: 'none',
-                borderLeft: `3px solid ${isActive ? '#5A84D5' : isDone ? '#4ade8040' : 'transparent'}`,
-                color: isActive ? '#FFF' : isDone ? '#A0A0A5' : '#7E7E86',
+                borderLeft: `3px solid ${isActive ? '#3B82F6' : isDone ? 'rgba(34,197,94,0.3)' : 'transparent'}`,
+                color: isActive ? '#FFF' : isDone ? '#94A3B8' : '#64748B',
                 cursor: 'pointer',
                 textAlign: 'left',
                 fontSize: '0.8125rem',
@@ -183,11 +196,11 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
               {/* Step number badge */}
               <div style={{
                 width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                background: isActive ? '#5A84D5' : isDone ? '#4ade8030' : '#2B2C35',
-                border: `1.5px solid ${isActive ? '#5A84D5' : isDone ? '#4ade80' : '#363741'}`,
+                background: isActive ? '#3B82F6' : isDone ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
+                border: `1.5px solid ${isActive ? '#3B82F6' : isDone ? '#22c55e' : 'rgba(255,255,255,0.1)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.625rem', fontWeight: 700,
-                color: isActive ? '#fff' : isDone ? '#4ade80' : '#7E7E86',
+                color: isActive ? '#fff' : isDone ? '#22c55e' : '#64748B',
               }}>
                 {isDone ? '✓' : idx + 1}
               </div>
@@ -199,7 +212,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
 
         <div style={{ flex: 1 }} />
 
-        <div style={{ margin: '0.5rem 1.25rem', height: '1px', background: '#2B2C35' }} />
+        <div style={{ margin: '0.5rem 1.25rem', height: '1px', background: 'rgba(255,255,255,0.06)' }} />
         {menuItems.filter(m => m.group === 'bottom').map(item => {
           const Icon = item.icon;
           const isActive = activeScreen === item.id;
@@ -212,14 +225,14 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '0.625rem 1.25rem',
                 width: '100%', background: 'transparent', border: 'none',
-                borderLeft: `3px solid ${isActive ? (isDanger ? '#ef4444' : '#5A84D5') : 'transparent'}`,
-                color: isActive ? '#FFF' : isDanger ? '#ef4444aa' : '#7E7E86',
+                borderLeft: `3px solid ${isActive ? (isDanger ? '#ef4444' : '#3B82F6') : 'transparent'}`,
+                color: isActive ? '#FFF' : isDanger ? 'rgba(239,68,68,0.7)' : '#64748B',
                 cursor: 'pointer', textAlign: 'left',
                 fontSize: '0.8125rem', fontWeight: isActive ? 600 : 400,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={e => { e.currentTarget.style.color = isDanger ? '#ef4444' : '#FFF'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = isActive ? '#FFF' : isDanger ? '#ef4444aa' : '#7E7E86'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = isActive ? '#FFF' : isDanger ? 'rgba(239,68,68,0.7)' : '#64748B'; }}
             >
               <Icon size={16} strokeWidth={1.75} />
               {item.label}
@@ -228,10 +241,27 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
         })}
       </nav>
 
+      {/* ── Tutoriel vidéo info ── */}
+      <div style={{ padding: '0 1.25rem 0.5rem' }}>
+        <div style={{ 
+          background: 'rgba(30,34,55,0.85)', border: '1px solid rgba(255,255,255,0.06)', 
+          borderRadius: 8, padding: '0.75rem', textAlign: 'center' 
+        }}>
+          <div style={{ color: '#fff', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.25rem' }}>Tutoriel vidéo</div>
+          <div style={{ fontSize: '0.65rem', color: '#94A3B8', marginBottom: '0.5rem' }}>Apprenez à utiliser Illuminex</div>
+          <button style={{
+            background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+            color: '#3B82F6', borderRadius: 4, padding: '0.25rem 0.5rem', fontSize: '0.7rem',
+            cursor: 'pointer', width: '100%'
+          }}>Démarrer</button>
+        </div>
+      </div>
+
       {/* ── Version footer ── */}
-      <div style={{ padding: '0.875rem 1.25rem', borderTop: '1px solid #2B2C35' }}>
-        <p style={{ fontSize: '0.625rem', color: '#7E7E86', textAlign: 'center' }}>
-          ILLUMINEX-BJ v1.0 · © 2026
+      <div style={{ padding: '0.875rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <p style={{ fontSize: '0.625rem', color: '#64748B', textAlign: 'center' }}>
+          ILLUMINEX v0.2.0 · © 2026<br/>
+          Pour l'Afrique subsaharienne
         </p>
       </div>
     </div>

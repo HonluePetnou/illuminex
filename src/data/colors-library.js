@@ -1,0 +1,17 @@
+export const CATALOGUE_COULEURS = [
+  { id: "blanc-mat",      name: "Blanc mat",        hex: "#F5F5F5", reflectance: 0.85, type: "Peinture" },
+  { id: "blanc-casse",    name: "Blanc cassé",       hex: "#F0EAD6", reflectance: 0.80, type: "Peinture" },
+  { id: "creme",          name: "Crème",             hex: "#FFFDD0", reflectance: 0.75, type: "Peinture" },
+  { id: "beige-clair",    name: "Beige clair",       hex: "#D4C5A9", reflectance: 0.65, type: "Peinture" },
+  { id: "jaune-ocre",     name: "Jaune ocre",        hex: "#C8A951", reflectance: 0.55, type: "Peinture" },
+  { id: "gris-clair",     name: "Gris clair",        hex: "#BDBDBD", reflectance: 0.50, type: "Peinture" },
+  { id: "vert-pastel",    name: "Vert pastel",       hex: "#B8D5B8", reflectance: 0.45, type: "Peinture" },
+  { id: "bleu-ciel",      name: "Bleu ciel",         hex: "#89B4D9", reflectance: 0.40, type: "Peinture" },
+  { id: "saumon",         name: "Saumon",            hex: "#E8A090", reflectance: 0.35, type: "Peinture" },
+  { id: "terracotta",     name: "Terracotta",        hex: "#C17B5C", reflectance: 0.25, type: "Peinture" },
+  { id: "marron-moyen",   name: "Marron moyen",      hex: "#8B6347", reflectance: 0.20, type: "Peinture" },
+  { id: "vert-fonce",     name: "Vert foncé",        hex: "#4A7C59", reflectance: 0.15, type: "Peinture" },
+  { id: "gris-fonce",     name: "Gris foncé",        hex: "#616161", reflectance: 0.12, type: "Peinture" },
+  { id: "brun-fonce",     name: "Brun foncé",        hex: "#4A3728", reflectance: 0.08, type: "Peinture" },
+  { id: "noir-mat",       name: "Noir mat",          hex: "#212121", reflectance: 0.05, type: "Peinture" },
+];

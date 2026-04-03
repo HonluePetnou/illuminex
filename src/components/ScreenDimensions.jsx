@@ -1,28 +1,31 @@
 import React, { useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Settings2, Maximize2, Home,
-  LayoutDashboard, ChevronDown
+  LayoutDashboard, ChevronDown, MapPin, Compass
 } from 'lucide-react';
-import CustomSlider from './CustomSlider';
+import { DEFAULT_LOCATIONS } from '../data/default-locations';
 
-/* ── Tokens ── */
+/* ── Tokens Design System ── */
 const C = {
-  bg: '#191A1E',
-  surface: '#26272D',
-  surface2: '#2B2C35',
-  border: '#363741',
-  primary: '#5A84D5',
-  text: '#FFF',
-  muted: '#A0A0A5',
-  dim: '#7E7E86',
-  input: '#1E1F24',
+  bg: '#1A1D2E',
+  surface: 'rgba(30,34,55,0.85)',
+  surface2: 'rgba(255,255,255,0.04)',
+  border: 'rgba(255,255,255,0.06)',
+  borderFocus: 'rgba(59,130,246,0.5)',
+  primary: '#3B82F6',
+  accent: '#F0A500',
+  text: '#fff',
+  muted: '#94A3B8',
+  dim: '#64748B',
+  input: 'rgba(0,0,0,0.2)',
 };
 
 /* ── Field label + input row ── */
 function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = 'number' }) {
+  const [focused, setFocused] = useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-      <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '140px' }}>
+      <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '130px', fontWeight: 500 }}>
         {label}
       </label>
       <div style={{ position: 'relative', width: '160px' }}>
@@ -33,10 +36,12 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
           max={max}
           step={step}
           onChange={e => onChange(Number(e.target.value))}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           style={{
             width: '100%',
             background: C.input,
-            border: `1px solid ${C.border}`,
+            border: `1px solid ${focused ? C.borderFocus : 'rgba(255,255,255,0.1)'}`,
             borderRadius: '8px',
             padding: '0.625rem 2.5rem 0.625rem 0.875rem',
             color: C.text,
@@ -44,10 +49,11 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
             fontWeight: 600,
             outline: 'none',
             fontFamily: 'inherit',
+            transition: 'border-color 0.2s',
           }}
         />
         {unit && (
-          <span style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: C.dim, fontSize: '0.75rem' }}>
+          <span style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: C.dim, fontSize: '0.8125rem' }}>
             {unit}
           </span>
         )}
@@ -58,19 +64,22 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
 
 /* ── Sélect ── */
 function SelectRow({ label, value, onChange, options }) {
+  const [focused, setFocused] = useState(false);
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-      <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '140px' }}>
+      <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '130px', fontWeight: 500 }}>
         {label}
       </label>
       <div style={{ position: 'relative', width: '160px' }}>
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           style={{
             width: '100%',
             background: C.surface2,
-            border: `1px solid ${C.border}`,
+            border: `1px solid ${focused ? C.borderFocus : 'rgba(255,255,255,0.1)'}`,
             borderRadius: '8px',
             padding: '0.625rem 2rem 0.625rem 0.875rem',
             color: C.text,
@@ -79,35 +88,14 @@ function SelectRow({ label, value, onChange, options }) {
             outline: 'none',
             appearance: 'none',
             cursor: 'pointer',
+            transition: 'border-color 0.2s',
           }}
         >
           {options.map(o => (
-            <option key={o.value} value={o.value} style={{ background: C.surface2 }}>{o.label}</option>
+            <option key={o.value} value={o.value} style={{ background: '#1E2237' }}>{o.label}</option>
           ))}
         </select>
-        <ChevronDown size={13} color={C.dim} style={{ position: 'absolute', right: '0.625rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-      </div>
-    </div>
-  );
-}
-
-/* ── Réflectance slider row ── */
-function ReflectanceRow({ label, value, min, max, onChange }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-      <span style={{ color: C.text, fontSize: '0.875rem', minWidth: '60px' }}>{label}</span>
-      <span style={{ color: C.dim, fontSize: '0.75rem', minWidth: '30px', textAlign: 'right' }}>{min}%</span>
-      <div style={{ flex: 1 }}>
-        <CustomSlider value={value} min={min} max={max} onChange={onChange} />
-      </div>
-      <span style={{ color: C.dim, fontSize: '0.75rem', minWidth: '30px' }}>{max}%</span>
-      <div style={{
-        background: C.surface2, border: `1px solid ${C.border}`,
-        borderRadius: '6px', padding: '0.25rem 0.625rem',
-        color: C.text, fontSize: '0.8125rem', fontWeight: 600,
-        minWidth: '52px', textAlign: 'center',
-      }}>
-        {value}%
+        <ChevronDown size={13} color={C.dim} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
       </div>
     </div>
   );
@@ -117,21 +105,50 @@ function ReflectanceRow({ label, value, min, max, onChange }) {
    COMPOSANT PRINCIPAL
    ═══════════════════════════════════════ */
 export default function ScreenDimensions({ formData, updateFormData, onNext, onPrev }) {
-  const room = formData?.room || { length: 7, width: 6, ceilingHeight: 3, workPlaneHeight: 0.85 };
-  const occupation = formData?.occupation || { buildingType: 'Bureau/Administration' };
-
-  const [reflectance, setReflectance] = useState({ plafond: 70, murs: 50, sol: 20 });
+  const room = formData?.room || { length: 7, width: 6, ceilingHeight: 3, workPlaneHeight: 0.85, type: 'Bureau' };
+  const occupation = formData?.occupation || { buildingType: 'Bureau/Administration', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 };
+  const location = formData?.location || { country: 'Bénin', climate: 'Tropical humide', buildingOrientation: 'N' };
 
   const surface = ((room.length || 0) * (room.width || 0)).toFixed(1);
   const volume  = ((room.length || 0) * (room.width || 0) * (room.ceilingHeight || 0)).toFixed(1);
 
   const buildingOptions = [
-    { value: 'Bureau/Administration', label: 'Bureau / Administration' },
-    { value: 'Scolaire',              label: 'Scolaire' },
-    { value: 'Santé',                 label: 'Santé' },
-    { value: 'Industrie',             label: 'Industrie' },
-    { value: 'Commercial',            label: 'Commercial' },
+    { value: 'Bureau/Administration', label: 'Bureau / Admin' },
+    { value: 'Scolaire',              label: 'Scolaire / École' },
+    { value: 'Santé',                 label: 'Santé / Hôpital' },
+    { value: 'Industrie',             label: 'Industriel' },
+    { value: 'Commercial',            label: 'Commerce détail' },
     { value: 'Résidentiel',           label: 'Résidentiel' },
+  ];
+
+  const orientationOptions = [
+    { value: 'N', label: 'Nord' },
+    { value: 'NE', label: 'Nord-Est' },
+    { value: 'E', label: 'Est' },
+    { value: 'SE', label: 'Sud-Est' },
+    { value: 'S', label: 'Sud' },
+    { value: 'SO', label: 'Sud-Ouest' },
+    { value: 'O', label: 'Ouest' },
+    { value: 'NO', label: 'Nord-Ouest' },
+  ];
+
+  const handleCountryChange = (countryName) => {
+    const loc = DEFAULT_LOCATIONS.find(l => l.country === countryName);
+    if (loc) {
+      updateFormData('location', {
+        country: loc.country,
+        climate: loc.climate,
+        city: loc.representativeCity,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      });
+    }
+  };
+
+  const countriesWithRegions = [
+    { region: 'Afrique de l\'Ouest',     list: DEFAULT_LOCATIONS.filter(l => ['Bénin','Togo','Nigeria','Côte d\'Ivoire','Ghana','Sénégal','Mali','Burkina Faso','Niger','Guinée','Mauritanie'].includes(l.country)) },
+    { region: 'Afrique Centrale & Est',  list: DEFAULT_LOCATIONS.filter(l => ['Cameroun','RDC','Gabon','Tchad','Kenya','Tanzanie','Éthiopie'].includes(l.country)) },
+    { region: 'Afrique Australe / OC',   list: DEFAULT_LOCATIONS.filter(l => ['Mozambique','Madagascar'].includes(l.country)) },
   ];
 
   return (
@@ -139,34 +156,33 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
 
       {/* ── Barre de navigation / titre ── */}
       <div style={{
-        padding: '1.25rem 2rem',
+        padding: '1.25rem 2rem 1rem',
         borderBottom: `1px solid ${C.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'rgba(26,29,46,0.95)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button onClick={onPrev} style={{ background: 'none', border: 'none', color: C.dim, cursor: 'pointer', display: 'flex', padding: '4px', borderRadius: '6px' }}
-            onMouseEnter={e => e.currentTarget.style.background = C.surface2}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-          >
-            <ArrowLeft size={18} />
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: C.dim, marginBottom: '1px' }}>
-              Étape 1 / 4
-            </div>
-            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, color: C.text, margin: 0 }}>
-              Définition de la pièce
+            <h1 style={{ fontSize: '1.625rem', fontWeight: 800, color: C.text, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <LayoutDashboard size={22} color={C.primary} /> Paramètres de Base
             </h1>
+            <div style={{ fontSize: '0.8125rem', color: C.dim, marginTop: '2px' }}>
+              Étape 1/7 — Dimensions, localisation et usages.
+            </div>
           </div>
         </div>
 
         <button style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           background: C.surface2, border: `1px solid ${C.border}`,
-          padding: '0.5rem 0.875rem', borderRadius: '8px',
+          padding: '0.5rem 1rem', borderRadius: '8px',
           color: C.muted, cursor: 'pointer', fontSize: '0.8125rem',
-        }}>
-          <Settings2 size={14} /> Mode Expert
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = C.text}
+        onMouseLeave={e => e.currentTarget.style.color = C.muted}
+        >
+          <Settings2 size={14} /> Options expertes
         </button>
       </div>
 
@@ -174,119 +190,177 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.75rem 2rem', display: 'flex', gap: '2rem' }}>
 
         {/* ─── PRÉVISUALISATION 3D ─── */}
-        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
+        <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1.25rem', minWidth: 0, maxWidth: '600px' }}>
 
           {/* Boîte 3D stylisée */}
           <div style={{
             flex: 1,
-            background: 'linear-gradient(160deg, #26272D 0%, #191A1E 100%)',
+            background: 'linear-gradient(160deg, #1E2237 0%, #131624 100%)',
             border: `1px solid ${C.border}`,
-            borderRadius: '14px',
+            borderRadius: '16px',
             position: 'relative',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden', minHeight: '220px',
+            overflow: 'hidden', minHeight: '300px',
+            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)'
           }}>
             {/* Room 3D wireframe */}
             <div style={{
-              width: '60%', height: '65%',
-              border: '1.5px solid rgba(90,132,213,0.3)',
-              transform: 'perspective(700px) rotateX(15deg) rotateY(-20deg)',
+              width: '55%', height: '60%',
+              border: `1.5px solid rgba(59,130,246,0.4)`,
+              transform: 'perspective(800px) rotateX(15deg) rotateY(-20deg)',
               position: 'relative',
-              background: 'rgba(90,132,213,0.03)',
+              background: 'rgba(59,130,246,0.03)',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
             }}>
               {/* Luminaires */}
               {[{ left: '25%' }, { left: '65%' }].map((p, i) => (
-                <div key={i} style={{ position: 'absolute', top: '10%', ...p, width: '28px', height: '6px', background: '#FFB84D', borderRadius: '3px', boxShadow: '0 0 18px 6px rgba(255,184,77,0.4)' }} />
+                <div key={i} style={{ position: 'absolute', top: '10%', ...p, width: '28px', height: '6px', background: C.accent, borderRadius: '3px', boxShadow: `0 0 15px 4px rgba(240,165,0,0.4)` }} />
               ))}
               {/* Paroi droite */}
-              <div style={{ position: 'absolute', right: 0, bottom: 0, width: '28%', height: '70%', border: '1.5px solid rgba(90,132,213,0.2)', background: 'rgba(90,132,213,0.02)' }} />
-              {/* Plan de travail */}
-              <div style={{ position: 'absolute', bottom: '28%', left: '10%', right: '32%', height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ position: 'absolute', right: 0, bottom: 0, width: '28%', height: '70%', border: `1.5px solid rgba(59,130,246,0.25)`, background: 'rgba(59,130,246,0.02)' }} />
+              
+              {/* Plan de travail (Grille) */}
+              <div style={{ position: 'absolute', bottom: '26%', left: '10%', right: '32%', height: '1px', background: 'rgba(255,255,255,0.15)', boxShadow: '0 0 10px rgba(255,255,255,0.1)' }} />
+              
+              {/* Indication orientation sur le sol */}
+              <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%) translateY(50%) rotateX(-90deg)', fontSize: '0.625rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700, letterSpacing: '2px' }}>
+                {location.buildingOrientation}
+              </div>
             </div>
 
-            {/* Légende surface */}
+            {/* Légende surface (gauche) */}
             <div style={{
-              position: 'absolute', bottom: '14px', left: '14px',
-              background: 'rgba(26,27,32,0.85)', backdropFilter: 'blur(8px)',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              padding: '0.5rem 0.875rem',
+              position: 'absolute', bottom: '16px', left: '16px',
+              background: 'rgba(30,34,55,0.85)', backdropFilter: 'blur(8px)',
+              border: `1px solid ${C.border}`, borderRadius: '10px',
+              padding: '0.625rem 1rem',
               display: 'flex', gap: '1.5rem',
             }}>
               <div>
-                <div style={{ fontSize: '0.625rem', color: C.dim, marginBottom: '1px' }}>SURFACE</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text }}>{surface} m²</div>
+                <div style={{ fontSize: '0.625rem', color: C.dim, marginBottom: '2px', fontWeight: 600, letterSpacing: '0.05em' }}>SURFACE</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: C.text }}>{surface} <span style={{fontSize:'0.75rem', color:C.muted}}>m²</span></div>
               </div>
+              <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }} />
               <div>
-                <div style={{ fontSize: '0.625rem', color: C.dim, marginBottom: '1px' }}>VOLUME</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: C.text }}>{volume} m³</div>
+                <div style={{ fontSize: '0.625rem', color: C.dim, marginBottom: '2px', fontWeight: 600, letterSpacing: '0.05em' }}>VOLUME</div>
+                <div style={{ fontSize: '1.125rem', fontWeight: 700, color: C.text }}>{volume} <span style={{fontSize:'0.75rem', color:C.muted}}>m³</span></div>
               </div>
             </div>
 
-            <button style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(26,27,32,0.7)', border: `1px solid ${C.border}`, borderRadius: '6px', padding: '4px 6px', color: C.dim, cursor: 'pointer', display: 'flex' }}>
+            {/* Climat badge (droite) */}
+            <div style={{
+              position: 'absolute', top: '16px', left: '16px',
+              background: 'rgba(240,165,0,0.1)', border: `1px solid rgba(240,165,0,0.2)`,
+              borderRadius: '8px', padding: '0.4rem 0.75rem',
+              display: 'flex', alignItems: 'center', gap: '0.5rem'
+            }}>
+              <span style={{ fontSize: '0.875rem' }}>🌍</span>
+              <div>
+                 <div style={{ fontSize: '0.625rem', color: C.accent, fontWeight: 700, letterSpacing: '0.05em' }}>{location.country.toUpperCase()}</div>
+                 <div style={{ fontSize: '0.6875rem', color: '#fff', opacity: 0.9 }}>{location.climate}</div>
+              </div>
+            </div>
+
+            <button style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(30,34,55,0.7)', border: `1px solid ${C.border}`, borderRadius: '6px', padding: '6px', color: C.muted, cursor: 'pointer', display: 'flex' }}
+              onMouseEnter={e => e.currentTarget.style.color = C.text}
+              onMouseLeave={e => e.currentTarget.style.color = C.muted}
+            >
               <Maximize2 size={14} />
             </button>
           </div>
 
-          {/* Stats rapides */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
+          {/* Stats rapides (Dimensions raw) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
             {[
-              { label: 'Longueur', value: room.length, unit: 'm' },
-              { label: 'Largeur',  value: room.width,  unit: 'm' },
-              { label: 'Hauteur',  value: room.ceilingHeight, unit: 'm' },
+              { label: 'Longueur (L)', value: room.length, unit: 'm' },
+              { label: 'Largeur (W)',  value: room.width,  unit: 'm' },
+              { label: 'Hauteur (H)',  value: room.ceilingHeight, unit: 'm' },
             ].map(s => (
-              <div key={s.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '0.75rem' }}>
-                <div style={{ fontSize: '0.6875rem', color: C.dim, marginBottom: '4px' }}>{s.label}</div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>{s.value}<span style={{ fontSize: '0.75rem', color: C.dim, marginLeft: '2px' }}>{s.unit}</span></div>
+              <div key={s.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '0.875rem 1rem' }}>
+                <div style={{ fontSize: '0.6875rem', color: C.dim, marginBottom: '6px', fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>{s.value}<span style={{ fontSize: '0.8125rem', color: C.muted, marginLeft: '4px' }}>{s.unit}</span></div>
               </div>
             ))}
           </div>
         </div>
 
         {/* ─── FORMULAIRE ─── */}
-        <div style={{ width: '340px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ width: '380px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
           {/* Dimensions */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '1.25rem' }}>
-            <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <LayoutDashboard size={14} /> Dimensions
+          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <LayoutDashboard size={16} color={C.primary} /> Dimensions de la pièce
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <FieldRow label="Longueur" unit="m" value={room.length} min={1} max={100} onChange={v => updateFormData('room', { length: v })} />
               <FieldRow label="Largeur"  unit="m" value={room.width}  min={1} max={100} onChange={v => updateFormData('room', { width: v  })} />
-              <FieldRow label="Hauteur plafond" unit="m" value={room.ceilingHeight} min={2} max={20} onChange={v => updateFormData('room', { ceilingHeight: v })} />
+              <FieldRow label="Hauteur totale" unit="m" value={room.ceilingHeight} min={2} max={20} onChange={v => updateFormData('room', { ceilingHeight: v })} />
               <FieldRow label="Plan de travail" unit="m" value={room.workPlaneHeight} min={0} max={2} step={0.05} onChange={v => updateFormData('room', { workPlaneHeight: v })} />
             </div>
           </section>
 
-          {/* Occupation et Bâtiment */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '1.25rem' }}>
-            <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Home size={14} /> Bâtiment & Occupation
+          {/* Localisation et Orientation */}
+          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={16} color={C.accent} /> Localisation & Orientation
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Selecteur Pays complexe */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '130px', fontWeight: 500 }}>Pays (Climat)</label>
+                <div style={{ position: 'relative', width: '160px' }}>
+                  <select
+                    value={location.country}
+                    onChange={e => handleCountryChange(e.target.value)}
+                    style={{
+                      width: '100%', background: C.surface2, border: `1px solid rgba(255,255,255,0.1)`, borderRadius: '8px',
+                      padding: '0.625rem 2rem 0.625rem 0.875rem', color: C.text, fontSize: '0.8125rem', fontWeight: 500,
+                      outline: 'none', appearance: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    {countriesWithRegions.map(g => (
+                      <optgroup key={g.region} label={g.region} style={{ background: '#1E2237', color: C.muted, fontStyle: 'normal' }}>
+                        {g.list.map(l => (
+                          <option key={l.country} value={l.country} style={{ color: '#fff' }}>{l.country}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} color={C.dim} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                </div>
+              </div>
               <SelectRow
-                label="Catégorie"
+                label="Orientation façade"
+                value={location.buildingOrientation}
+                onChange={v => updateFormData('location', { buildingOrientation: v })}
+                options={orientationOptions}
+              />
+              <div style={{ marginTop: '0.25rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.75rem', color: C.muted }}>
+                Climat chargé: <strong style={{color:'#fff'}}>{location.climate}</strong> <br/>
+                Ville gisement: <span style={{color:'#fff'}}>{location.city || location.country}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Occupation et Bâtiment */}
+          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
+            <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Home size={16} color={C.primary} /> Usage & Occupation
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <SelectRow
+                label="Bâtiment"
                 value={occupation.buildingType || 'Bureau/Administration'}
                 onChange={v => updateFormData('occupation', { buildingType: v })}
                 options={buildingOptions}
               />
-              <FieldRow label="Nb d'occupants" unit="pers." value={occupation.occupants || 4} min={1} max={500} step={1} onChange={v => updateFormData('occupation', { occupants: v })} />
-              <FieldRow label="Horaires / Jour" unit="h/j" value={occupation.hoursPerDay || 8} min={1} max={24} step={0.5} onChange={v => updateFormData('occupation', { hoursPerDay: v })} />
-              <FieldRow label="Jours / Sem." unit="j/s" value={occupation.daysPerWeek || 5} min={1} max={7} step={1} onChange={v => updateFormData('occupation', { daysPerWeek: v })} />
+              <FieldRow label="Nb d'occupants" unit="pers." value={occupation.occupants} min={1} max={500} step={1} onChange={v => updateFormData('occupation', { occupants: v })} />
+              <FieldRow label="Horaires / Jour" unit="h" value={occupation.hoursPerDay} min={1} max={24} step={0.5} onChange={v => updateFormData('occupation', { hoursPerDay: v })} />
+              <FieldRow label="Jours / Sem." unit="j" value={occupation.daysPerWeek} min={1} max={7} step={1} onChange={v => updateFormData('occupation', { daysPerWeek: v })} />
             </div>
           </section>
 
-          {/* Réflectances */}
-          <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px', padding: '1.25rem' }}>
-            <h2 style={{ fontSize: '0.8125rem', fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem' }}>
-              Réflectance surfaces
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <ReflectanceRow label="Plafond" value={reflectance.plafond} min={50} max={90} onChange={e => setReflectance(r => ({ ...r, plafond: Number(e.target.value) }))} />
-              <ReflectanceRow label="Murs"    value={reflectance.murs}    min={20} max={80} onChange={e => setReflectance(r => ({ ...r, murs:    Number(e.target.value) }))} />
-              <ReflectanceRow label="Sol"     value={reflectance.sol}     min={10} max={40} onChange={e => setReflectance(r => ({ ...r, sol:     Number(e.target.value) }))} />
-            </div>
-          </section>
         </div>
       </div>
 
@@ -295,24 +369,27 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
         padding: '1rem 2rem',
         borderTop: `1px solid ${C.border}`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'rgba(26,27,32,0.6)',
+        background: 'rgba(26,29,46,0.98)',
       }}>
-        <div style={{ fontSize: '0.9375rem', color: C.muted }}>
-          Surface : <strong style={{ color: C.text, fontSize: '1.25rem', marginLeft: '0.5rem' }}>{surface} m²</strong>
-          <span style={{ marginLeft: '1.5rem' }}>Volume : <strong style={{ color: C.text }}>{volume} m³</strong></span>
+        <div style={{ fontSize: '0.875rem', color: C.muted }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><div style={{width: 8, height: 8, borderRadius: '50%', background: C.primary}}/> Étape validée</span>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={onPrev}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: C.surface2, border: `1px solid ${C.border}`, color: C.text, padding: '0.75rem 1.5rem', borderRadius: '8px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 500 }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.text, padding: '0.75rem 1.75rem', borderRadius: '10px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
           >
-            <ArrowLeft size={16} /> Retour
+            ← Projets
           </button>
           <button
             onClick={onNext}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: C.primary, border: 'none', color: '#FFF', padding: '0.75rem 1.75rem', borderRadius: '8px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 600, boxShadow: '0 4px 14px rgba(90,132,213,0.3)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', border: 'none', color: '#fff', padding: '0.75rem 2.25rem', borderRadius: '10px', fontSize: '0.9375rem', cursor: 'pointer', fontWeight: 700, boxShadow: '0 4px 16px rgba(59,130,246,0.4)', transition: 'filter 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.15)'}
+            onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
           >
-            Luminaires <ArrowRight size={16} />
+            Matériaux & Surfaces →
           </button>
         </div>
       </div>

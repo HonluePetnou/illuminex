@@ -121,31 +121,31 @@ export function generateRecommendations(reportData) {
   const cost_annual = reportData.energy?.cost_annual || 0;
 
   if (U0 < 0.50) {
-    recs.push("⚠️ Uniformité insuffisante. Réduire l'espacement entre les luminaires.");
+    recs.push("Uniformité insuffisante. Réduire l'espacement entre les luminaires.");
   }
   
   if (layout.spacingWarning) {
-    recs.push(`⚠️ Espacement trop grand détecté. Envisager d'ajouter des luminaires ou d'ajuster leur hauteur.`);
+    recs.push(`Espacement trop grand détecté. Envisager d'ajouter des luminaires ou d'ajuster leur hauteur.`);
   }
 
   if (savingsPercent > 50) {
-    recs.push("✅ L'apport en lumière naturelle est très significatif. Il est vivement conseillé d'installer des détecteurs de luminosité et des variateurs pour maximiser ces économies.");
+    recs.push("L'apport en lumière naturelle est très significatif. Il est vivement conseillé d'installer des détecteurs de luminosité et des variateurs pour maximiser ces économies.");
   }
 
   if (season === "Pluvieuse") {
-    recs.push("🌧️ Saison pluvieuse : L'ensoleillement étant incertain, prévoir un circuit d'éclairage de secours ou renforcer l'éclairage artificiel pour les jours de forte couverture nuageuse.");
+    recs.push("Saison pluvieuse : L'ensoleillement étant incertain, prévoir un circuit d'éclairage de secours ou renforcer l'éclairage artificiel pour les jours de forte couverture nuageuse.");
   }
 
   if (N_adjusted === 0 && (buildingType !== '')) {
-    recs.push("☀️ Durant la journée, l'éclairage naturel est amplement suffisant. L'usage de l'éclairage artificiel ne s'imposera que pour la nuit ou les jours exceptionnellement sombres.");
+    recs.push("Durant la journée, l'éclairage naturel est amplement suffisant. L'usage de l'éclairage artificiel ne s'imposera que pour la nuit ou les jours exceptionnellement sombres.");
   }
 
   if (buildingType === "École/Salle de classe" || buildingType === "Scolaire") {
-    recs.push("📚 Pour un environnement scolaire optimal, veillez à orienter les tubes/dalles LED perpendiculairement au tableau pour éviter les problèmes d'éblouissement ou de reflets perturbants.");
+    recs.push("Pour un environnement scolaire optimal, veillez à orienter les tubes/dalles LED perpendiculairement au tableau pour éviter les problèmes d'éblouissement ou de reflets perturbants.");
   }
 
   if (cost_annual > 100000) {
-    recs.push("💡 Coût d'exploitation annuel élevé (> 100 000 FCFA). Un investissement dans un système de gestion automatique centralisée (DALI, KNX) serait très vite rentabilisé sur ce projet.");
+    recs.push("Coût d'exploitation annuel élevé (> 100 000 FCFA). Un investissement dans un système de gestion automatique centralisée (DALI, KNX) serait très vite rentabilisé sur ce projet.");
   }
 
   return recs;
@@ -313,7 +313,7 @@ export function exportToPDF(reportData) {
     doc.setTextColor(34, 197, 94);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.text(`🌟 ECONOMIE ANNUELLE REALISEE FACE AU GASPILLAGE : ${Math.round(reportData.energy.annualSavings).toLocaleString()} FCFA / an`, 14, currentY);
+    doc.text(`ECONOMIE ANNUELLE REALISEE FACE AU GASPILLAGE : ${Math.round(reportData.energy.annualSavings).toLocaleString()} FCFA / an`, 14, currentY);
     doc.setTextColor(0,0,0);
   }
 

@@ -125,21 +125,21 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
 
   const buildingTypes = ['Tous', ...new Set(projects.map(p => p.formData?.occupation?.buildingType).filter(Boolean))];
 
-  // ── Tokens ──
-  const bg = '#191A1E';
-  const cardBg = '#26272D';
-  const border = '#363741';
-  const inputBg = '#1E1F24';
+  // ── Tokens Design System ──
+  const bg = '#1A1D2E';
+  const cardBg = 'rgba(30,34,55,0.85)';
+  const border = 'rgba(255,255,255,0.06)';
+  const inputBg = 'rgba(255,255,255,0.04)';
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: bg, overflowY: 'auto' }}>
 
       {/* ══ MODAL NOUVEAU PROJET ══ */}
       {showNewModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(25, 26, 30, 0.8)', backdropFilter: 'blur(4px)' }}>
-          <div style={{ background: '#26272D', border: `1px solid ${border}`, borderRadius: '12px', padding: '2rem', width: '90%', maxWidth: '400px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', color: '#FFF' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Nouveau projet</h2>
-            <p style={{ color: '#A0A0A5', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Donnez un nom à votre projet pour l'identifier facilement.</p>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,29,46,0.8)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ background: '#1E2237', border: `1px solid ${border}`, borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#fff' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Nouveau projet</h2>
+            <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Donnez un nom à votre projet pour l'identifier facilement.</p>
             <input 
               autoFocus
               type="text" 
@@ -157,12 +157,16 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
                   setNewProjectName('');
                 }
               }}
-              style={{ width: '100%', boxSizing: 'border-box', background: '#1E1F24', border: `1px solid ${border}`, color: '#FFF', padding: '0.875rem 1rem', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', marginBottom: '2rem' }}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.875rem 1rem', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', marginBottom: '2rem', transition: 'border-color 0.2s' }}
+              onFocus={e => e.currentTarget.style.borderColor = '#3B82F6'}
+              onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
             />
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                <button 
                  onClick={() => { setShowNewModal(false); setNewProjectName(''); }}
-                 style={{ background: 'transparent', border: 'none', color: '#A0A0A5', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', padding: '0.625rem 1rem' }}
+                 style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', padding: '0.625rem 1rem', borderRadius: '8px' }}
+                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                >
                  Annuler
                </button>
@@ -173,9 +177,11 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
                    setShowNewModal(false);
                    setNewProjectName('');
                  }}
-                 style={{ background: '#5A84D5', border: 'none', color: '#FFF', fontWeight: 600, fontSize: '0.875rem', cursor: newProjectName.trim() ? 'pointer' : 'not-allowed', padding: '0.625rem 1.5rem', borderRadius: '8px', opacity: newProjectName.trim() ? 1 : 0.5 }}
+                 style={{ background: '#3B82F6', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: newProjectName.trim() ? 'pointer' : 'not-allowed', padding: '0.625rem 1.5rem', borderRadius: '8px', opacity: newProjectName.trim() ? 1 : 0.5, transition: 'background 0.2s' }}
+                 onMouseEnter={e => { if(newProjectName.trim()) e.currentTarget.style.background = '#2563EB'; }}
+                 onMouseLeave={e => { if(newProjectName.trim()) e.currentTarget.style.background = '#3B82F6'; }}
                >
-                 Créer
+                 Créer  →
                </button>
             </div>
           </div>
@@ -186,13 +192,14 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
       <div style={{
         padding: '2rem 2.5rem 1.5rem',
         borderBottom: `1px solid ${border}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem'
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem',
+        background: 'rgba(26,29,46,0.95)'
       }}>
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#FFF', marginBottom: '0.375rem' }}>
+          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: '#fff', marginBottom: '0.375rem' }}>
             Mes Projets
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7E7E86', fontSize: '0.8125rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748B', fontSize: '0.8125rem' }}>
             <HardDrive size={14} />
             <span>Stockage local : {storageInfo.used} / {storageInfo.total}</span>
           </div>
@@ -201,24 +208,30 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            background: cardBg, border: `1px solid ${border}`,
-            padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer',
-            color: '#A0A0A5', fontSize: '0.8125rem', fontWeight: 500,
-            transition: 'border-color 0.2s',
-          }}>
-            <FileJson size={16} /> Importer JSON
-            <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+            background: 'rgba(255,255,255,0.04)', border: `1px solid ${border}`,
+            padding: '0.625rem 1rem', borderRadius: '10px', cursor: 'pointer',
+            color: '#94A3B8', fontSize: '0.875rem', fontWeight: 500,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+          >
+            <FileJson size={16} /> Importer PGF
+            <input type="file" accept=".json,.pgf" style={{ display: 'none' }} onChange={handleImport} />
           </label>
 
           <button
             onClick={() => setShowNewModal(true)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
-              background: '#5A84D5', border: 'none', color: '#FFF',
-              padding: '0.625rem 1.25rem', borderRadius: '8px', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #3B82F6, #2563EB)', border: 'none', color: '#fff',
+              padding: '0.625rem 1.25rem', borderRadius: '10px', cursor: 'pointer',
               fontWeight: 600, fontSize: '0.875rem',
-              boxShadow: '0 4px 16px rgba(90,132,213,0.3)',
+              boxShadow: '0 4px 16px rgba(59,130,246,0.3)',
+              transition: 'all 0.2s'
             }}
+            onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.15)'}
+            onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
           >
             <FolderPlus size={17} /> Nouveau projet
           </button>
@@ -228,13 +241,12 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
       {/* ══ BARRE DE FILTRE ══ */}
       <div style={{
         padding: '1rem 2.5rem',
-        background: 'rgba(43,44,53,0.4)',
         borderBottom: `1px solid ${border}`,
         display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center'
       }}>
         {/* Recherche */}
-        <div style={{ position: 'relative', flex: 1, minWidth: '180px', maxWidth: '340px' }}>
-          <Search size={15} color="#7E7E86" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '360px' }}>
+          <Search size={15} color="#64748B" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder="Rechercher un projet..."
@@ -243,33 +255,34 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
             style={{
               width: '100%', background: inputBg, border: `1px solid ${border}`,
               borderRadius: '8px', padding: '0.5rem 1rem 0.5rem 2.25rem',
-              color: '#FFF', fontSize: '0.8125rem', outline: 'none',
+              color: '#fff', fontSize: '0.875rem', outline: 'none',
+              transition: 'border-color 0.2s'
             }}
+            onFocus={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+            onBlur={e => e.currentTarget.style.borderColor = border}
           />
         </div>
 
         {/* Filtre type */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', padding: '0.5rem 0.875rem' }}>
-          <Filter size={14} color="#7E7E86" />
+          <Filter size={14} color="#64748B" />
           <select
             value={filterType} onChange={e => setFilterType(e.target.value)}
-            style={{ background: 'transparent', border: 'none', color: '#A0A0A5', fontSize: '0.8125rem', outline: 'none', cursor: 'pointer' }}
+            style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
           >
-            {buildingTypes.map(t => <option key={t} value={t} style={{ background: '#26272D' }}>{t}</option>)}
+            {buildingTypes.map(t => <option key={t} value={t} style={{ background: '#1E2237' }}>{t}</option>)}
           </select>
         </div>
 
         {/* Tri */}
         <select
           value={sortBy} onChange={e => setSortBy(e.target.value)}
-          style={{ background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', padding: '0.5rem 0.875rem', color: '#A0A0A5', fontSize: '0.8125rem', outline: 'none', cursor: 'pointer' }}
+          style={{ background: inputBg, border: `1px solid ${border}`, borderRadius: '8px', padding: '0.5rem 0.875rem', color: '#94A3B8', fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
         >
-          <option style={{ background: '#26272D' }}>Date modification</option>
-          <option style={{ background: '#26272D' }}>Nom</option>
-          <option style={{ background: '#26272D' }}>Type bâtiment</option>
+          <option style={{ background: '#1E2237' }}>Date modification</option>
+          <option style={{ background: '#1E2237' }}>Nom</option>
+          <option style={{ background: '#1E2237' }}>Type bâtiment</option>
         </select>
-
-        <AutoSaveIndicator status={saveStatus} />
       </div>
 
       {/* ══ CONTENU PRINCIPAL ══ */}
@@ -279,26 +292,28 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
         {filteredProjects.length === 0 ? (
           <div style={{
             padding: '4rem 2rem',
-            border: `2px dashed ${border}`, borderRadius: '16px',
+            border: `2px dashed rgba(255,255,255,0.1)`, borderRadius: '16px',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            background: 'rgba(43,44,53,0.15)', textAlign: 'center',
+            background: 'rgba(255,255,255,0.02)', textAlign: 'center',
           }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#26272D', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-              <FolderOpen size={36} color="#363741" />
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+              <FolderOpen size={36} color="#64748B" />
             </div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#FFF', marginBottom: '0.5rem' }}>Aucun projet sauvegardé</h3>
-            <p style={{ color: '#7E7E86', fontSize: '0.875rem', maxWidth: '340px' }}>
-              Créez votre premier projet ou sélectionnez un modèle prédéfini ci-dessous.
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#fff', marginBottom: '0.5rem' }}>Aucun projet trouvé</h3>
+            <p style={{ color: '#94A3B8', fontSize: '0.875rem', maxWidth: '340px' }}>
+              Créez votre premier projet ou sélectionnez un modèle prédéfini pour concevoir votre éclairage.
             </p>
             <button
               onClick={() => setShowNewModal(true)}
-              style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#5A84D5', border: 'none', color: '#FFF', padding: '0.675rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem' }}
+              style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px', background: '#3B82F6', border: 'none', color: '#fff', padding: '0.675rem 1.5rem', borderRadius: '10px', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#2563EB'}
+              onMouseLeave={e => e.currentTarget.style.background = '#3B82F6'}
             >
               <FolderPlus size={17} /> Créer un projet
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
             {filteredProjects.map(proj => (
               <ProjectCard
                 key={proj.id}
@@ -317,8 +332,8 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
 
         {/* ─ MODÈLES PRÉDÉFINIS ─ */}
         <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.125rem', fontWeight: 700, color: '#FFF', marginBottom: '1.25rem' }}>
-            <Zap size={18} style={{ color: '#FFB84D' }} /> Démarrer depuis un modèle
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.125rem', fontWeight: 700, color: '#fff', marginBottom: '1.25rem' }}>
+            <Zap size={18} style={{ color: '#F0A500' }} /> Démarrer depuis un modèle
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
             {templates.length > 0 ? templates.map(tpl => (
@@ -326,10 +341,10 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
             )) : (
               /* Modèles par défaut si pas encore chargés */
               [
-                { id: 'b', name: 'Bureau Standard', description: '7×6 m, 500 lux, LED', icon: <Building size={20} color="#FFB84D" /> },
-                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: <BookOpen size={20} color="#FFB84D" /> },
-                { id: 'c', name: 'Commerce', description: '10×8 m, 750 lux, dalles LED', icon: <Store size={20} color="#FFB84D" /> },
-                { id: 'h', name: 'Hôpital', description: '6×5 m, 500 lux, IRC>90', icon: <Activity size={20} color="#FFB84D" /> },
+                { id: 'b', name: 'Bureau PME', description: '7×6 m, 500 lux, LED', icon: <Building size={20} color="#F0A500" /> },
+                { id: 'h', name: 'Clinique', description: '6×5 m, 500 lux, IRC>90', icon: <Activity size={20} color="#F0A500" /> },
+                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: <BookOpen size={20} color="#F0A500" /> },
+                { id: 'c', name: 'Commerce détail', description: '10×8 m, 750 lux, dalles LED', icon: <Store size={20} color="#F0A500" /> },
               ].map(tpl => (
                 <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: {} })} />
               ))
@@ -346,25 +361,29 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
   const [showMenu, setShowMenu] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  const bType = project.formData?.occupation?.buildingType || 'Type inconnu';
+  const bType = project.formData?.occupation?.buildingType || 'Non spécifié';
   const lumCount = project.results?.lighting?.N != null ? Math.round(project.results.lighting.N) : '—';
-  const zone = project.formData?.location?.zone || 'Bénin';
+  const location = project.formData?.location?.country && project.formData?.location?.city 
+      ? `${project.formData.location.country} - ${project.formData.location.city}` 
+      : 'Bénin - Cotonou';
+  
   const dateStr = project.updatedAt
     ? new Date(project.updatedAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
     : '—';
 
-  const border = '#363741';
-  const cardBg = '#26272D';
+  const border = 'rgba(255,255,255,0.08)';
+  const cardBg = 'rgba(30,34,55,0.6)';
 
   return (
     <div
       style={{
         background: cardBg,
-        border: `1px solid ${hovered ? '#5A84D5' : border}`,
+        border: `1px solid ${hovered ? 'rgba(59,130,246,0.5)' : border}`,
         borderRadius: '12px', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-        boxShadow: hovered ? '0 4px 20px rgba(90,132,213,0.12)' : 'none',
+        transition: 'all 0.2s ease',
+        boxShadow: hovered ? '0 8px 30px rgba(0,0,0,0.4)' : 'none',
+        transform: hovered ? 'translateY(-2px)' : 'none',
         position: 'relative',
       }}
       onMouseEnter={() => setHovered(true)}
@@ -375,58 +394,63 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
         onClick={onOpen}
         style={{
           height: '110px',
-          background: 'linear-gradient(135deg, #1E1F24 0%, #2B2C35 100%)',
+          background: 'linear-gradient(135deg, rgba(30,34,55,1) 0%, rgba(20,24,35,1) 100%)',
           borderBottom: `1px solid ${border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', position: 'relative',
         }}
       >
-        <div style={{ opacity: 0.15 }}>
-          <Lightbulb size={48} color="#FFB84D" />
+        <div style={{ opacity: 0.1 }}>
+          <Lightbulb size={48} color="#3B82F6" />
         </div>
         {/* Mini room render hint */}
         {project.formData?.room?.length && (
           <div style={{
-            position: 'absolute', bottom: '8px', left: '12px',
-            fontSize: '0.6875rem', color: '#7E7E86', fontFamily: 'monospace',
+            position: 'absolute', bottom: '10px', left: '12px',
+            fontSize: '0.6875rem', color: '#64748B', fontFamily: 'monospace',
+            background: 'rgba(0,0,0,0.3)', padding: '2px 6px', borderRadius: 4
           }}>
             {project.formData.room.length}×{project.formData.room.width} m
           </div>
         )}
-        <div style={{ position: 'absolute', top: '8px', left: '10px', background: 'rgba(26,27,32,0.8)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.625rem', fontWeight: 700, color: '#5A84D5', letterSpacing: '0.05em' }}>
-          ILLUMINEX
+        <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(59,130,246,0.15)', padding: '3px 8px', borderRadius: '12px', fontSize: '0.625rem', fontWeight: 700, color: '#3B82F6', letterSpacing: '0.05em' }}>
+          ACTIF
         </div>
       </div>
 
       {/* Corps */}
-      <div style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <h3
             onClick={onOpen}
-            style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#FFF', cursor: 'pointer', flex: 1, paddingRight: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+            style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', cursor: 'pointer', flex: 1, paddingRight: '0.5rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}
           >
             {project.name || 'Projet sans nom'}
           </h3>
           <button
             onClick={e => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            style={{ background: 'none', border: 'none', color: '#7E7E86', cursor: 'pointer', padding: '2px', flexShrink: 0 }}
+            style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', padding: '2px', flexShrink: 0 }}
           >
-            <MoreVertical size={16} />
+            <MoreVertical size={18} />
           </button>
         </div>
 
-        <span style={{ fontSize: '0.75rem', color: '#7E7E86', background: '#1E1F24', padding: '2px 8px', borderRadius: '4px', alignSelf: 'flex-start' }}>
+        <span style={{ fontSize: '0.75rem', color: '#94A3B8', background: 'rgba(255,255,255,0.05)', padding: '3px 8px', borderRadius: '6px', alignSelf: 'flex-start' }}>
           {bType}
         </span>
 
-        <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#7E7E86' }}>
-            <MapPin size={12} /> <span>{zone}</span>
-            <span style={{ color: '#363741' }}>·</span>
-            <Lightbulb size={12} /> <span>{lumCount} lum.</span>
+        <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#64748B' }}>
+            <MapPin size={12} /> <span>{location}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: '#7E7E86' }}>
-            <Calendar size={12} /> <span>Modifié le {dateStr}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#64748B' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+               <Lightbulb size={12} /> <span>{lumCount} lum.</span>
+            </div>
+            <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Calendar size={12} /> <span>{dateStr}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -436,14 +460,14 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
         onClick={onOpen}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          background: hovered ? '#5A84D5' : 'rgba(90,132,213,0.08)',
-          color: hovered ? '#FFF' : '#5A84D5',
-          border: 'none', padding: '0.625rem',
-          fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer',
-          transition: 'background 0.2s, color 0.2s',
+          background: hovered ? '#3B82F6' : 'rgba(59,130,246,0.1)',
+          color: hovered ? '#fff' : '#3B82F6',
+          border: 'none', padding: '0.75rem',
+          fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+          transition: 'all 0.2s',
         }}
       >
-        Ouvrir le projet <ArrowRight size={14} />
+        Continuer <ArrowRight size={16} />
       </button>
 
       {/* Menu contextuel */}
@@ -451,22 +475,27 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 9 }} onClick={() => setShowMenu(false)} />
           <div style={{
-            position: 'absolute', top: '2.5rem', right: '0.75rem', zIndex: 10,
-            background: '#2B2C35', border: '1px solid #363741', borderRadius: '10px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden', minWidth: '180px',
+            position: 'absolute', top: '3rem', right: '1rem', zIndex: 10,
+            background: '#1E2237', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)', overflow: 'hidden', minWidth: '180px',
           }}>
             {[
               { label: 'Dupliquer', icon: <Copy size={14} />, action: () => { onDuplicate(); setShowMenu(false); } },
-              { label: 'Exporter JSON', icon: <FileJson size={14} />, action: () => { onExportJSON(); setShowMenu(false); } },
+              { label: 'Exporter PGF', icon: <FileJson size={14} />, action: () => { onExportJSON(); setShowMenu(false); } },
             ].map(item => (
-              <button key={item.label} onClick={item.action} style={menuItemStyle}>
+              <button key={item.label} onClick={item.action} style={menuItemStyle}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
                 {item.icon} {item.label}
               </button>
             ))}
-            <div style={{ height: '1px', background: '#363741', margin: '4px 0' }} />
+            <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
             <button
-              onClick={() => { if (window.confirm('Supprimer ce projet ?')) onDelete(); setShowMenu(false); }}
+              onClick={() => { if (window.confirm('Êtes-vous sûr de vouloir supprimer définitivement ce projet ?')) onDelete(); setShowMenu(false); }}
               style={{ ...menuItemStyle, color: '#ef4444' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
               <Trash2 size={14} /> Supprimer
             </button>
@@ -478,9 +507,10 @@ function ProjectCard({ project, onOpen, onDelete, onDuplicate, onExportJSON }) {
 }
 
 const menuItemStyle = {
-  display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-  background: 'transparent', border: 'none', padding: '0.625rem 1rem',
-  color: '#A0A0A5', fontSize: '0.8125rem', cursor: 'pointer', textAlign: 'left',
+  display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+  background: 'transparent', border: 'none', padding: '0.75rem 1rem',
+  color: '#94A3B8', fontSize: '0.875rem', cursor: 'pointer', textAlign: 'left',
+  transition: 'background 0.2s',
 };
 
 /* ── Carte Modèle ── */
@@ -489,13 +519,13 @@ function TemplateCard({ template, onClick }) {
 
   const getDynamicIcon = (name) => {
     const n = name.toLowerCase();
-    if (n.includes('classe') || n.includes('école')) return <BookOpen size={20} color="#FFB84D" />;
-    if (n.includes('bureau') || n.includes('open space')) return <Building size={20} color="#FFB84D" />;
-    if (n.includes('commerce') || n.includes('magasin')) return <Store size={20} color="#FFB84D" />;
-    if (n.includes('logement') || n.includes('résidentiel')) return <Home size={20} color="#FFB84D" />;
-    if (n.includes('réunion')) return <Users size={20} color="#FFB84D" />;
-    if (n.includes('hôpital') || n.includes('santé')) return <Activity size={20} color="#FFB84D" />;
-    return <Zap size={20} color="#FFB84D" />;
+    if (n.includes('classe') || n.includes('école')) return <BookOpen size={20} color="#F0A500" />;
+    if (n.includes('bureau') || n.includes('open space')) return <Building size={20} color="#F0A500" />;
+    if (n.includes('commerce') || n.includes('magasin')) return <Store size={20} color="#F0A500" />;
+    if (n.includes('logement') || n.includes('résidentiel')) return <Home size={20} color="#F0A500" />;
+    if (n.includes('réunion')) return <Users size={20} color="#F0A500" />;
+    if (n.includes('hôpital') || n.includes('santé')) return <Activity size={20} color="#F0A500" />;
+    return <Zap size={20} color="#F0A500" />;
   };
 
   return (
@@ -504,29 +534,29 @@ function TemplateCard({ template, onClick }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: hovered ? '#2B2C35' : '#26272D',
-        border: `1px solid ${hovered ? '#FFB84D50' : '#363741'}`,
+        background: hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
+        border: `1px solid ${hovered ? 'rgba(240,165,0,0.4)' : 'rgba(255,255,255,0.06)'}`,
         borderRadius: '12px', padding: '1.25rem', cursor: 'pointer',
         transition: 'all 0.2s ease',
         transform: hovered ? 'translateY(-2px)' : 'none',
-        boxShadow: hovered ? '0 6px 20px rgba(0,0,0,0.2)' : 'none',
+        boxShadow: hovered ? '0 8px 24px rgba(0,0,0,0.3)' : 'none',
       }}
     >
       <div style={{
-        width: 40, height: 40, borderRadius: '10px',
-        background: 'rgba(255,184,77,0.12)',
+        width: 44, height: 44, borderRadius: '12px',
+        background: 'rgba(240,165,0,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '1.25rem', marginBottom: '0.875rem',
+        fontSize: '1.25rem', marginBottom: '1rem',
         transition: 'transform 0.2s',
         transform: hovered ? 'scale(1.1)' : 'scale(1)',
       }}>
         {template.icon || getDynamicIcon(template.name || '')}
       </div>
-      <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#FFF', marginBottom: '0.25rem' }}>
+      <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#fff', marginBottom: '0.375rem', margin: 0 }}>
         {template.name}
       </h3>
-      <p style={{ fontSize: '0.75rem', color: '#7E7E86', lineHeight: 1.4 }}>
-        {template.description || 'Modèle prédéfini ILLUMINEX-BJ'}
+      <p style={{ fontSize: '0.75rem', color: '#94A3B8', lineHeight: 1.4, margin: 0 }}>
+        {template.description || 'Modèle ILLUMINEX Afrique'}
       </p>
     </div>
   );
@@ -535,9 +565,9 @@ function TemplateCard({ template, onClick }) {
 /* ── Indicateur de sauvegarde ── */
 function AutoSaveIndicator({ status }) {
   const configs = {
-    saving: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', color: '#F59E0B', icon: <Clock size={12} />, label: 'Sauvegarde...' },
+    saving: { bg: 'rgba(240,165,0,0.1)', border: 'rgba(240,165,0,0.3)', color: '#F0A500', icon: <Clock size={12} />, label: 'Sauvegarde...' },
     unsaved: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#ef4444', icon: <AlertCircle size={12} />, label: 'Non sauvegardé' },
-    saved: { bg: 'rgba(74,222,128,0.1)', border: 'rgba(74,222,128,0.3)', color: '#4ade80', icon: <CheckCircle2 size={12} />, label: 'Sauvegardé' },
+    saved: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#22c55e', icon: <CheckCircle2 size={12} />, label: 'Sauvegardé' },
   };
   const c = configs[status] || configs.saved;
   return (
