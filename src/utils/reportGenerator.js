@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { calculateThermalComfort } from './thermalComfort';
 
 /**
  * PART A - Assembler les données pour le générateur de rapport
@@ -64,13 +65,19 @@ export function buildReportData(formData, allResults) {
       totalPower: lr.totalPower || 0
     },
     climate: {
-      season: cr.climate?.season || 'Inconnue',
-      dayDuration: cr.climate?.dayDuration || 0,
-      FLN: cr.naturalLight?.FLN || 0,
-      E_natural: cr.naturalLight?.E_natural || 0,
-      N_adjusted: cr.adjusted?.N_adjusted || 0,
+      type:            cr.climate?.type      || 'Inconnu',
+      city:            cr.climate?.city      || '',
+      country:         cr.climate?.country   || '',
+      season:          cr.climate?.season    || 'Inconnue',
+      dayDuration:     cr.climate?.dayDuration || 0,
+      E_exterior:      cr.climate?.E_exterior || 0,
+      solarIrradiance: cr.climate?.solarIrradiance || 5.2,
+      FLN:             cr.naturalLight?.FLN   || 0,
+      E_natural:       cr.naturalLight?.E_natural || 0,
+      N_adjusted:      cr.adjusted?.N_adjusted || 0,
       luminairesSaved: cr.savings?.luminairesSaved || 0,
-      savingsPercent: cr.savings?.savingsPercent || 0
+      savingsPercent:  cr.savings?.savingsPercent  || 0,
+      hourlyIrradiance: cr.hourlyIrradiance || [],
     },
     energy: {
       H_real: usar.usageFactors?.H_real || 0,
@@ -93,6 +100,12 @@ export function buildReportData(formData, allResults) {
       hoursArtificial: nlr.summary?.hoursArtificial || 0,
       hourlyProfile: nlr.hourlyProfile || []
     },
+    thermal: calculateThermalComfort(
+       formData, 
+       formData?.results?.solarData || {},
+       formData?.results?.solarData?.simMonth || 1,
+       formData?.results?.solarData?.simHour || 12
+    ),
     // We will compute recommendations immediately based on the generated reportData
     recommendations: generateRecommendations({
        inputs: formData,
@@ -282,11 +295,15 @@ export function exportToPDF(reportData) {
     startY: currentY,
     head: [['Paramètre Solaire', 'Analyse']],
     body: [
-      ['Saison estimée', reportData.climate.season],
-      ['Éclairement naturel (extérieur)', `${Math.round(reportData.climate.E_exterior)} lux`],
+      ['Type de climat',                    reportData.climate.type || '—'],
+      ['Ville de référence',                reportData.climate.city || '—'],
+      ['Saison estimée',                    reportData.climate.season],
+      ['Durée d\'ensoleillement',           `${reportData.climate.dayDuration} h/j`],
+      ['Irradiance solaire journalière',    `${reportData.climate.solarIrradiance} kWh/m²/j`],
+      ['Éclairement naturel ext. (E_ext)',  reportData.climate.E_exterior > 0 ? `${Math.round(reportData.climate.E_exterior).toLocaleString('fr-FR')} lux` : '— (nuit)'],
       ['Facteur de Lumière du Jour (FLN)', `${reportData.climate.FLN.toFixed(3)}`],
-      ['Luminaires inutiles en journée', `${reportData.climate.luminairesSaved} sur ${reportData.lighting.N}`],
-      ['Taux d\'économie par la lumière naturelle', `${reportData.climate.savingsPercent.toFixed(1)} %`]
+      ['Luminaires inutiles en journée',   `${reportData.climate.luminairesSaved} sur ${reportData.lighting.N}`],
+      ['Taux d\'économie lumière naturelle', `${reportData.climate.savingsPercent.toFixed(1)} %`]
     ],
     theme: 'grid',
     headStyles: { fillColor: [29, 78, 216] }
@@ -295,9 +312,11 @@ export function exportToPDF(reportData) {
   currentY = doc.lastAutoTable.finalY + 15;
   generateHeader("ESTIMATION DE LA CONSOMMATION ÉNERGÉTIQUE");
 
+  const tarifKwh = reportData.energy?.cost_annual ? Math.round(reportData.energy.cost_annual / reportData.energy.annual) : 120;
+
   doc.autoTable({
     startY: currentY,
-    head: [['Indicateur', 'Consommation', 'Coût estimé (SBEE : 98 FCFA/kWh)']],
+    head: [['Indicateur', 'Consommation', `Coût estimé (${tarifKwh} FCFA/kWh)`]],
     body: [
       ['Journalier', `${reportData.energy.daily.toFixed(1)} kWh`, `${Math.round(reportData.energy.cost_daily).toLocaleString()} FCFA`],
       ['Mensuel', `${reportData.energy.monthly.toFixed(1)} kWh`, `${Math.round(reportData.energy.cost_monthly).toLocaleString()} FCFA`],
@@ -318,7 +337,66 @@ export function exportToPDF(reportData) {
   }
 
   // ============================================
-  // PAGE 4 : RECOMMANDATIONS PROFESSIONNELLES
+  // PAGE 4 : CONFORT THERMIQUE
+  // ============================================
+  doc.addPage();
+  currentY = 20;
+  addPageBrand();
+
+  generateHeader("ÉVALUATION DU CONFORT THERMIQUE");
+  
+  doc.autoTable({
+    startY: currentY,
+    head: [['Paramètre Thermique', 'Valeur', 'Observation']],
+    body: [
+      ['Température Ext. (T2M)', `${reportData.thermal.T2M} °C`, 'NASA POWER'],
+      ['Vitesse du Vent (WS10M)', `${reportData.thermal.WS10M} m/s`, 'NASA POWER'],
+      ['Type de Vitrage', reportData.thermal.glazingType, ''],
+      ['État des Fenêtres', reportData.thermal.windowsOpen ? 'Ouvertes (Ventilation)' : 'Fermées', ''],
+      ['Apport Solaire Thermique', `+${reportData.thermal.DeltaT_gain_solaire} °C`, ''],
+      ['Rafraîchissement Vent', `-${reportData.thermal.DeltaT_vent} °C`, ''],
+      ['Temp. de Confort (Adap.)', `${reportData.thermal.T_confort} °C`, 'EN 15251'],
+      ['Température Ressentie', `${reportData.thermal.T_ressentie} °C`, ''],
+    ],
+    theme: 'grid',
+    headStyles: { fillColor: [29, 78, 216] }
+  });
+  
+  currentY = doc.lastAutoTable.finalY + 15;
+  
+  // Badge de Confort Thermique
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text("Statut du Confort Thermique :", 14, currentY);
+  
+  let thermFill = [34, 197, 94]; // Green for comfortable
+  if (reportData.thermal.statut.includes('Trop')) thermFill = [239, 68, 68]; // Red
+  else if (reportData.thermal.statut.includes('Légèrement')) thermFill = [245, 158, 11]; // Amber
+  
+  doc.setFillColor(thermFill[0], thermFill[1], thermFill[2]);
+  doc.rect(75, currentY - 5, 45, 7, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(10);
+  doc.text(reportData.thermal.statut, 97.5, currentY, { align: 'center' });
+  doc.setTextColor(0, 0, 0);
+
+  currentY += 15;
+
+  if (reportData.thermal.conseils && reportData.thermal.conseils.length > 0) {
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Conseils Thermiques:", 14, currentY);
+    currentY += 6;
+    doc.setFont('helvetica', 'normal');
+    reportData.thermal.conseils.forEach(c => {
+      const txt = doc.splitTextToSize(`• ${c}`, pageWidth - 28);
+      doc.text(txt, 14, currentY);
+      currentY += (txt.length * 6);
+    });
+  }
+
+  // ============================================
+  // PAGE 5 : RECOMMANDATIONS PROFESSIONNELLES
   // ============================================
   doc.addPage();
   currentY = 20;

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, XCircle, BarChart2, CheckSquare, Wrench, Lightbulb } from 'lucide-react';
 import { NORMS, NORMS_U0 } from '../data/norms';
+import { calculateLighting } from '../utils/calculateLighting';
+import { calculateUniformity } from '../utils/calculateUniformity';
 
 function MetricCard({ label, value, unit, subValue, color = '#3B82F6' }) {
   return (
@@ -43,67 +45,104 @@ function ConformityBadge({ isConform }) {
 }
 
 export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev }) {
-  const room     = formData?.room       || { length: 7, width: 6, ceilingHeight: 3 };
-  const luminaire = formData?.luminaire || {};
-  const results  = formData?.results    || {};
+  const room      = formData?.room       || { length: 7, width: 6, ceilingHeight: 3 };
+  const luminaire = formData?.luminaire  || {};
 
   const [showDetails, setShowDetails] = useState(false);
-  const [showDelta, setShowDelta]    = useState(false);
+  const [showDelta, setShowDelta]     = useState(false);
 
-  const roomType  = room.type || 'Bureau';
-  const norm      = NORMS[roomType] || NORMS['Bureau'];
-  const normU0    = NORMS_U0[roomType] || 0.60;
+  const roomType = room.type || 'Bureau';
+  const norm     = NORMS[roomType] || NORMS['Bureau'];
+  const normU0   = NORMS_U0[roomType] || 0.60;
 
-  // Métriques calculées
-  const surface = room.length * room.width;
-  const N       = results.nbLuminaires  || luminaire.nbLuminaires || 4;
-  const flux    = luminaire.fluxPerUnit || 2250;
-  const puiss   = luminaire.powerPerUnit || 18;
+  // Run calculation engines — single source of truth
+  const { lighting, uniformity } = useMemo(() => {
+    const lt = calculateLighting(formData);
+    const un = calculateUniformity(formData, lt);
+    return { lighting: lt, uniformity: un };
+  }, [formData]);
 
-  // Simulation d'un éclairement simplifié (depuis results ou calculé)
-  const eMax = results.eMax || Math.round(N * flux * 0.7 / surface);
-  const eMin = results.eMin || Math.round(eMax * 0.65);
-  const eMoy = results.eMoy || Math.round((eMax + eMin) / 2);
+  const surface = lighting.S;
+  const N       = lighting.N;
+  const eMax    = uniformity.E_max;
+  const eMin    = uniformity.E_min;
+  const eMoy    = uniformity.E_moy;
+  const u0      = uniformity.U0;
+  const cols    = uniformity.layout.cols;
+  const rows    = uniformity.layout.rows;
 
-  const u0 = eMoy > 0 ? Math.round((eMin / eMoy) * 100) / 100 : 0;
-  const puissanceTotale = N * puiss;
-  const efficacite      = puissanceTotale > 0 ? Math.round((puissanceTotale / surface) * 100) / 100 : 0;
+  const puissanceTotale = lighting.totalPower;
+  const efficacite      = surface > 0 ? Math.round((puissanceTotale / surface) * 100) / 100 : 0;
 
-  // Conformités
+  // Conformities
   const conform_lux = eMoy >= norm.lux;
   const conform_u0  = u0 >= normU0;
   const conform_irc = (luminaire.irc || 80) >= norm.ircMin;
 
-  // Disposition suggérée
-  const cols = Math.ceil(Math.sqrt(N * (room.width / room.length)));
-  const rows = Math.ceil(N / cols);
-
-  // Zones d'analyse
+  // Deterministic heatmap zones based on luminaire positions
   const zones = useMemo(() => {
-    const rows = 3, cols = 4;
-    const cellW = room.width / cols;
-    const cellH = room.length / rows;
+    const zoneRows = 3, zoneCols = 4;
+    const cellW = room.width / zoneCols;
+    const cellH = room.length / zoneRows;
+    const Hm = (room.ceilingHeight || 3) - (room.workPlaneHeight || 0.85);
+    const positions = uniformity.positions;
     const res = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const baseE = eMoy * (0.85 + Math.random() * 0.3);
-        res.push({
-          zone: `${(c * cellW).toFixed(1)}–${((c + 1) * cellW).toFixed(1)} m × ${(r * cellH).toFixed(1)}–${((r + 1) * cellH).toFixed(1)} m`,
-          e: Math.round(baseE),
-          u: Math.round(u0 * (0.9 + Math.random() * 0.2) * 100) / 100,
-          ok: baseE >= norm.lux,
-        });
+
+    for (let r = 0; r < zoneRows; r++) {
+      for (let c = 0; c < zoneCols; c++) {
+        const cx = (c + 0.5) * cellW; // zone center X (along width)
+        const cy = (r + 0.5) * cellH; // zone center Y (along length)
+
+        // Sum inverse-square contributions from each luminaire
+        let totalContrib = 0;
+        for (const p of positions) {
+          const dx = cx - p.y; // p.x is along length, p.y along width in the engine
+          const dy = cy - p.x;
+          const distSq = dx * dx + dy * dy + Hm * Hm;
+          totalContrib += 1 / distSq;
+        }
+
+        res.push({ cx, cy, contrib: totalContrib });
       }
     }
-    return res;
-  }, [eMoy, u0, norm.lux, room]);
 
-  // Carte thermique couleur lux
+    // Normalize so average matches eMoy
+    const avgContrib = res.reduce((s, z) => s + z.contrib, 0) / res.length;
+    const scale = avgContrib > 0 ? eMoy / avgContrib : 0;
+
+    return res.map((z, i) => {
+      const e = Math.round(z.contrib * scale);
+      const zoneU = eMoy > 0 ? Math.round((Math.min(e, eMoy) / Math.max(e, eMoy)) * 100) / 100 : 0;
+      return {
+        zone: `${((i % 4) * (room.width / 4)).toFixed(1)}–${(((i % 4) + 1) * (room.width / 4)).toFixed(1)} m × ${(Math.floor(i / 4) * (room.length / 3)).toFixed(1)}–${((Math.floor(i / 4) + 1) * (room.length / 3)).toFixed(1)} m`,
+        e,
+        u: zoneU,
+        ok: e >= norm.lux,
+      };
+    });
+  }, [uniformity, eMoy, norm.lux, room]);
+
+  // Heatmap color based on lux level
   const lxColor = (lx) => {
     const ratio = Math.min(1, lx / (norm.lux * 1.5));
     if (ratio > 0.8) return '#22c55e';
     if (ratio > 0.5) return '#f59e0b';
     return '#ef4444';
+  };
+
+  // Optimize button handler — suggest adding luminaires if non-conformant
+  const handleOptimize = () => {
+    if (!conform_lux || !conform_u0) {
+      // Estimate needed luminaires for conformity
+      const targetE = norm.lux;
+      const cu = lighting.CU;
+      const mf = lighting.MF;
+      const flux = luminaire.fluxPerUnit || 1;
+      const nNeeded = Math.ceil((targetE * surface) / (flux * cu * mf));
+      if (nNeeded > N) {
+        updateFormData('luminaire', { nbLuminaires: nNeeded });
+      }
+    }
   };
 
   return (
@@ -167,7 +206,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }}>
           {/* Left — Carte thermique + Tableau */}
           <div>
-            {/* Carte thermique pseudo */}
+            {/* Carte thermique */}
             <div style={{
               background: '#23242B',
               border: '1px solid rgba(255,255,255,0.06)',
@@ -297,17 +336,6 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: 14, fontWeight: 700 }}>Résultats globaux</h3>
-                <button
-                  style={{
-                    background: 'rgba(240,165,0,0.1)',
-                    border: '1px solid rgba(240,165,0,0.3)',
-                    color: '#F0A500',
-                    borderRadius: 6, padding: '0.35rem 0.85rem',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                  }}
-                >
-                  <BarChart2 size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} /> Exporter PGF
-                </button>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 {[
@@ -352,7 +380,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                 { label: 'Éclairement moyen', measured: `${eMoy} Lux`, norm: `≥ ${norm.lux} Lux`, ok: conform_lux },
                 { label: 'Uniformité U0',     measured: u0.toFixed(2),  norm: `≥ ${normU0}`,       ok: conform_u0  },
                 { label: 'IRC',               measured: (luminaire.irc || 80), norm: `≥ ${norm.ircMin}`, ok: conform_irc },
-                { label: 'UGR Max',           measured: norm.ugrMax,    norm: `≤ ${norm.ugrMax}`,  ok: true        },
+                { label: 'UGR',               measured: lighting.UGR,   norm: `≤ ${norm.ugrMax}`,  ok: lighting.UGR <= norm.ugrMax },
               ].map(({ label, measured, norm: n, ok }) => (
                 <div key={label} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -375,19 +403,21 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
             </div>
 
             {/* Bouton Optimiser */}
-            <button style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-              border: 'none',
-              color: '#fff',
-              borderRadius: 10,
-              padding: '0.875rem',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 700,
-              marginBottom: '1.25rem',
-              transition: 'all 0.2s',
-            }}
+            <button
+              onClick={handleOptimize}
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: 10,
+                padding: '0.875rem',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 700,
+                marginBottom: '1.25rem',
+                transition: 'all 0.2s',
+              }}
               onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.1)'}
               onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
             >
@@ -409,8 +439,13 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                 {rows} rangées × {cols} colonnes
               </p>
               <p style={{ margin: '0.5rem 0 0', color: '#64748B', fontSize: 12 }}>
-                Espacement : {Math.round((room.width / cols) * 100) / 100} m × {Math.round((room.length / rows) * 100) / 100} m
+                Espacement : {uniformity.layout.spacingX} m × {uniformity.layout.spacingY} m
               </p>
+              {uniformity.layout.spacingWarning && (
+                <p style={{ margin: '0.5rem 0 0', color: '#ef4444', fontSize: 11, fontWeight: 600 }}>
+                  {uniformity.layout.warningMessage}
+                </p>
+              )}
             </div>
           </div>
         </div>

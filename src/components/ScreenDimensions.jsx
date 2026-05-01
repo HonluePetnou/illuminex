@@ -305,7 +305,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
           {/* Localisation et Orientation */}
           <section className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '1.25rem' }}>
             <h2 style={{ fontSize: '0.875rem', fontWeight: 700, color: C.text, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MapPin size={16} color={C.accent} /> Localisation & Orientation
+              <MapPin size={16} color={C.accent} /> Localisation & Apports Solaire
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Selecteur Pays complexe */}
@@ -335,13 +335,42 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
               <SelectRow
                 label="Orientation façade"
                 value={location.buildingOrientation}
-                onChange={v => updateFormData('location', { buildingOrientation: v })}
+                onChange={v => updateFormData('location', { ...location, buildingOrientation: v })}
                 options={orientationOptions}
               />
               <div style={{ marginTop: '0.25rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.75rem', color: C.muted }}>
                 Climat chargé: <strong style={{color:'#fff'}}>{location.climate}</strong> <br/>
                 Ville gisement: <span style={{color:'#fff'}}>{location.city || location.country}</span>
               </div>
+              
+              <FieldRow 
+                label="Surface Vitrée" 
+                unit="m²" 
+                value={formData?.naturalLight?.windowArea || 0} 
+                min={0} max={50} step={0.5} 
+                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, windowArea: v, hasWindows: v > 0 })} 
+              />
+              <SelectRow
+                label="Type de vitrage"
+                value={room.glazingType || 'Double standard'}
+                onChange={v => updateFormData('room', { ...room, glazingType: v })}
+                options={[
+                  {value: 'Simple vitrage', label: 'Simple vitrage'},
+                  {value: 'Double standard', label: 'Double standard'},
+                  {value: 'Double low-E', label: 'Double low-E'},
+                  {value: 'Triple vitrage', label: 'Triple vitrage'},
+                  {value: 'Vitrage teinté', label: 'Vitrage teinté'}
+                ]}
+              />
+              <SelectRow
+                label="État des fenêtres"
+                value={formData?.naturalLight?.windowsOpen === false ? 'Fermées' : 'Ouvertes'}
+                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, windowsOpen: v === 'Ouvertes' })}
+                options={[
+                  {value: 'Ouvertes', label: 'Ouvertes (Ventilées)'},
+                  {value: 'Fermées', label: 'Fermées'}
+                ]}
+              />
             </div>
           </section>
 

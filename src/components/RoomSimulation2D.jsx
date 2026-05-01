@@ -222,19 +222,22 @@ export default function RoomSimulation2D({
       const pos = positions[i];
       const px = originX + pos.x * scale;
       const py = originY + pos.y * scale;
-      const isActive = i < activeCount && profile.isOccupied;
+      
+      // Forcer l'affichage allumé pour le rendu visuel 2D comme demandé
+      const isActive = true;
 
       if (isActive) {
         const pulse = Math.sin(timestamp / 400 + i) * 2;
-        const effRadius = Math.max(10, 26 + pulse);
+        const effRadius = Math.max(15, 35 + pulse);
         const grd = ctx.createRadialGradient(px, py, 0, px, py, effRadius);
-        grd.addColorStop(0, 'rgba(255, 184, 77, 0.65)');
+        grd.addColorStop(0, 'rgba(255, 200, 100, 0.8)');
+        grd.addColorStop(0.5, 'rgba(255, 184, 77, 0.3)');
         grd.addColorStop(1, 'rgba(255, 184, 77, 0)');
         ctx.fillStyle = grd;
         ctx.beginPath(); ctx.arc(px, py, effRadius, 0, Math.PI * 2); ctx.fill();
 
-        ctx.fillStyle = '#FFB84D';
-        ctx.strokeStyle = '#B45309';
+        ctx.fillStyle = '#FFD080';
+        ctx.strokeStyle = '#D97706';
       } else {
         ctx.fillStyle = '#2B2C35';
         ctx.strokeStyle = '#363741';

@@ -48,7 +48,7 @@ export async function calculateSolarIrradiance({ climate, month, hour }) {
     const hourData = monthData[hourStr];
     if (!hourData) return { eExterieur: 0, typeCiel: 'Nuit', f: 0, K: 0 };
 
-    const { ALLSKY, CLRSKY } = hourData;
+    const { ALLSKY, CLRSKY, T2M, WS10M } = hourData;
 
     // ÉTAPE 4 : Calcul de f
     const f = CLRSKY > 0 ? ALLSKY / CLRSKY : 0;
@@ -66,7 +66,7 @@ export async function calculateSolarIrradiance({ climate, month, hour }) {
     // ÉTAPE 6 : Calcul de l'éclairement extérieur
     const eExterieur = Math.round(ALLSKY * K);
 
-    return { eExterieur, typeCiel, skyIcon, f: Math.round(f * 100) / 100, K, ALLSKY, CLRSKY };
+    return { eExterieur, typeCiel, skyIcon, f: Math.round(f * 100) / 100, K, ALLSKY, CLRSKY, T2M, WS10M };
   } catch (err) {
     console.error('Erreur calcul solaire:', err);
     return { eExterieur: 0, typeCiel: 'Erreur', f: 0, K: 0 };

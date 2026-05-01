@@ -46,7 +46,25 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
     let cancel = false;
     calculateSolarIrradiance({ climate: location.climate, month: simMonth, hour: simHour })
       .then(res => {
-        if (!cancel) setSunData(res);
+        if (!cancel) {
+          setSunData(res);
+          // Sauvegarder les données solaires dans formData pour les autres écrans
+          updateFormData('results', {
+            solarData: {
+              eExterieur: res.eExterieur,
+              typeCiel:   res.typeCiel,
+              f:          res.f,
+              K:          res.K,
+              ALLSKY:     res.ALLSKY,
+              CLRSKY:     res.CLRSKY,
+              T2M:        res.T2M,
+              WS10M:      res.WS10M,
+              simMonth,
+              simHour,
+              climate:    location.climate,
+            }
+          });
+        }
       });
     return () => cancel = true;
   }, [location.climate, location.latitude, simMonth, simHour]);
@@ -108,10 +126,17 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
               <div style={{ display: 'flex', alignItems: 'center', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.625rem 1rem', gap: '1rem', flex: 1, justifyContent: 'flex-start' }}>
                 {sunData.skyIcon === 'Cloud' ? <Cloud size={16} color={C.accent} /> : 
                  sunData.skyIcon === 'CloudSun' ? <CloudSun size={16} color={C.accent} /> : 
+                 sunData.skyIcon === 'loading' ? <Loader2 size={16} color={C.muted} style={{ animation: 'spin 1s linear infinite' }} /> :
                  <Sun size={16} color={C.accent} />}
-                <span style={{ fontSize: '0.8125rem', color: C.text, fontWeight: 500 }}>15°C</span>
-                <div style={{ width: '1px', height: '14px', background: C.border, margin: '0 0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', color: C.muted }}>34 % (Couverture)</span>
+                 <span style={{ fontSize: '0.8125rem', color: C.text, fontWeight: 500 }}>{sunData.typeCiel}</span>
+                 <div style={{ width: '1px', height: '14px', background: C.border, margin: '0 0.5rem' }} />
+                 <span style={{ fontSize: '0.8125rem', color: C.muted }}>
+                   {sunData.f > 0 ? `f = ${sunData.f}` : 'Nuit / données indisponibles'}
+                 </span>
+                 <div style={{ width: '1px', height: '14px', background: C.border, margin: '0 0.5rem' }} />
+                 <span style={{ fontSize: '0.8125rem', color: C.accent, fontWeight: 600 }}>
+                   {sunData.eExterieur > 0 ? `${sunData.eExterieur.toLocaleString('fr-FR')} Lux ext.` : '—'}
+                 </span>
               </div>
            </div>
 

@@ -49,12 +49,43 @@ export const NORMS_U0 = {
   "Commerce":         0.60,
 };
 
+// Mapping type de bâtiment → type de pièce par défaut (pour fallback)
+const BUILDING_TO_ROOM = {
+  'Logement résidentiel':   'Salon',
+  'Bureau/Administration':  'Bureau',
+  'École/Salle de classe':  'Salle de classe',
+  'Scolaire':               'Salle de classe',
+  'Atelier / Industrie':    'Commerce',
+  'Commerce / Boutique':    'Commerce',
+  'Hôpital / Clinique':     'Bureau',
+  'Restaurant / Hôtel':     'Sanitaires',
+};
+
 // Calcul du CU depuis le ratio de salle k
 export function calculateCU(k) {
   if (k < 1)       return 0.40;
   if (k < 2)       return 0.50;
   if (k < 3)       return 0.60;
   return 0.70;
+}
+
+/**
+ * Retourne l'éclairement requis (lux) en utilisant d'abord le type de pièce
+ * (NORMS), puis le type de bâtiment en fallback.
+ * Source unique de vérité pour calculateLighting et calculateClimateAdjustment.
+ */
+export function getERequired(roomType, buildingType) {
+  // Priorité 1 : type de pièce exact dans NORMS
+  if (roomType && NORMS[roomType]) {
+    return NORMS[roomType].lux;
+  }
+  // Priorité 2 : déduire le type de pièce depuis le type de bâtiment
+  const mappedRoom = BUILDING_TO_ROOM[buildingType];
+  if (mappedRoom && NORMS[mappedRoom]) {
+    return NORMS[mappedRoom].lux;
+  }
+  // Fallback
+  return 300;
 }
 
 // Calcul du nombre de luminaires

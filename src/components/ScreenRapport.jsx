@@ -65,27 +65,31 @@ export default function ScreenRapport({ formData, updateFormData, onNext, onPrev
   const roomType  = room.type || 'Bureau';
   const norm      = NORMS[roomType] || NORMS['Bureau'];
 
+  // Run calculation engines for preview — single source of truth
+  const lightingCalc   = useMemo(() => calculateLighting(formData), [formData]);
+  const uniformityCalc = useMemo(() => calculateUniformity(formData, lightingCalc), [formData, lightingCalc]);
+
   // Données budget
-  const N        = results.nbLuminaires || luminaire.nbLuminaires || 4;
+  const N        = lightingCalc.N || luminaire.nbLuminaires || 4;
   const prix     = luminaire.prix || 12000;
   const puiss    = luminaire.powerPerUnit || 18;
   const coutKwh  = COUT_KWH_PAR_PAYS[location.country] || COUT_KWH_PAR_PAYS['default'];
   const heures   = formData?.budget?.heuresParJour || 8;
   const coutInst = formData?.budget?.coutInstallation || 0;
 
-  const puissanceTotale = N * puiss;
+  const puissanceTotale = lightingCalc.totalPower;
   const coutLuminaires  = N * prix;
   const totalInvest      = coutLuminaires + (Number(coutInst) || 0);
   const coutMensuel     = Math.round((puissanceTotale * heures * 30) / 1000 * coutKwh);
   const coutAnnuel      = coutMensuel * 12;
   const kWhAnnuel       = Math.round((puissanceTotale * heures * 365) / 1000);
 
-  // Métriques
-  const surface  = room.length * room.width;
-  const eMoy     = results.eMoy     || 488;
-  const eMin     = results.eMin     || 374;
-  const eMax     = results.eMax     || 729;
-  const u0       = eMoy > 0 ? Math.round((eMin / eMoy) * 100) / 100 : 0;
+  // Métriques — from calculation engines
+  const surface  = lightingCalc.S;
+  const eMoy     = uniformityCalc.E_moy;
+  const eMin     = uniformityCalc.E_min;
+  const eMax     = uniformityCalc.E_max;
+  const u0       = uniformityCalc.U0;
   const irc      = luminaire.irc    || 80;
 
   const conform_lux = eMoy >= norm.lux;
@@ -119,7 +123,8 @@ export default function ScreenRapport({ formData, updateFormData, onNext, onPrev
       // Recalculate results to ensure they are up to date
       const lighting   = calculateLighting(formData);
       const uniformity = calculateUniformity(formData, lighting);
-      const climate    = calculateClimateAdjustment(formData, lighting);
+      const solarData  = formData?.results?.solarData || null;
+      const climate    = calculateClimateAdjustment(formData, lighting, solarData);
       const usage      = calculateUsageProfile({
           ...formData,
           budget: { ...formData?.budget, coutInstallation: reportInfo.coutInstallation } 

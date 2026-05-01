@@ -157,7 +157,7 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
   const results = computedResults;
 
   // Generate dynamic data for graph based on lighting result and natural light savings
-  const avgLux = results.lighting?.E_average || 500;
+  const avgLux = results.lighting?.E_real || 500;
   const savings = results.climate?.savings?.savingsPercent || 0;
   
   const mockGraphData = Array(12).fill(0).map((_, i) => {
@@ -211,7 +211,7 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
                   {viewMode === '2d' ? (
                      <RoomSimulation2D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} luxLimit={luxLimit} />
                   ) : (
-                     <RoomSimulation3D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} />
+                     <RoomSimulation3D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} naturalLightResult={results.naturalLight} usageResult={results.usage} />
                   )}
                </div>
             </div>
@@ -223,7 +223,7 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
                   <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                      <div style={{ flex: 1, minWidth: '180px', background: C.surface2, border: `1px solid ${C.border}`, padding: '1.25rem', borderRadius: '6px' }}>
                         <div style={{ fontSize: '0.6875rem', color: C.dim, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Indice d'Éblouissement UGR</div>
-                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>13 <span style={{fontSize:'0.8125rem', color:C.muted}}>UGR</span></div>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: C.text }}>{results.lighting?.UGR ?? '—'} <span style={{fontSize:'0.8125rem', color:C.muted}}>UGR</span></div>
                      </div>
                      <div style={{ flex: 1, minWidth: '180px', background: C.surface2, border: `1px solid ${C.border}`, padding: '1.25rem', borderRadius: '6px' }}>
                         <div style={{ fontSize: '0.6875rem', color: C.dim, textTransform: 'uppercase', marginBottom: '0.5rem' }}>Efficacité Énergétique LPD</div>
@@ -241,11 +241,11 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
                   <h4 style={{ fontSize: '0.8125rem', margin: '0 0 1rem', color: C.muted }}>Résumé de l'Éclairage</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
                      <span style={{ color: C.dim }}>Moyenne:</span>
-                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round(results.lighting?.E_average || 0)} Lux</span>
+                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round(results.lighting?.E_real || 0)} Lux</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
                      <span style={{ color: C.dim }}>Min:</span>
-                     <span style={{ color: C.text, fontWeight: 500 }}>{Math.round((results.lighting?.E_average || 0) * (results.uniformity?.U0 || 0))} Lux</span>
+                     <span style={{ color: C.text, fontWeight: 500 }}>{results.uniformity?.E_min || 0} Lux</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
                      <span style={{ color: C.dim }}>Total (Flux):</span>
@@ -271,7 +271,7 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <div style={{ fontSize: '0.875rem', color: C.muted, marginRight: '1rem' }}>
-            Avrg. Lux: <span style={{ color: C.text }}>{Math.round(results.lighting?.E_average || 0)}</span> <span style={{margin:'0 8px', color:C.border}}>|</span> Max: <span style={{ color: C.text }}>{Math.round((results.lighting?.E_average || 0)*1.3)}</span>
+            Avrg. Lux: <span style={{ color: C.text }}>{Math.round(results.lighting?.E_real || 0)}</span> <span style={{margin:'0 8px', color:C.border}}>|</span> Max: <span style={{ color: C.text }}>{results.uniformity?.E_max || 0}</span>
           </div>
 
           <button onClick={onNext} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: C.primary, border: 'none', color: '#FFF', padding: '0.625rem 1.5rem', borderRadius: '6px', fontSize: '0.875rem', cursor: 'pointer', fontWeight: 500, boxShadow: '0 4px 16px rgba(90,132,213,0.2)', transition: 'background 0.2s' }}

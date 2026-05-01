@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Search, ChevronDown, ChevronUp, AlignLeft, Check, Copy, LayoutGrid, X
 } from 'lucide-react';
-import { LUMINAIRES_LIBRARY, FOURNISSEURS } from '../data/luminaires-library';
+import { LUMINAIRES_LIBRARY } from '../data/luminaires-library';
 
 /* ── Tokens Design System (Expert UI) ── */
 const C = {

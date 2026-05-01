@@ -129,13 +129,7 @@ export const LUMINAIRES_LIBRARY = {
   ],
 };
 
-export const FOURNISSEURS = [
-  { name: "Quincaillerie Moderne", city: "Cotonou, Bénin",   products: 127, url: "#" },
-  { name: "Électro Dakar",         city: "Dakar, Sénégal",   products: 89,  url: "#" },
-  { name: "Lumières Abidjan",      city: "Abidjan, CI",      products: 203, url: "#" },
-  { name: "Techno Lumière",        city: "Lagos, Nigeria",   products: 156, url: "#" },
-  { name: "Sol-Air Énergie",       city: "Yaoundé, Cameroun", products: 74, url: "#" },
-];
+
 
 // Température de couleur par type de pièce (EN 12464-1)
 export const TC_PAR_TYPE_PIECE = {
