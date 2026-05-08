@@ -40,7 +40,7 @@ export function calculateThermalComfort(formData, climateData, month, hour) {
     DeltaT_vent = 0.15 * Math.max(0, WS10M - 0.2);
     T_ressentie = T2M + DeltaT_gain_solaire - DeltaT_vent;
 
-    if (T_ressentie < T_confort - 3.5) plageConf = 'Trop froid';
+    if (T_ressentie < T_confort - 2.5) plageConf = 'Trop froid';
     else if (T_ressentie <= T_confort + 2.5) plageConf = 'Confortable';
     else if (T_ressentie <= T_confort + 3.5) plageConf = 'Légèrement chaud';
     else plageConf = 'Trop chaud';

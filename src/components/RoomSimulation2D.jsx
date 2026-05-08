@@ -51,17 +51,24 @@ export default function RoomSimulation2D({
     if (naturalLightResult?.hourlyProfile?.[hour]) {
       return naturalLightResult.hourlyProfile[hour];
     }
-    
-    const isOccupied = usageResult?.timeline?.[hour]?.active || false;
+
+    // Robustness : si timeline absente ou vide → pièce occupée par défaut
+    const hasTimeline = Array.isArray(usageResult?.timeline) && usageResult.timeline.length > 0;
+    const isOccupied = hasTimeline
+      ? (usageResult.timeline[hour]?.active ?? false)
+      : true;  // défaut : occupée
+
     const isDay = hour >= 7 && hour <= 18;
-    
+
     let mode = 'Inactif';
     let N_active = 0;
     let E_nat = 0;
-    
+
     if (isOccupied) {
       if (isDay) {
-        E_nat = climateResult?.naturalLight?.E_natural || 0;
+        const rawENat = climateResult?.naturalLight?.E_natural || 0;
+        const sunPeak = Math.max(0, 1 - Math.abs(12 - hour) / 6);
+        E_nat = rawENat * sunPeak;
         N_active = climateResult?.adjusted?.N_adjusted ?? N_total;
         mode = N_active === 0 ? 'Naturel' : 'Mixte';
       } else {
@@ -69,9 +76,14 @@ export default function RoomSimulation2D({
         mode = 'Artificiel';
       }
     }
-    
-    if (N_active > N_total) N_active = N_total;
 
+    // Fallback final : si pas de timeline et pas de climat → tout allumé
+    if (!hasTimeline && N_active === 0 && N_total > 0) {
+      N_active = N_total;
+      mode = 'Artificiel';
+    }
+
+    if (N_active > N_total) N_active = N_total;
     return { N_active, E_nat: isDay ? E_nat : 0, mode, isOccupied };
   }, [naturalLightResult, usageResult, climateResult, N_total]);
 
@@ -132,8 +144,9 @@ export default function RoomSimulation2D({
       for (let y = 0; y <= width; y++) ctx.fillText(`${y}m`, originX - 10, originY + y * scale);
     }
 
-    // 3. Heatmap (False Color Lux Representation)
-    if (showHeatmap && profile.isOccupied) {
+    // 3. Heatmap (always visible when there's any light — artificial or natural)
+    const hasAnyLight = profile.N_active > 0 || profile.E_nat > 0;
+    if (showHeatmap && hasAnyLight) {
       ctx.globalAlpha = 0.85; // Increase opacity for better false colors
       
       const falseColors = [
@@ -181,76 +194,180 @@ export default function RoomSimulation2D({
       ctx.globalAlpha = 1.0;
     }
 
-    // 4. Windows
+    // 4. Fenêtre (vue de dessus)
     if (showWindows && (formData?.naturalLight?.hasWindows !== false)) {
       const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'Sud';
-      ctx.strokeStyle = '#3B82F6';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      
+      const windowType  = formData?.room?.windowType || 'Battante';
       const isSunUp = currentHour >= 7 && currentHour <= 18;
-      let wx, wy, wLen, sunX, sunY;
-      
+      const windowArea  = parseFloat(formData?.naturalLight?.windowArea) || 2;
+      const wPx = Math.min(roomPixelW * 0.35, windowArea * scale * 0.8);
+
+      // position selon orientation
+      let wx, wy, isHoriz, sunX, sunY;
       if (orientation === 'Nord') {
-        wx = originX + roomPixelW * 0.3; wy = originY; wLen = roomPixelW * 0.4;
-        ctx.moveTo(wx, wy); ctx.lineTo(wx + wLen, wy);
-        sunX = wx + wLen/2; sunY = wy - 15;
+        wx = originX + (roomPixelW - wPx) / 2; wy = originY; isHoriz = true;
+        sunX = wx + wPx / 2; sunY = wy - 18;
       } else if (orientation === 'Sud') {
-        wx = originX + roomPixelW * 0.3; wy = originY + roomPixelH; wLen = roomPixelW * 0.4;
-        ctx.moveTo(wx, wy); ctx.lineTo(wx + wLen, wy);
-        sunX = wx + wLen/2; sunY = wy + 15;
+        wx = originX + (roomPixelW - wPx) / 2; wy = originY + roomPixelH; isHoriz = true;
+        sunX = wx + wPx / 2; sunY = wy + 18;
       } else if (orientation === 'Ouest') {
-        wx = originX; wy = originY + roomPixelH * 0.3; wLen = roomPixelH * 0.4;
-        ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + wLen);
-        sunX = wx - 15; sunY = wy + wLen/2;
+        wx = originX; wy = originY + (roomPixelH - wPx) / 2; isHoriz = false;
+        sunX = wx - 18; sunY = wy + wPx / 2;
       } else {
-        wx = originX + roomPixelW; wy = originY + roomPixelH * 0.3; wLen = roomPixelH * 0.4;
-        ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + wLen);
-        sunX = wx + 15; sunY = wy + wLen/2;
+        wx = originX + roomPixelW; wy = originY + (roomPixelH - wPx) / 2; isHoriz = false;
+        sunX = wx + 18; sunY = wy + wPx / 2;
       }
+
+      // Corps fenêtre
+      ctx.strokeStyle = '#60A5FA'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath();
+      if (isHoriz) { ctx.moveTo(wx, wy); ctx.lineTo(wx + wPx, wy); }
+      else          { ctx.moveTo(wx, wy); ctx.lineTo(wx, wy + wPx); }
       ctx.stroke();
 
-      ctx.fillStyle = '#FFF';
-      ctx.font = '16px serif';
+      // Arc battant (vue de dessus = arc vers l'intérieur)
+      if (windowType === 'Battante' || windowType === 'Oscillo-battante') {
+        ctx.strokeStyle = 'rgba(96,165,250,0.4)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        const r = wPx * 0.5;
+        if (isHoriz) {
+          ctx.arc(wx + wPx / 2, wy, r, orientation === 'Nord' ? 0 : Math.PI, orientation === 'Nord' ? Math.PI : 2 * Math.PI);
+        } else {
+          ctx.arc(wx, wy + wPx / 2, r, orientation === 'Ouest' ? -Math.PI/2 : Math.PI/2, orientation === 'Ouest' ? Math.PI/2 : -Math.PI/2);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+
+      // Jalousies (lamelles)
+      if (windowType?.includes('Jalousie')) {
+        ctx.strokeStyle = '#93C5FD'; ctx.lineWidth = 1;
+        const steps = 5;
+        for (let s = 1; s < steps; s++) {
+          ctx.beginPath();
+          if (isHoriz) { const x = wx + s * wPx / steps; ctx.moveTo(x, wy - 4); ctx.lineTo(x, wy + 4); }
+          else         { const y = wy + s * wPx / steps; ctx.moveTo(wx - 4, y); ctx.lineTo(wx + 4, y); }
+          ctx.stroke();
+        }
+      }
+
+      // Soleil / nuit
+      ctx.fillStyle = isSunUp ? '#FCD34D' : '#6366F1';
+      ctx.font = '13px serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(isSunUp ? 'Soleil' : 'Nuit', sunX, sunY);
+      ctx.fillText(isSunUp ? '☀' : '🌙', sunX, sunY);
+    }
+
+    // 4b. Porte (vue de dessus)
+    {
+      const doorType = formData?.room?.doorType || 'Porte en bois plein';
+      const dPx = Math.min(roomPixelW * 0.15, 0.9 * scale);
+      // Porte sur le mur bas (z=W en coordonnées scène = bas de la vue 2D)
+      const dx = originX + roomPixelW * 0.12;
+      const dy = originY + roomPixelH;
+
+      // Cadre
+      ctx.strokeStyle = '#D97706'; ctx.lineWidth = 4; ctx.lineCap = 'square';
+      ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx + dPx, dy); ctx.stroke();
+
+      // Arc battant
+      ctx.strokeStyle = 'rgba(217,119,6,0.35)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.arc(dx, dy, dPx, -Math.PI / 2, 0); ctx.stroke(); ctx.setLineDash([]);
+
+      // Poignée
+      ctx.fillStyle = '#B45309';
+      ctx.beginPath(); ctx.arc(dx + dPx - 4, dy - 4, 3, 0, Math.PI * 2); ctx.fill();
+
+      // Label
+      ctx.fillStyle = '#92400E'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('P', dx + 2, dy - 8);
+    }
+
+    // 4c. Mobilier vue de dessus
+    {
+      const roomType = formData?.room?.type || 'Bureau';
+      const s = scale;
+      ctx.strokeStyle = '#64748B'; ctx.lineWidth = 1.5; ctx.fillStyle = 'rgba(100,116,139,0.18)';
+
+      const rect = (rx, ry, rw, rh, label) => {
+        const px = originX + rx * s; const py = originY + ry * s;
+        ctx.fillRect(px, py, rw * s, rh * s);
+        ctx.strokeRect(px, py, rw * s, rh * s);
+        if (label) {
+          ctx.fillStyle = '#94A3B8'; ctx.font = `${Math.max(8, s * 0.13)}px sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(label, px + rw * s / 2, py + rh * s / 2);
+          ctx.fillStyle = 'rgba(100,116,139,0.18)';
+        }
+      };
+
+      if (roomType === 'Bureau' || roomType === 'Salle de réunion') {
+        rect(0.3, length < 6 ? 0.3 : 0.5, 1.4, 0.65, 'Bureau');
+        rect(0.5, length < 6 ? 1.1 : 1.3, 0.55, 0.55, '🪑');
+        rect(width - 1.5, 0.5, 0.35, 1.0, '📚');
+      } else if (roomType === 'Salon') {
+        rect(width * 0.3, length * 0.5, 2.0, 0.85, 'Canapé');
+        rect(width * 0.4, length * 0.35, 1.0, 0.55, 'Table');
+      } else if (roomType === 'Salle de classe') {
+        const rows = 3; const cols = Math.min(4, Math.floor(width / 1.5));
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          rect(0.4 + c * (width - 0.8) / Math.max(cols, 1), 0.6 + r * (length * 0.3), 0.6, 0.45, '');
+        }
+        rect(width * 0.3, 0.1, 1.4, 0.55, 'Prof');
+      } else if (roomType === 'Chambre') {
+        rect(0.1, length * 0.3, 1.6, 2.0, 'Lit');
+        rect(width - 0.8, length * 0.2, 0.6, 1.2, 'Armoire');
+      } else if (roomType === 'Commerce') {
+        for (let i = 0; i < 2; i++) rect(0.3, length * 0.3 + i * length * 0.25, width * 0.6, 0.35, 'Gondole');
+        rect(width - 1.0, 0.1, 0.8, 0.6, 'Caisse');
+      }
     }
 
     // 5. Luminaires
+    const lumType = (formData?.luminaire?.type || '').toLowerCase();
+    const lumIsDalle = lumType.includes('dalle') || lumType.includes('panel');
+    const lumIsTube  = lumType.includes('tube') || lumType.includes('réglette') || lumType.includes('fluor');
+    const lumSize = Math.max(scale * 0.25, 8);
+
     for (let i = 0; i < positions.length; i++) {
       const pos = positions[i];
       const px = originX + pos.x * scale;
       const py = originY + pos.y * scale;
-      
-      // Forcer l'affichage allumé pour le rendu visuel 2D comme demandé
-      const isActive = true;
+      const isActive = i < activeCount;
 
       if (isActive) {
         const pulse = Math.sin(timestamp / 400 + i) * 2;
-        const effRadius = Math.max(15, 35 + pulse);
+        const effRadius = Math.max(15, lumSize * 1.8 + pulse);
         const grd = ctx.createRadialGradient(px, py, 0, px, py, effRadius);
-        grd.addColorStop(0, 'rgba(255, 200, 100, 0.8)');
-        grd.addColorStop(0.5, 'rgba(255, 184, 77, 0.3)');
+        grd.addColorStop(0, 'rgba(255, 220, 120, 0.85)');
+        grd.addColorStop(0.5, 'rgba(255, 184, 77, 0.25)');
         grd.addColorStop(1, 'rgba(255, 184, 77, 0)');
         ctx.fillStyle = grd;
         ctx.beginPath(); ctx.arc(px, py, effRadius, 0, Math.PI * 2); ctx.fill();
-
-        ctx.fillStyle = '#FFD080';
-        ctx.strokeStyle = '#D97706';
+        ctx.fillStyle = '#FFE082'; ctx.strokeStyle = '#F59E0B';
       } else {
-        ctx.fillStyle = '#2B2C35';
-        ctx.strokeStyle = '#363741';
+        ctx.fillStyle = '#2B2C35'; ctx.strokeStyle = '#4B5563';
       }
 
       ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (lumIsDalle) {
+        // Dalle : carré
+        const half = lumSize * 0.85;
+        ctx.fillRect(px - half, py - half, half * 2, half * 2);
+        ctx.strokeRect(px - half, py - half, half * 2, half * 2);
+      } else if (lumIsTube) {
+        // Tube : rectangle allongé
+        ctx.fillRect(px - lumSize * 1.6, py - lumSize * 0.3, lumSize * 3.2, lumSize * 0.6);
+        ctx.strokeRect(px - lumSize * 1.6, py - lumSize * 0.3, lumSize * 3.2, lumSize * 0.6);
+      } else {
+        // Spot / downlight : cercle
+        ctx.beginPath(); ctx.arc(px, py, lumSize * 0.7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
 
       if (showLabels) {
-        ctx.fillStyle = isActive ? '#000' : '#A0A0A5';
-        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = isActive ? '#1C1D24' : '#A0A0A5';
+        ctx.font = `bold ${Math.max(9, lumSize * 0.6)}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(`${i + 1}`, px, py + 14);
+        ctx.fillText(`${i + 1}`, px, py + lumSize + 5);
       }
     }
 

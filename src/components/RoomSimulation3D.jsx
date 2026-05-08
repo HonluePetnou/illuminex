@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Play, Pause, Sun, Moon, Maximize, Settings, Eye, Disc } from 'lucide-react';
 import { CATALOGUE_COULEURS } from '../data/colors-library';
 import { CATALOGUE_MATERIAUX } from '../data/materials-library';
+import { addFurnitureForRoom, addDoor, addWindow } from '../utils/roomFurniture3D';
 
 const C = {
   bg: '#191A1E', surface: '#26272D', surface2: '#2B2C35',
@@ -49,6 +50,7 @@ export default function RoomSimulation3D({
   const [showCeiling, setShowCeiling] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showShadows, setShowShadows] = useState(true);
+  const [viewMode, setViewMode] = useState('exterior'); // 'exterior' | 'interior'
 
   const cameraAngleRef = useRef({ theta: 45, phi: 40, radius: 12 });
   const isDraggingRef = useRef(false);
@@ -57,6 +59,7 @@ export default function RoomSimulation3D({
   const rendererRef = useRef(null);
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
+  const frontWallsRef = useRef([]); // murs avant (droit + face avant) rendus transparents en mode extérieur
   const reqAnimRef = useRef(null);
 
   const luminairesRef = useRef([]);
@@ -73,8 +76,29 @@ export default function RoomSimulation3D({
   const E_required = lightingResult?.E_required || 500;
   const fluxPerUnit = parseFloat(formData?.luminaire?.fluxPerUnit) || 3000;
   const powerPerUnit = parseFloat(formData?.luminaire?.powerPerUnit) || 0;
-  const positions = uniformityResult?.positions || [];
   const N_total = lightingResult?.N || 0;
+
+  // Si uniformityResult n'a pas encore de positions, on genere une grille reguliere de fallback
+  // pour que la scene 3D soit toujours peuplee de luminaires visibles
+  const positions = React.useMemo(() => {
+    const raw = uniformityResult?.positions;
+    if (raw && raw.length > 0) return raw;
+    if (N_total <= 0) return [];
+    // Grille uniforme de fallback
+    const cols = Math.max(1, Math.round(Math.sqrt(N_total * (length / width))));
+    const rows = Math.ceil(N_total / cols);
+    const pts = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (pts.length >= N_total) break;
+        pts.push({
+          x: (length / (cols + 1)) * (c + 1),
+          y: (width  / (rows + 1)) * (r + 1),
+        });
+      }
+    }
+    return pts;
+  }, [uniformityResult, N_total, length, width]);
   const centerX = length / 2;
   const centerZ = width / 2;
 
@@ -94,14 +118,17 @@ export default function RoomSimulation3D({
         E_nat = climateResult?.naturalLight?.E_natural || 0;
         const sunPeak = 1 - Math.abs(12 - hour) / 6;
         E_nat = Math.max(0, E_nat * sunPeak);
-        N_active = climateResult?.adjusted?.N_adjusted ?? N_total;
+        // N_adjusted peut valoir 0 si la lumiere naturelle suffit —
+        // mais on garde quand meme les luminaires allumes en 3D pour la visualisation
+        const N_adj = climateResult?.adjusted?.N_adjusted;
+        N_active = (N_adj !== undefined && N_adj !== null) ? Math.max(0, N_adj) : N_total;
         mode = N_active === 0 ? 'Naturel' : 'Mixte';
       } else {
         N_active = N_total; mode = 'Artificiel';
       }
     }
-    // Fallback: if no timeline and no climate data, turn all lights on
-    if (!hasTimeline && N_active === 0 && N_total > 0) {
+    // Fallback: si pas de donnees de simulation, allumer tous les luminaires
+    if (N_active === 0 && N_total > 0) {
       N_active = N_total;
       mode = 'Artificiel';
     }
@@ -181,38 +208,42 @@ export default function RoomSimulation3D({
     borderLine.position.set(centerX, 0.01, centerZ);
     scene.add(borderLine);
 
-    // ── Walls — only BACK (z=0) and LEFT (x=0) for isometric cutaway ──
+    // ── Murs — 4 murs complets, pièce fermée ──
     const wallMatStd = new THREE.MeshStandardMaterial({
       color: wallColor,
       roughness: 0.85,
       metalness: 0.0,
       side: THREE.DoubleSide,
     });
+    frontWallsRef.current = [];
 
-    // Back wall (z = 0)
-    const backWallGeo = new THREE.PlaneGeometry(length, ceilingHeight);
-    const backWall = new THREE.Mesh(backWallGeo, wallMatStd.clone());
-    backWall.position.set(centerX, ceilingHeight / 2, 0);
-    backWall.receiveShadow = true;
-    scene.add(backWall);
+    const walls = [
+      // [label, w, h, px, py, pz, ry, isFront]
+      ['back',   length, ceilingHeight, centerX,   ceilingHeight / 2, 0,         0,            false],
+      ['front',  length, ceilingHeight, centerX,   ceilingHeight / 2, width,     Math.PI,      true],
+      ['left',   width,  ceilingHeight, 0,          ceilingHeight / 2, centerZ,  Math.PI / 2,  false],
+      ['right',  width,  ceilingHeight, length,    ceilingHeight / 2, centerZ,  -Math.PI / 2, true],
+    ];
 
-    // Left wall (x = 0)
-    const leftWallGeo = new THREE.PlaneGeometry(width, ceilingHeight);
-    const leftWall = new THREE.Mesh(leftWallGeo, wallMatStd.clone());
-    leftWall.position.set(0, ceilingHeight / 2, centerZ);
-    leftWall.rotation.y = Math.PI / 2;
-    leftWall.receiveShadow = true;
-    scene.add(leftWall);
+    walls.forEach(([, gw, gh, px, py, pz, ry, isFront]) => {
+      const geo = new THREE.PlaneGeometry(gw, gh);
+      const wmat = wallMatStd.clone();
+      const mesh = new THREE.Mesh(geo, wmat);
+      mesh.position.set(px, py, pz);
+      mesh.rotation.y = ry;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
 
-    // Wall edge lines for definition
-    [backWall, leftWall].forEach(wall => {
+      // Edge lines
       const edges = new THREE.LineSegments(
-        new THREE.EdgesGeometry(wall.geometry),
-        new THREE.LineBasicMaterial({ color: 0x7a6e5e, opacity: 0.5, transparent: true })
+        new THREE.EdgesGeometry(geo),
+        new THREE.LineBasicMaterial({ color: 0x7a6e5e, opacity: 0.4, transparent: true })
       );
-      edges.position.copy(wall.position);
-      edges.rotation.copy(wall.rotation);
+      edges.position.copy(mesh.position);
+      edges.rotation.copy(mesh.rotation);
       scene.add(edges);
+
+      if (isFront) frontWallsRef.current.push({ mesh, edges });
     });
 
     // ── Ceiling — visible by default, isometric diorama style ──
@@ -242,53 +273,33 @@ export default function RoomSimulation3D({
     // ── Window on back wall ──
     if (formData?.naturalLight?.hasWindows !== false) {
       const windowArea = parseFloat(formData?.naturalLight?.windowArea) || 2;
-      const windowW = Math.min(windowArea / 1.2, length * 0.5);
-      const windowH = Math.min(windowArea / windowW, ceilingHeight * 0.5);
-
-      // Window frame
-      const winGeo = new THREE.PlaneGeometry(windowW, windowH);
-      const winMat = new THREE.MeshStandardMaterial({
-        color: 0x8BB8D8,
-        transparent: true,
-        opacity: 0.6,
-        side: THREE.DoubleSide,
-        emissive: 0x4488AA,
-        emissiveIntensity: 0.15,
-      });
-      const windowMesh = new THREE.Mesh(winGeo, winMat);
-      windowMesh.position.set(centerX, ceilingHeight * 0.55, 0.02);
-      scene.add(windowMesh);
-
-      // Window frame border
-      const frameGeo = new THREE.EdgesGeometry(winGeo);
-      const frameMat = new THREE.LineBasicMaterial({ color: 0x5a5040, linewidth: 2 });
-      const frame = new THREE.LineSegments(frameGeo, frameMat);
-      frame.position.copy(windowMesh.position);
-      scene.add(frame);
-
-      // Window dividers (cross pattern)
-      const divMat = new THREE.LineBasicMaterial({ color: 0x5a5040 });
-      const vDiv = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, -windowH / 2, 0), new THREE.Vector3(0, windowH / 2, 0)
-      ]);
-      const vLine = new THREE.Line(vDiv, divMat);
-      vLine.position.copy(windowMesh.position);
-      vLine.position.z += 0.001;
-      scene.add(vLine);
-
-      const hDiv = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-windowW / 2, 0, 0), new THREE.Vector3(windowW / 2, 0, 0)
-      ]);
-      const hLine = new THREE.Line(hDiv, divMat);
-      hLine.position.copy(windowMesh.position);
-      hLine.position.z += 0.001;
-      scene.add(hLine);
+      const windowType = formData?.room?.windowType || 'Battante';
+      addWindow(scene, THREE, windowType, windowArea, ceilingHeight, 'back', centerX, centerZ);
+      // Lumière de soleil qui passe par la fenêtre
+      const winLight = new THREE.RectAreaLight(0xFFF9E6, 2.0, Math.min(windowArea, 3), Math.min(windowArea * 0.7, 2));
+      winLight.position.set(centerX, ceilingHeight * 0.55, 0.2);
+      winLight.lookAt(centerX, ceilingHeight * 0.3, centerZ);
+      scene.add(winLight);
     }
 
-    // ── Luminaires — recessed ceiling spots with light cones ──
+    // ── Porte ──
+    addDoor(scene, THREE, formData?.room?.doorType || 'Porte en bois plein', length, width, ceilingHeight);
+
+    // ── Mobilier selon type de pièce ──
+    const roomType = formData?.room?.type || 'Bureau';
+    addFurnitureForRoom(scene, THREE, roomType, length, width, ceilingHeight);
+
+    // ── Luminaires — forme adaptée selon le type sélectionné ──
+    // Detection de forme 3D basee sur l'ID du luminaire (format: 'led-dalle-600-36w', 'flu-t8-36w', etc.)
+    const luminaireId = (formData?.luminaire?.type || '').toLowerCase();
+    const luminaireName = (formData?.luminaire?.name || '').toLowerCase();
+    const luminaireStr = luminaireId + ' ' + luminaireName;
+    const isDalle = luminaireStr.includes('dalle') || luminaireStr.includes('panel') || luminaireStr.includes('downlight');
+    const isTube  = luminaireStr.includes('t8') || luminaireStr.includes('tube') || luminaireStr.includes('reglette') || luminaireStr.includes('réglette') || luminaireStr.includes('flu-') || luminaireStr.includes('industrielle') || luminaireStr.includes('highbay');
+    const isSpot  = luminaireStr.includes('spot') || luminaireStr.includes('gu10') || luminaireStr.includes('e27');
     const Hm = ceilingHeight;
     const coneRadius = Math.min(Hm * 0.45, 1.0);
-    const coneHeight = Hm * 0.95;
+    const coneHeight = Hm * 0.9;
 
     luminairesRef.current = [];
     positions.forEach((pos) => {
@@ -298,20 +309,47 @@ export default function RoomSimulation3D({
       const group = new THREE.Group();
       group.position.set(px, py, pz);
 
-      // Recessed spot housing
-      const housing = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.08, 0.1, 0.03, 12),
-        new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.5 })
-      );
-      group.add(housing);
+      let housing, panel;
 
-      // Lens / bulb
-      const panel = new THREE.Mesh(
-        new THREE.CircleGeometry(0.07, 12),
-        new THREE.MeshBasicMaterial({ color: 0x444444 })
-      );
-      panel.position.y = -0.016;
-      panel.rotation.x = Math.PI / 2;
+      if (isDalle) {
+        // Dalle LED rectangulaire (600×600)
+        housing = new THREE.Mesh(
+          new THREE.BoxGeometry(0.6, 0.04, 0.6),
+          new THREE.MeshStandardMaterial({ color: 0xAAAAAA, roughness: 0.3, metalness: 0.3 })
+        );
+        panel = new THREE.Mesh(
+          new THREE.BoxGeometry(0.58, 0.01, 0.58),
+          new THREE.MeshBasicMaterial({ color: 0x444444 })
+        );
+        panel.position.y = -0.025;
+      } else if (isTube) {
+        // Réglette / tube fluorescent
+        housing = new THREE.Mesh(
+          new THREE.BoxGeometry(1.2, 0.04, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x909090, roughness: 0.4, metalness: 0.2 })
+        );
+        panel = new THREE.Mesh(
+          new THREE.BoxGeometry(1.18, 0.02, 0.08),
+          new THREE.MeshBasicMaterial({ color: 0x444444 })
+        );
+        panel.position.y = -0.02;
+      } else {
+        // Spot encastré rond (E27, GU10, downlight...)
+        housing = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.08, 0.1, 0.03, 16),
+          new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.5 })
+        );
+        panel = new THREE.Mesh(
+          new THREE.CircleGeometry(0.07, 16),
+          new THREE.MeshBasicMaterial({ color: 0x444444 })
+        );
+        panel.position.y = -0.016;
+        panel.rotation.x = Math.PI / 2;
+      }
+
+      // Ajouter au groupe
+      housing.castShadow = true;
+      group.add(housing);
       group.add(panel);
 
       // Visible light cone
@@ -439,12 +477,28 @@ export default function RoomSimulation3D({
 
     updateCameraMath();
 
-    // ── Animation loop — no auto-rotate for isometric stability ──
-    const animate = () => {
+    // ── Animation loop — slow auto-rotate for life ──
+    let autoAngle = cameraAngleRef.current.theta;
+    const animate = (time) => {
       reqAnimRef.current = requestAnimationFrame(animate);
+      // Slow orbital rotation when not dragging
+      if (!isDraggingRef.current) {
+        autoAngle += 0.04;
+        cameraAngleRef.current.theta = autoAngle;
+        updateCameraMath();
+      }
+      // Gentle luminaire flicker via emissive pulsing
+      const t = time * 0.001;
+      luminairesRef.current.forEach((lum, i) => {
+        if (lum.light.intensity > 0) {
+          const flicker = 1.0 + Math.sin(t * 2.3 + i * 1.7) * 0.04;
+          lum.light.intensity = lum.light._baseIntensity * flicker;
+          lum.pointLight.intensity = lum.pointLight._baseIntensity * flicker;
+        }
+      });
       renderer.render(scene, camera);
     };
-    animate();
+    animate(0);
 
     return () => {
       observer.disconnect();
@@ -552,38 +606,41 @@ export default function RoomSimulation3D({
     const intensityScale = N_total > 0 ? Math.min(1, 10 / N_total) : 1;
 
     luminairesRef.current.forEach((lum, idx) => {
-      // Pour satisfaire le rendu visuel éblouissant souhaité, on force l'affichage
-      const isActive = true;
+      const isActive = idx < profile.N_active;
 
       if (isActive) {
         lum.housing.material.color.setHex(0xDDC060);
         lum.housing.material.emissive = new THREE.Color(0x886600);
         lum.housing.material.emissiveIntensity = 0.3;
-
         lum.panel.material.color.setHex(0xFFFDE0);
 
-        // Réduction drastique des intensités pour éviter la saturation blanche
-        lum.light.intensity = (fluxPerUnit / 2500) * intensityScale;
-        lum.pointLight.intensity = (fluxPerUnit / 6000) * intensityScale;
+        const baseSpot  = (fluxPerUnit / 2500) * intensityScale;
+        const basePt    = (fluxPerUnit / 6000) * intensityScale;
+        lum.light.intensity = baseSpot;
+        lum.light._baseIntensity = baseSpot;
+        lum.pointLight.intensity = basePt;
+        lum.pointLight._baseIntensity = basePt;
 
         lum.cone.material.opacity = 0.04 + 0.06 * intensityScale;
         lum.cone.visible = true;
-
         lum.glow.material.opacity = 0.1 + 0.1 * intensityScale;
         lum.glow.visible = true;
       } else {
-        lum.housing.material.color.setHex(0x666666);
+        lum.housing.material.color.setHex(0x555555);
         if (lum.housing.material.emissive) lum.housing.material.emissive.setHex(0x000000);
-        lum.panel.material.color.setHex(0x444444);
+        lum.panel.material.color.setHex(0x333333);
         lum.light.intensity = 0;
+        lum.light._baseIntensity = 0;
         lum.pointLight.intensity = 0;
+        lum.pointLight._baseIntensity = 0;
         lum.cone.visible = false;
         lum.glow.visible = false;
       }
     });
 
-    // Heatmap
-    if (showHeatmap && profile.isOccupied) {
+    // Heatmap (visible si lumière présente)
+    const hasAnyLight3D = profile.N_active > 0 || profile.E_nat > 0;
+    if (showHeatmap && hasAnyLight3D) {
       heatmapCellsRef.current.forEach(cell => {
         let totalE = profile.E_nat || 0;
         for (let i = 0; i < profile.N_active; i++) {
@@ -624,12 +681,50 @@ export default function RoomSimulation3D({
   }, [currentHour, showHeatmap, showCeiling, showShadows, getActiveProfileAtHour, centerX, centerZ, positions, fluxPerUnit, E_required, ceilingHeight, N_total, length, width]);
 
   // Auto-play timer
-  useEffect(() => {
+  React.useEffect(() => {
     if (isPlaying) {
       const interval = setInterval(() => setCurrentHour(h => (h + 1) % 24), playSpeed);
       return () => clearInterval(interval);
     }
   }, [isPlaying, playSpeed]);
+
+  // Visibilite des murs avant + position camera selon le mode de vue
+  React.useEffect(() => {
+    frontWallsRef.current.forEach(({ mesh, edges }) => {
+      if (viewMode === 'exterior') {
+        // Mode exterieur : murs avant transparents pour voir l'interieur
+        mesh.material.transparent = true;
+        mesh.material.opacity = 0.08;
+        edges.material.opacity = 0.15;
+      } else {
+        // Mode interieur : tous les murs opaques
+        mesh.material.transparent = false;
+        mesh.material.opacity = 1.0;
+        edges.material.opacity = 0.5;
+      }
+    });
+
+    if (ceilingRef.current) {
+      if (viewMode === 'interior') {
+        ceilingRef.current.material.transparent = true;
+        ceilingRef.current.material.opacity = 0.0;
+      }
+    }
+
+    // Repositionner la camera
+    if (cameraRef.current) {
+      const cam = cameraAngleRef.current;
+      if (viewMode === 'interior') {
+        // Vue interieure : camera au centre de la piece, regard vers le fond
+        cameraRef.current.position.set(length / 2, ceilingHeight * 0.55, width * 0.6);
+        cameraRef.current.lookAt(length / 2, ceilingHeight * 0.4, 0);
+        cam.theta = 180; cam.phi = 10; cam.radius = 0.1;
+      } else {
+        // Vue exterieure : retour a la position isometrique
+        cam.theta = 45; cam.phi = 40; cam.radius = Math.max(length, width) * 2.2;
+      }
+    }
+  }, [viewMode, length, width, ceilingHeight]);
 
   const getModeColorStr = (mode) => {
     switch (mode) {
@@ -651,9 +746,35 @@ export default function RoomSimulation3D({
       <div style={{ background: C.surface, padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}` }}>
         <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Disc size={18} color="#8B5CF6" />
-          Simulation 3D — Vue Isométrique
+          Simulation 3D
         </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+          {/* Toggle interieur / exterieur */}
+          <div style={{ display: 'flex', background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '8px', overflow: 'hidden' }}>
+            {[
+              { key: 'exterior', label: 'Vue exterieure' },
+              { key: 'interior', label: 'Vue interieure' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setViewMode(key)}
+                style={{
+                  padding: '0.35rem 0.875rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === key ? '#8B5CF6' : 'transparent',
+                  color: viewMode === key ? '#fff' : C.muted,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div style={{ fontSize: '1.25rem', fontFamily: 'monospace', fontWeight: 700 }}>
             {currentHour.toString().padStart(2, '0')}<span style={{ color: C.dim }}>h00</span>
           </div>

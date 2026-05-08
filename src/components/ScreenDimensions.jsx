@@ -104,7 +104,7 @@ function SelectRow({ label, value, onChange, options }) {
 /* ═══════════════════════════════════════
    COMPOSANT PRINCIPAL
    ═══════════════════════════════════════ */
-export default function ScreenDimensions({ formData, updateFormData, onNext, onPrev }) {
+export default function ScreenDimensions({ formData, updateFormData, onNext, onPrev, validationError }) {
   const room = formData?.room || { length: 7, width: 6, ceilingHeight: 3, workPlaneHeight: 0.85, type: 'Bureau' };
   const occupation = formData?.occupation || { buildingType: 'Bureau/Administration', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 };
   const location = formData?.location || { country: 'Bénin', climate: 'Tropical humide', buildingOrientation: 'N' };
@@ -371,6 +371,40 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                   {value: 'Fermées', label: 'Fermées'}
                 ]}
               />
+              <SelectRow
+                label="Type de fenêtre"
+                value={room.windowType || 'Battante'}
+                onChange={v => updateFormData('room', { ...room, windowType: v })}
+                options={[
+                  { value: 'Battante',          label: 'Battante' },
+                  { value: 'Coulissante',        label: 'Coulissante' },
+                  { value: 'Jalousie',           label: 'Jalousie / Persiennes' },
+                  { value: 'Basculante',         label: 'Basculante' },
+                  { value: 'À soufflet',         label: 'À soufflet (imposte)' },
+                  { value: 'Fixe',               label: 'Fixe (non ouvrante)' },
+                  { value: 'Oscillo-battante',   label: 'Oscillo-battante' },
+                  { value: 'Accordéon',          label: 'Accordéon / Pliante' },
+                ]}
+              />
+              <SelectRow
+                label="Type de porte"
+                value={room.doorType || 'Porte en bois plein'}
+                onChange={v => updateFormData('room', { ...room, doorType: v })}
+                options={[
+                  { value: 'Porte en bois plein',      label: 'Bois plein' },
+                  { value: 'Porte vitrée',             label: 'Vitrée' },
+                  { value: 'Porte mi-vitrée',          label: 'Mi-vitrée' },
+                  { value: 'Porte métallique',         label: 'Métallique' },
+                  { value: 'Porte aluminium',          label: 'Aluminium' },
+                  { value: 'Porte coulissante',        label: 'Coulissante' },
+                  { value: 'Porte pliante',            label: 'Pliante' },
+                  { value: 'Porte accordéon',          label: 'Accordéon' },
+                  { value: 'Porte double battant',     label: 'Double battant' },
+                  { value: 'Rideau métallique',        label: 'Rideau métallique' },
+                  { value: 'Porte automatique',        label: 'Automatique (capteur)' },
+                  { value: 'Sans porte',               label: 'Sans porte / Ouvert' },
+                ]}
+              />
             </div>
           </section>
 
@@ -403,7 +437,14 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
         background: '#1C1D24',
       }}>
         <div style={{ fontSize: '0.875rem', color: C.muted }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><div style={{width: 8, height: 8, borderRadius: '50%', background: C.primary}}/> Étape validée</span>
+          {validationError
+            ? <span style={{ color: '#f87171', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <span style={{ fontSize: '1rem' }}>!</span> {validationError}
+              </span>
+            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{width: 8, height: 8, borderRadius: '50%', background: C.primary}}/> Etape prete
+              </span>
+          }
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button

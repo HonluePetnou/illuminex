@@ -89,7 +89,7 @@ function NumberInput({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function ScreenLuminaires({ formData, updateFormData, onNext, onPrev }) {
+export default function ScreenLuminaires({ formData, updateFormData, onNext, onPrev, validationError }) {
   const luminaire = formData?.luminaire || {};
   
   const [search, setSearch] = useState('');
@@ -333,20 +333,30 @@ export default function ScreenLuminaires({ formData, updateFormData, onNext, onP
            </div>
         </div>
 
-        {/* Floating Auto Calc Button */}
-        <div style={{ position: 'absolute', bottom: '2rem', right: '3rem' }}>
-           <button 
-             onClick={onNext}
-             style={{
-               background: C.primary, color: '#FFF', border: 'none', borderRadius: '6px',
-               padding: '1rem 2rem', fontSize: '1rem', fontWeight: 500, cursor: 'pointer',
-               boxShadow: '0 4px 20px rgba(90,132,213,0.3)', transition: 'background 0.2s'
-             }}
-             onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
-             onMouseLeave={e => e.currentTarget.style.background = C.primary}
-           >
-             Calculer le nombre auto
-           </button>
+        {/* Floating Validation + Nav Button */}
+        <div style={{ position: 'absolute', bottom: '2rem', right: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+           {validationError && (
+             <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171', padding: '0.5rem 1rem', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600 }}>
+               ! {validationError}
+             </div>
+           )}
+           <div style={{ display: 'flex', gap: '0.75rem' }}>
+             <button onClick={onPrev} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid #3A3A44', color: '#FFF', borderRadius: '6px', padding: '1rem 1.5rem', fontSize: '0.9rem', cursor: 'pointer' }}>
+               Retour
+             </button>
+             <button
+               onClick={onNext}
+               style={{
+                 background: C.primary, color: '#FFF', border: 'none', borderRadius: '6px',
+                 padding: '1rem 2rem', fontSize: '1rem', fontWeight: 500, cursor: 'pointer',
+                 boxShadow: '0 4px 20px rgba(90,132,213,0.3)', transition: 'background 0.2s'
+               }}
+               onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
+               onMouseLeave={e => e.currentTarget.style.background = C.primary}
+             >
+               Calculer le nombre auto
+             </button>
+           </div>
         </div>
 
       </div>

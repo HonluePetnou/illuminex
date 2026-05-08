@@ -484,7 +484,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
           onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.15)'}
           onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
         >
-          Continuer vers rapport →
+          Continuer vers budget →
         </button>
       </div>
     </div>

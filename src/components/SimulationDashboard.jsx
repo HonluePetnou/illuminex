@@ -209,7 +209,7 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
 
                <div style={{ flex: 1, position: 'relative', marginTop: '55px', display: 'flex' }}>
                   {viewMode === '2d' ? (
-                     <RoomSimulation2D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} luxLimit={luxLimit} />
+                  <RoomSimulation2D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} naturalLightResult={results.naturalLight} usageResult={results.usage} luxLimit={luxLimit} />
                   ) : (
                      <RoomSimulation3D formData={formData} lightingResult={results.lighting} uniformityResult={results.uniformity} climateResult={results.climate} naturalLightResult={results.naturalLight} usageResult={results.usage} />
                   )}

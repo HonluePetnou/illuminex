@@ -21,7 +21,7 @@ const C = {
 
 const MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
 
-export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev }) {
+export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev, validationError }) {
   const location = formData?.location || { country: 'Bénin', city: 'Cotonou', climate: 'Tropical humide', latitude: 6.37 };
   const room = formData?.room || { length: 7, width: 6 };
   const floorArea = room.length * room.width;
@@ -226,16 +226,23 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
                           <span style={{ color: C.text }}>{Math.round(luxInterieur * 2.6)} Lux</span>
                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flex: 1, alignItems: 'flex-end' }}>
-                       <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.75rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                          <Download size={14} /> Exporter les
-                       </button>
-                       <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.75rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(90,132,213,0.3)' }}
-                         onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
-                         onMouseLeave={e => e.currentTarget.style.background = C.primary}
-                       >
-                          Continuer l'analyse
-                       </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', flex: 1, alignItems: 'flex-end', flexDirection: 'column' }}>
+                       {validationError && (
+                          <div style={{ width: '100%', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600 }}>
+                            ! {validationError}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                           <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.75rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                              <Download size={14} /> Exporter
+                           </button>
+                           <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.75rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(90,132,213,0.3)' }}
+                             onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
+                             onMouseLeave={e => e.currentTarget.style.background = C.primary}
+                           >
+                              Continuer l'analyse
+                           </button>
+                        </div>
                     </div>
                  </div>
               </div>

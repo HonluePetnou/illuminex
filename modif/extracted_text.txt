@@ -1,0 +1,541 @@
+﻿=== Bibliotheque_Luminaires_v2.docx ===
+
+ILLUMINEX — Bibliothèque de Luminaires v2
+Marché Afrique de l'Ouest + références DIALux (TRILUX / OSRAM / Philips) • Flux réels vérifiés • Mai 2025
+
+Instructions : remplacer le contenu de src/data/luminaires-library.js par les références ci-dessous.
+Les références marquées [DIALux] sont issues de la base de données DIALux evo — elles servent à comparer les résultats avec ceux obtenus par un logiciel professionnel.
+Les efficacités lm/W sont calculées. Source flux : fiches techniques fabricants + base DIALux evo 10.
+
+  🏠  RÉSIDENTIEL
+Référence
+Puissance
+Flux (lm)
+lm/W
+IRC
+Prix FCFA
+Usage
+Ampoule LED E27 9W
+9 W
+810
+90
+80
+1 500
+Chambre, couloir
+Ampoule LED E27 12W
+12 W
+1 080
+90
+80
+2 000
+Salon, cuisine
+Ampoule LED E27 15W
+15 W
+1 500
+100
+80
+2 500
+Séjour
+Plafonnier LED rond 18W
+18 W
+1 800
+100
+80
+8 000
+Chambre, couloir
+Plafonnier LED rond 24W
+24 W
+2 400
+100
+80
+12 000
+Salon, séjour
+Spot encastré LED GU10 7W
+7 W
+630
+90
+85
+4 000
+Cuisine, couloir
+Spot encastré LED GU10 12W
+12 W
+1 080
+90
+85
+6 000
+Salon encastré
+  🏢  BUREAU / TERTIAIRE
+Référence
+Puissance
+Flux (lm)
+lm/W
+IRC
+Prix FCFA
+Usage
+Dalle LED 600×600 36W
+36 W
+3 600
+100
+80
+18 000
+Bureau, open space
+Dalle LED 600×600 40W
+40 W
+4 000
+100
+80
+22 000
+Bureau haute perf.
+Dalle LED 300×1200 36W
+36 W
+3 500
+97
+80
+16 000
+Couloir, bureau
+Tube LED T8 18W 120cm
+18 W
+1 800
+100
+80
+5 000
+Bureau économique
+Tube LED T8 36W 120cm
+36 W
+3 600
+100
+80
+8 500
+Bureau, salle classe
+Réglette LED 40W
+40 W
+4 000
+100
+80
+14 000
+Atelier, réserve
+Downlight LED encastré 18W
+18 W
+1 620
+90
+80
+9 000
+Accueil, réunion
+Downlight LED encastré 24W
+24 W
+2 160
+90
+80
+12 000
+Salle de réunion
+[DIALux] TRILUX 6000 ESX 35W
+35 W
+3 500
+100
+80
+25 000
+Bureau — réf. DIALux
+[DIALux] OSRAM SubtiLine 32W
+32 W
+3 200
+100
+80
+22 000
+Bureau — réf. DIALux
+  🏫  SCOLAIRE / INSTITUTIONNEL
+Référence
+Puissance
+Flux (lm)
+lm/W
+IRC
+Prix FCFA
+Usage
+Dalle LED 600×600 40W
+40 W
+4 000
+100
+80
+22 000
+Salle de classe
+Tube LED T8 36W 120cm
+36 W
+3 600
+100
+80
+8 500
+Classe économique
+Réglette industrielle 50W
+50 W
+5 000
+100
+80
+18 000
+Amphi, grande salle
+[DIALux] Philips RC127V 36W
+36 W
+3 600
+100
+80
+24 000
+Classe — réf. DIALux
+  🏪  COMMERCE / BOUTIQUE
+Référence
+Puissance
+Flux (lm)
+lm/W
+IRC
+Prix FCFA
+Usage
+Spot commercial LED 15W
+15 W
+1 350
+90
+90
+8 000
+Mise en valeur produit
+Spot commercial LED 20W
+20 W
+1 800
+90
+90
+10 000
+Vitrine, présentoir
+Dalle LED 600×600 40W
+40 W
+4 000
+100
+80
+22 000
+Grande surface
+Downlight commercial 30W
+30 W
+2 700
+90
+90
+15 000
+Boutique, pharmacie
+Réglette LED 40W
+40 W
+4 000
+100
+80
+14 000
+Marché couvert
+[DIALux] OSRAM Tempro Spot 20W
+20 W
+1 800
+90
+90
+12 000
+Commerce — réf. DIALux
+  🏭  INDUSTRIEL / ATELIER
+Référence
+Puissance
+Flux (lm)
+lm/W
+IRC
+Prix FCFA
+Usage
+Réglette industrielle 50W
+50 W
+5 000
+100
+80
+18 000
+Atelier léger
+Highbay LED 100W
+100 W
+10 000
+100
+80
+45 000
+Entrepôt, hangar
+Highbay LED 150W
+150 W
+15 000
+100
+80
+65 000
+Grande hauteur (>6m)
+Tube LED T8 36W étanche IP65
+36 W
+3 600
+100
+80
+12 000
+Cuisine pro, sanitaires
+[DIALux] TRILUX Mirona 100W
+100 W
+10 000
+100
+80
+55 000
+Entrepôt — réf. DIALux
+
+Sources flux : fiches techniques fabricants (Philips, OSRAM, TRILUX) + base DIALux evo 10.   Prix : estimations marché Cotonou 2024-2025 — à actualiser selon les fournisseurs locaux.
+
+
+=== Corrections_ILLUMINEX_v2.docx ===
+
+ILLUMINEX — Corrections à apporter
+5 corrections identifiées après analyse du code source • Mai 2025
+
+Résumé : Le logiciel est développé à ~90%, l'architecture est propre et bien structurée.
+Il reste 5 corrections à apporter, détaillées ci-dessous.
+Commencer impérativement par la Correction 4 (bug sauvegarde) avant les autres.
+
+Tableau récapitulatif
+
+N°
+Fichier concerné
+Problème
+Priorité
+1
+calculateLighting.js
+R_moyen ignoré → CU faux → trop de luminaires
+🔴 CRITIQUE
+2
+calculateLighting.js
+MF figé à 0.70 pour tous les types de pièce
+🔴 CRITIQUE
+3
+luminaires-library.js
+Flux incorrects sur plusieurs luminaires
+🔴 CRITIQUE
+4
+renderer.jsx
+Projet sauvegardé impossible à relancer
+🔴 CRITIQUE
+5
+thermalComfort.js
+Borne 'Trop froid' légèrement décalée
+🟡 MINEURE
+
+Correction 1 — R_moyen ignoré dans le calcul du CU
+
+Fichier : src/utils/calculateLighting.js
+
+Problème :
+Le CU (Coefficient d'Utilisation) est calculé uniquement depuis k (indice du local) avec une table de 4 valeurs fixes. La valeur R_moyen — pourtant bien calculée dans l'interface Matériaux et sauvegardée dans formData.materiaux.rMoyen — est complètement ignorée.
+Résultat : pour un bureau avec de bons matériaux clairs (R_moyen = 79%), le CU calculé est 0.50 alors qu'il devrait être 0.72. C'est la principale cause du résultat de 40 luminaires.
+
+Solution :
+Remplacer la table simplifiée par la formule du document de référence :
+Formule correcte (méthode des cavités, IESNA Handbook) :
+
+   CU = 0.9 / (1 + (1/k) × (1 − R_moyen))
+
+   Avec R_moyen lue depuis formData.materiaux.rMoyen
+   Valeur par défaut si absente : 0.65
+   Bornes réalistes à appliquer : min 0.30, max 0.80
+
+Vérification : bureau 7×6m, dalle 36W (3600 lm), R_moyen = 0.79 :
+   Avant correction  →  CU = 0.50  →  N = 21 000 / (3600 × 0.50 × 0.70) = 17 luminaires
+   Après correction  →  CU = 0.72  →  N = 21 000 / (3600 × 0.72 × 0.80) = 10 luminaires  ✅
+
+Correction 2 — MF figé à 0.70 pour tous les types de pièce
+
+Fichier : src/utils/calculateLighting.js
+
+Problème :
+Le Facteur de Maintenance (MF) est hardcodé à 0.70 pour tous les projets. Or le MF dépend du type de pièce selon la norme EN 12464-1, et il est déjà défini correctement dans norms.js — mais jamais lu.
+
+Valeurs correctes par type de pièce :
+Type de pièce
+MF correct (norms.js)
+MF actuel dans le code
+Bureau / Salle de classe / Réunion
+0.80
+0.70  ❌
+Cuisine / Atelier
+0.60
+0.70  ❌
+Chambre / Salon / Commerce
+0.70
+0.70  ✅
+
+Solution :
+Remplacer la valeur hardcodée par une lecture depuis NORMS :
+
+   const mf = NORMS[roomType]?.mf ?? 0.70
+
+Correction 3 — Flux incorrects dans la bibliothèque de luminaires
+
+Fichier : src/data/luminaires-library.js
+
+Problème :
+Plusieurs valeurs de flux sont incorrectes ou incohérentes par rapport à la réalité du marché. Le tableau ci-dessous compare les valeurs actuelles avec les valeurs réelles :
+
+ID
+Nom
+Flux actuel
+Flux correct
+Efficacité (lm/W)
+led-9w
+LED E27 9W
+800 lm ✅
+800–900 lm
+89–100 lm/W — OK
+led-12w
+LED E27 12W
+1 100 lm ⚠️
+1 050–1 200 lm
+87–100 lm/W — limite basse
+led-24w
+Dalle LED 24W 30×30
+2 200 lm ❌
+2 000–2 400 lm
+83–100 lm/W — acceptable
+led-36w
+Dalle LED 36W 60×60
+3 600 lm ✅
+3 400–4 000 lm
+94–111 lm/W — bon
+flu-t8-18
+Tube T8 18W 60cm
+1 350 lm ❌
+1 200–1 350 lm
+67–75 lm/W — correct
+flu-t8-36
+Tube T8 36W 120cm
+3 350 lm ✅
+3 200–3 500 lm
+89–97 lm/W — bon
+hal-28w
+Halogène GU10 28W
+370 lm ❌
+320–370 lm
+11–13 lm/W — faible normal
+hal-50w
+Halogène GU10 50W
+700 lm ❌
+600–750 lm
+12–15 lm/W — normal
+
+Solution :
+Remplacer toute la bibliothèque par le fichier fourni séparément :
+→  Bibliotheque_Luminaires_ILLUMINEX_v2.docx
+
+Ce fichier contient les valeurs réelles du marché Afrique de l'Ouest,
+plus 6 références DIALux (TRILUX, OSRAM, Philips) pour comparaison de résultats.
+
+Correction 4 — Projet sauvegardé impossible à relancer
+
+Fichier : src/renderer.jsx
+
+Problème :
+Deux problèmes combinés dans handleOpenProject() :
+Problème A — Quand un projet est rechargé, activeScreen n'est pas remis à l'étape 1. L'app reprend là où elle en était lors de la dernière session, sans recalculer la cascade depuis le début — ce qui provoque un état incohérent et le crash.
+Problème B — La clé rMoyen est absente de defaultValues.materiaux. Au rechargement, si cette clé n'existait pas dans le projet sauvegardé, elle vaut undefined — ce qui fait planter calculateLighting (NaN ou N = Infinity).
+
+Solution :
+A — Dans handleOpenProject(), ajouter après setCurrentProject(fullProject) :
+
+   setActiveScreen('dimensions')
+
+   Cela force le retour à l'étape 1 à chaque ouverture de projet,
+   ce qui garantit que toute la cascade est recalculée dans l'ordre.
+
+B — Dans defaultValues.materiaux, s'assurer que rMoyen est présent :
+
+   rMoyen: 0.65   ← valeur par défaut si absente du projet sauvegardé
+
+Correction 5 — Borne 'Trop froid' décalée (mineure)
+
+Fichier : src/utils/thermalComfort.js
+Note : correction mineure — n'a aucun impact pour le contexte africain (on ne sera jamais 'trop froid' à Cotonou 😄)
+
+Problème :
+Selon le document de référence (tableau section 3.6 — EN 15251:2007), la borne 'Trop froid' est différente selon l'état des fenêtres :
+État fenêtres
+Borne froide correcte
+Borne froide actuelle
+Statut
+Fenêtres OUVERTES
+T_confort − 2.5°C
+T_confort − 3.5°C
+❌ À corriger
+Fenêtres FERMÉES
+T_confort − 3.5°C
+T_confort − 3.5°C
+✅ Correct
+
+Solution :
+Dans le bloc 'fenêtres ouvertes', changer la borne de comparaison :
+
+   T_confort − 3.5   →   T_confort − 2.5
+
+Le bloc 'fenêtres fermées' reste inchangé à − 3.5°C.
+
+Analyse du code source ILLUMINEX — Mai 2025   •   Commencer par la Correction 4, puis 1 + 2 + 3 ensemble, enfin la 5.   Bon courage ! 💪
+
+
+=== interface budgetaire.docx ===
+
+ILLUMINEX — Corrections & Ajouts à faire
+Ajout 7 — Interface 'Coûts & Consommation' à créer
+
+Fichier(s) concerné(s) : Nouveau fichier : src/components/ScreenBudget.jsx  +  intégration dans renderer.jsx
+
+Situation actuelle :
+Les calculs de coûts et consommation existent mais sont enfouisssés dans ScreenRapport.jsx, mélangés avec la génération du PDF. Il n'y a pas d'interface dédiée où l'utilisateur peut voir et ajuster ces informations avant d'exporter le rapport.
+
+Ce que l'interface doit afficher :
+Section
+Élément
+Modifiable ?
+ESTIMATION BUDGÉTAIRE
+Coût luminaires (N × prix unitaire)
+Non — calculé automatiquement
+ESTIMATION BUDGÉTAIRE
+Coût installation (main d'œuvre)
+Oui — saisie manuelle
+ESTIMATION BUDGÉTAIRE
+TOTAL installation
+Non — somme des 2 lignes ci-dessus
+CONSOMMATION ÉNERGÉTIQUE
+Puissance totale (N × W unitaire)
+Non — calculé automatiquement
+CONSOMMATION ÉNERGÉTIQUE
+Coût du kWh (défaut : 125 FCFA)
+Oui — modifiable par l'utilisateur
+CONSOMMATION ÉNERGÉTIQUE
+Heures d'utilisation/jour (défaut 8h)
+Oui — modifiable par l'utilisateur
+CONSOMMATION ÉNERGÉTIQUE
+Coût mensuel
+Non — calculé automatiquement
+CONSOMMATION ÉNERGÉTIQUE
+Coût annuel
+Non — calculé automatiquement
+
+Formules à utiliser :
+Puissance totale  =  N  ×  puissance_unitaire (W)
+Coût mensuel      =  (Puissance_totale × heures_jour × 30) / 1000  ×  coût_kWh
+Coût annuel       =  Coût_mensuel × 12
+
+Ces formules sont déjà calculées dans ScreenRapport.jsx — les récupérer depuis là
+plutôt que de les réécrire. Les déplacer dans utils/calculateBudget.js
+et appeler cette fonction depuis les deux écrans (ScreenBudget + ScreenRapport).
+
+Intégration dans le workflow :
+Placer ScreenBudget entre ScreenAnalyse et ScreenRapport dans SIMULATION_FLOW
+dans renderer.jsx.
+
+Ajouter l'étape 'Budget' dans la sidebar avec son numéro et sa coche verte.
+
+Les données saisies (heures/jour, coût kWh, coût installation) doivent être
+sauvegardées dans formData.budget pour être disponibles dans le rapport PDF.
+
+📋  Ordre de priorité recommandé :
+
+  1. Correction 4  →  Bug sauvegarde  (en premier — sans ça impossible de tester les autres)
+  2. Corrections 1 + 2 + 3  →  Les 40 luminaires (à faire ensemble)
+  3. Correction 6  →  Animation 24h figée
+  4. Ajout 7  →  Interface budget (nouvelle fonctionnalité)
+  5. Correction 5  →  Borne trop froid (en dernier, mineure)
+
+Analyse complète du code source ILLUMINEX — Mai 2025   •   Bon courage ! 💪
+
+
+

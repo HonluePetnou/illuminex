@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Hexagon, Folder, Layout, SunMedium, BarChart2,
   Mail, Power, ChevronRight, Save, CheckCircle2, AlertCircle, Clock,
-  Layers, CheckSquare, FileText, Lightbulb
+  Layers, CheckSquare, FileText, Lightbulb, DollarSign
 } from 'lucide-react';
 
 const C = {
@@ -23,16 +23,17 @@ const C = {
 const SIDEBAR_WIDTH = '260px'; // Slightly wider to breathe
 
 const menuItems = [
-  { id: 'projets',    label: 'Projets',              icon: Folder,      group: 'main' },
-  { id: 'dimensions', label: 'Dimensions',           icon: Layout,      group: 'flow' },
-  { id: 'materiaux',  label: 'Matériaux',            icon: Layers,      group: 'flow' },
-  { id: 'luminaires', label: 'Luminaires',           icon: Lightbulb,   group: 'flow' },
-  { id: 'naturel',    label: 'Éclairage Naturel',    icon: SunMedium,   group: 'flow' },
-  { id: 'simulation', label: 'Simulation 2D/3D',     icon: BarChart2,   group: 'flow' },
-  { id: 'analyse',    label: 'Analyse',              icon: CheckSquare, group: 'flow' },
-  { id: 'rapport',    label: 'Rapport & Export',     icon: FileText,    group: 'flow' },
-  { id: 'contact',    label: 'Nous contacter',       icon: Mail,        group: 'bottom' },
-  { id: 'quitter',    label: 'Quitter',              icon: Power,       group: 'bottom' },
+  { id: 'projets',    label: 'Projets',              icon: Folder,       group: 'main' },
+  { id: 'dimensions', label: 'Dimensions',           icon: Layout,       group: 'flow' },
+  { id: 'materiaux',  label: 'Matériaux',            icon: Layers,       group: 'flow' },
+  { id: 'luminaires', label: 'Luminaires',           icon: Lightbulb,    group: 'flow' },
+  { id: 'naturel',    label: 'Éclairage Naturel',    icon: SunMedium,    group: 'flow' },
+  { id: 'simulation', label: 'Simulation 2D/3D',     icon: BarChart2,    group: 'flow' },
+  { id: 'analyse',    label: 'Analyse',              icon: CheckSquare,  group: 'flow' },
+  { id: 'budget',     label: 'Coûts & Budget',       icon: DollarSign,   group: 'flow' },
+  { id: 'rapport',    label: 'Rapport & Export',     icon: FileText,     group: 'flow' },
+  { id: 'contact',    label: 'Nous contacter',       icon: Mail,         group: 'bottom' },
+  { id: 'quitter',    label: 'Quitter',              icon: Power,        group: 'bottom' },
 ];
 
 /* Flow steps order */
@@ -43,6 +44,7 @@ const FLOW_ORDER = [
   'naturel',
   'simulation',
   'analyse',
+  'budget',
   'rapport'
 ];
 

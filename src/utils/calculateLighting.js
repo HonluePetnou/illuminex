@@ -5,7 +5,7 @@
  * @param {Object} formData The parsed JSON object from the multi-step form
  * @returns {Object} Calculation results
  */
-import { calculateCU, getERequired } from '../data/norms';
+import { getERequired, NORMS } from '../data/norms';
 
 export function calculateLighting(formData) {
   try {
@@ -36,11 +36,16 @@ export function calculateLighting(formData) {
     // STEP 2 — Get reference illuminance (E) — single source of truth from norms.js
     const eRequired = getERequired(roomType, buildingType);
 
-    // STEP 3 — Get CU from RI — single source of truth from norms.js
-    const cu = calculateCU(roomIndex);
+    // STEP 3 — Calculate CU using cavity method
+    const rMoyen = parseFloat(formData?.materiaux?.rMoyen) || 0.65;
+    let cu = 0.50;
+    if (roomIndex > 0) {
+      cu = 0.9 / (1 + (1 / roomIndex) * (1 - rMoyen));
+      cu = Math.max(0.30, Math.min(0.80, cu));
+    }
 
-    // STEP 4 — Set MF (maintenance factor)
-    const mf = 0.70;
+    // STEP 4 — Set MF (maintenance factor) based on room type
+    const mf = NORMS[roomType]?.mf ?? 0.70;
 
     // STEP 5 — Calculate number of luminaires
     let numberOfLuminaires = 0;

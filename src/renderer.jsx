@@ -12,6 +12,7 @@ import ScreenMateriaux  from './components/ScreenMateriaux';
 import ScreenLuminaires from './components/ScreenLuminaires';
 import ScreenNaturel    from './components/ScreenNaturel';
 import ScreenAnalyse    from './components/ScreenAnalyse';
+import ScreenBudget     from './components/ScreenBudget';
 import ScreenRapport    from './components/ScreenRapport';
 import ScreenContact    from './components/ScreenContact';
 
@@ -34,6 +35,9 @@ const defaultValues = {
     ceilingHeight: 3.0,
     workPlaneHeight: 0.85,
     type: 'Bureau',
+    glazingType: 'Double standard',
+    windowType: 'Battante',
+    doorType: 'Porte en bois plein',
   },
   occupation: {
     buildingType: 'Bureau/Administration',
@@ -76,7 +80,7 @@ const defaultValues = {
     rPlafond: 0.85,
     rMurs:    0.80,
     rSol:     0.70,
-    rMoyen:   0.78,
+    rMoyen:   0.65,
   },
   budget: {
     coutInstallation: 0,
@@ -93,6 +97,7 @@ const SIMULATION_FLOW = [
   'naturel',
   'simulation',
   'analyse',
+  'budget',
   'rapport',
 ];
 
@@ -132,12 +137,7 @@ function MainApp() {
     };
 
     setCurrentProject(fullProject);
-
-    if (fullProject.formData.results && Object.keys(fullProject.formData.results).length > 0) {
-      setActiveScreen('simulation');
-    } else {
-      setActiveScreen('dimensions');
-    }
+    setActiveScreen('dimensions');
   };
 
   const handleTemplateSelect = (template) => {
@@ -170,8 +170,51 @@ function MainApp() {
     }));
   };
 
+  // ── Validateurs par étape ──────────────────────────────────────────
+  const [validationError, setValidationError] = React.useState(null);
+
+  const validateStep = (screen) => {
+    const fd = formData;
+    switch (screen) {
+      case 'dimensions': {
+        const r = fd.room || {};
+        const L = parseFloat(r.length);
+        const W = parseFloat(r.width);
+        const H = parseFloat(r.ceilingHeight);
+        if (isNaN(L) || L <= 0) return 'La longueur doit etre superieure a 0 m.';
+        if (isNaN(W) || W <= 0) return 'La largeur doit etre superieure a 0 m.';
+        if (isNaN(H) || H <= 0) return 'La hauteur sous plafond doit etre superieure a 0 m.';
+        return null;
+      }
+      case 'materiaux':
+        return null; // optionnel, valeurs par défaut toujours présentes
+      case 'luminaires': {
+        const l = fd.luminaire || {};
+        const flux  = parseFloat(l.fluxPerUnit);
+        const power = parseFloat(l.powerPerUnit);
+        if (isNaN(flux)  || flux  <= 0) return 'Le flux lumineux (lm) doit etre superieur a 0.';
+        if (isNaN(power) || power <= 0) return 'La puissance (W) doit etre superieure a 0.';
+        return null;
+      }
+      case 'naturel': {
+        const n = fd.naturalLight || {};
+        if (n.hasWindows === true) {
+          const area = parseFloat(n.windowArea);
+          if (isNaN(area) || area <= 0)
+            return 'Indiquez la surface vitree (m2) pour activer l apport naturel.';
+        }
+        return null;
+      }
+      default:
+        return null;
+    }
+  };
+
   // Navigation dans le flow de simulation
   const goNext = (screen) => {
+    const err = validateStep(screen);
+    if (err) { setValidationError(err); return; }
+    setValidationError(null);
     saveCurrentProject({ formData });
     const idx = SIMULATION_FLOW.indexOf(screen);
     if (idx >= 0 && idx < SIMULATION_FLOW.length - 1) {
@@ -180,6 +223,7 @@ function MainApp() {
   };
 
   const goPrev = (screen) => {
+    setValidationError(null);
     saveCurrentProject({ formData });
     const idx = SIMULATION_FLOW.indexOf(screen);
     if (idx > 0) {
@@ -206,6 +250,7 @@ function MainApp() {
           <ScreenDimensions
             formData={formData}
             updateFormData={updateFormData}
+            validationError={validationError}
             onNext={() => goNext('dimensions')}
             onPrev={() => goPrev('dimensions')}
           />
@@ -226,6 +271,7 @@ function MainApp() {
           <ScreenLuminaires
             formData={formData}
             updateFormData={updateFormData}
+            validationError={validationError}
             onNext={() => goNext('luminaires')}
             onPrev={() => goPrev('luminaires')}
           />
@@ -236,6 +282,7 @@ function MainApp() {
           <ScreenNaturel
             formData={formData}
             updateFormData={updateFormData}
+            validationError={validationError}
             onNext={() => goNext('naturel')}
             onPrev={() => goPrev('naturel')}
           />
@@ -257,6 +304,16 @@ function MainApp() {
             updateFormData={updateFormData}
             onNext={() => goNext('analyse')}
             onPrev={() => goPrev('analyse')}
+          />
+        );
+
+      case 'budget':
+        return (
+          <ScreenBudget
+            formData={formData}
+            updateFormData={updateFormData}
+            onNext={() => goNext('budget')}
+            onPrev={() => goPrev('budget')}
           />
         );
 
