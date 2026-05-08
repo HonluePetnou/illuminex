@@ -48,7 +48,11 @@ const FLOW_ORDER = [
   'rapport'
 ];
 
-export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus }) {
+export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus, onNavigate }) {
+  const navigate = (id) => {
+    if (onNavigate) onNavigate(id);
+    else setActiveScreen(id);
+  };
   const flowIndex = FLOW_ORDER.indexOf(activeScreen);
 
   const renderGroup = (group, label) => {
@@ -69,7 +73,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
           return (
             <button
               key={item.id}
-              onClick={() => setActiveScreen(item.id)}
+              onClick={() => navigate(item.id)}
               title={item.label}
               style={{
                 display: 'flex',
@@ -187,7 +191,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
           return (
             <button
               key={id}
-              onClick={() => setActiveScreen(id)}
+              onClick={() => navigate(id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -240,7 +244,7 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
           return (
             <button
               key={item.id}
-              onClick={() => setActiveScreen(item.id)}
+              onClick={() => navigate(item.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '0.625rem 1.25rem',

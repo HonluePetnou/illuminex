@@ -29,9 +29,20 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   const initialOrientation = formData?.naturalLight?.orientation || location.buildingOrientation || 'S';
   const naturalLight = formData?.naturalLight || { hasWindows: true, windowArea: 5, orientation: initialOrientation };
 
-  const [simMonth, setSimMonth] = useState(4); // April setting
-  const [simHour, setSimHour] = useState(12);
-  const [sunData, setSunData] = useState({ eExterieur: 0, typeCiel: 'Chargement...', f: 0, K: 0, skyIcon: 'loading' });
+  const [simMonth, setSimMonth] = useState(
+    formData?.results?.solarData?.simMonth ?? 4
+  );
+  const [simHour, setSimHour] = useState(
+    formData?.results?.solarData?.simHour ?? 12
+  );
+  const [sunData, setSunData] = useState(() => {
+    // Restore cached solar data if available (avoid reload on navigation)
+    const sd = formData?.results?.solarData;
+    if (sd && sd.eExterieur != null) {
+      return { eExterieur: sd.eExterieur, typeCiel: sd.typeCiel || '—', f: sd.f || 0, K: sd.K || 0, skyIcon: 'Sun' };
+    }
+    return { eExterieur: 0, typeCiel: 'Chargement...', f: 0, K: 0, skyIcon: 'loading' };
+  });
   const [sunTimes, setSunTimes] = useState({ sunrise: '06:00', sunset: '18:00' });
 
   // Right Option Sliders
@@ -41,6 +52,9 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   const [sunRays, setSunRays] = useState(true);
   const [transparency, setTransparency] = useState(46);
 
+  // Ref to avoid writing duplicate solar data to formData (prevents render loops)
+  const lastWrittenKey = React.useRef(null);
+
   useEffect(() => {
     setSunTimes(approximateSunTimes(location.latitude, simMonth));
     let cancel = false;
@@ -48,25 +62,30 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
       .then(res => {
         if (!cancel) {
           setSunData(res);
-          // Sauvegarder les données solaires dans formData pour les autres écrans
-          updateFormData('results', {
-            solarData: {
-              eExterieur: res.eExterieur,
-              typeCiel:   res.typeCiel,
-              f:          res.f,
-              K:          res.K,
-              ALLSKY:     res.ALLSKY,
-              CLRSKY:     res.CLRSKY,
-              T2M:        res.T2M,
-              WS10M:      res.WS10M,
-              simMonth,
-              simHour,
-              climate:    location.climate,
-            }
-          });
+          // Only persist when climate/month/hour combination actually changed
+          const key = `${location.climate}|${simMonth}|${simHour}`;
+          if (lastWrittenKey.current !== key) {
+            lastWrittenKey.current = key;
+            updateFormData('results', {
+              solarData: {
+                eExterieur: res.eExterieur,
+                typeCiel:   res.typeCiel,
+                f:          res.f,
+                K:          res.K,
+                ALLSKY:     res.ALLSKY,
+                CLRSKY:     res.CLRSKY,
+                T2M:        res.T2M,
+                WS10M:      res.WS10M,
+                simMonth,
+                simHour,
+                climate:    location.climate,
+              }
+            });
+          }
         }
       });
-    return () => cancel = true;
+    return () => { cancel = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.climate, location.latitude, simMonth, simHour]);
 
   const luxInterieur = calculateDaylightContribution({

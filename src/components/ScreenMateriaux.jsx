@@ -171,11 +171,27 @@ function SurfaceSection({ config, value, onChange, room }) {
 export default function ScreenMateriaux({ formData, updateFormData, onNext, onPrev }) {
   const room = formData?.room || { length: 7, width: 6, ceilingHeight: 3 };
 
-  const [surfaces, setSurfaces] = useState({
-    plafond:  { colorId: 'blanc-mat',   materialId: '' },
-    murs:     { colorId: 'blanc-casse', materialId: '' },
-    sol:      { colorId: '',            materialId: 'carreau-blanc' },
+  // Initialize from saved formData (persisted project) or use defaults
+  const defaultSurfaces = {
+    plafond: { colorId: 'blanc-mat',   materialId: '' },
+    murs:    { colorId: 'blanc-casse', materialId: '' },
+    sol:     { colorId: '',            materialId: 'carreau-blanc' },
+  };
+
+  const [surfaces, setSurfaces] = useState(() => {
+    const saved = formData?.materiaux?.surfaces;
+    if (saved && saved.plafond && saved.murs && saved.sol) return saved;
+    return defaultSurfaces;
   });
+
+  // Sync when a different project is loaded (formData reference changes)
+  React.useEffect(() => {
+    const saved = formData?.materiaux?.surfaces;
+    if (saved && saved.plafond && saved.murs && saved.sol) {
+      setSurfaces(saved);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.materiaux]);
 
   // Calculs de réflectance
   const getReflectance = (surfKey) => {
@@ -213,13 +229,25 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
     const updated = { ...surfaces, [key]: val };
     setSurfaces(updated);
 
-    // Sauvegarder dans formData
+    // Calculate updated reflectances immediately to avoid stale state in updateFormData
+    const rp = getReflectanceFromVal(updated.plafond);
+    const rm = getReflectanceFromVal(updated.murs);
+    const rs = getReflectanceFromVal(updated.sol);
+    
+    // Calculate new average reflectance
+    const ap = room.length * room.width;
+    const am = 2 * (room.length + room.width) * room.ceilingHeight;
+    const as = room.length * room.width;
+    const at = ap + am + as;
+    const newRMoyen = at > 0 ? (rp * ap + rm * am + rs * as) / at : 0.5;
+
+    // Sauvegarder dans formData avec les valeurs fraîches
     updateFormData('materiaux', {
       surfaces: updated,
-      rPlafond: getReflectanceFromVal(updated.plafond),
-      rMurs: getReflectanceFromVal(updated.murs),
-      rSol: getReflectanceFromVal(updated.sol),
-      rMoyen: rMoyen,
+      rPlafond: rp,
+      rMurs: rm,
+      rSol: rs,
+      rMoyen: newRMoyen,
     });
   };
 

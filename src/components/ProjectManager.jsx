@@ -30,19 +30,36 @@ export function useProjectManager() {
 
   const saveCurrentProject = async (formData, results) => {
     setSaveStatus('saving');
-    const projectToSave = {
-      ...currentProject,
-      name: currentProject?.name || 'Projet Sans Nom',
-      formData, results,
-      updatedAt: Date.now()
-    };
+    // We want to capture the currentProject at the moment of save start,
+    // but the final state should ideally merge any intermediate changes.
+    // However, since formData and results are passed as arguments (the source of truth),
+    // we use them directly.
     try {
+      // Capture the project object to save
+      const projectToSave = {
+        ...currentProject,
+        name: currentProject?.name || 'Projet Sans Nom',
+        formData: formData, 
+        results: results,
+        updatedAt: Date.now()
+      };
+
       const id = await storageService.saveProject(projectToSave);
-      setCurrentProject({ ...projectToSave, id });
+      
+      // Use functional update to ensure we don't overwrite if currentProject changed in the meantime
+      setCurrentProject(prev => {
+        // If prev is null or id is different, we might have switched projects
+        if (prev && prev.id && prev.id !== id && id !== undefined) {
+           // If IDs differ, we switched projects, don't overwrite with old data
+           return prev;
+        }
+        return { ...projectToSave, id };
+      });
+      
       setSaveStatus('saved');
       loadProjects();
     } catch (err) {
-      console.error(err);
+      console.error('Save Project Error:', err);
       setSaveStatus('unsaved');
     }
   };

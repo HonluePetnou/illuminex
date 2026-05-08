@@ -102,6 +102,8 @@ const SIMULATION_FLOW = [
 ];
 
 function MainApp() {
+  // Ref to track whether formData was just saved (to avoid useEffect overwrite loop)
+  const isSavingRef = React.useRef(false);
   const [activeScreen, setActiveScreen] = useState('projets');
 
   const {
@@ -152,22 +154,51 @@ function MainApp() {
   // State global formulaires
   const [formData, setFormData] = React.useState(defaultValues);
 
+  // Sync formData when project changes (e.g. opening a project), but NOT when we
+  // triggered the currentProject update ourselves via updateFormData (avoid overwrite loop).
   React.useEffect(() => {
+    if (isSavingRef.current) return; // skip if we caused this update
     if (currentProject && currentProject.formData) {
-      setFormData(currentProject.formData);
+      // Ensure results are also in sync if they exist at top level but not in formData
+      const syncedFormData = {
+        ...currentProject.formData,
+        results: currentProject.results || currentProject.formData.results || {}
+      };
+      setFormData(syncedFormData);
     } else {
       setFormData(defaultValues);
     }
-  }, [currentProject]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject?.id]); // only re-run when a DIFFERENT project is loaded
 
   const updateFormData = (section, values) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        ...values,
-      },
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          ...values,
+        },
+      };
+      // Keep currentProject in sync so navigation never loses data
+      if (currentProject) {
+        isSavingRef.current = true;
+        // Results might be in formData.results or currentProject.results
+        const latestResults = section === 'results' ? { ...prev.results, ...values } : (currentProject.results || next.results || {});
+        
+        setCurrentProject(cp => {
+          if (!cp) return cp;
+          return { 
+            ...cp, 
+            formData: next,
+            results: latestResults
+          };
+        });
+        // Reset flag after React flush
+        setTimeout(() => { isSavingRef.current = false; }, 50);
+      }
+      return next;
+    });
   };
 
   // ── Validateurs par étape ──────────────────────────────────────────
@@ -210,12 +241,20 @@ function MainApp() {
     }
   };
 
+  // Sauvegarde centralisée — signature correcte : (formData, results)
+  const persistFormData = (fd) => {
+    if (!currentProject) return;
+    const dataToSave = fd ?? formData;
+    // Ensure results are passed correctly to saveCurrentProject
+    saveCurrentProject(dataToSave, dataToSave.results || currentProject?.results || {});
+  };
+
   // Navigation dans le flow de simulation
   const goNext = (screen) => {
     const err = validateStep(screen);
     if (err) { setValidationError(err); return; }
     setValidationError(null);
-    saveCurrentProject({ formData });
+    persistFormData(formData);
     const idx = SIMULATION_FLOW.indexOf(screen);
     if (idx >= 0 && idx < SIMULATION_FLOW.length - 1) {
       setActiveScreen(SIMULATION_FLOW[idx + 1]);
@@ -224,7 +263,7 @@ function MainApp() {
 
   const goPrev = (screen) => {
     setValidationError(null);
-    saveCurrentProject({ formData });
+    persistFormData(formData);
     const idx = SIMULATION_FLOW.indexOf(screen);
     if (idx > 0) {
       setActiveScreen(SIMULATION_FLOW[idx - 1]);
@@ -232,6 +271,26 @@ function MainApp() {
       setActiveScreen('projets');
     }
   };
+
+  // Intercepteur de navigation Sidebar : sauvegarde avant tout changement d'écran
+  const handleSidebarNavigate = (targetScreen) => {
+    // Save current formData before leaving any screen (guards direct sidebar clicks)
+    if (currentProject && activeScreen !== 'projets' && activeScreen !== 'accueil') {
+      persistFormData(formData);
+    }
+    setValidationError(null);
+    setActiveScreen(targetScreen);
+  };
+
+  // Sauvegarde automatique à chaque changement de formData (filet de sécurité)
+  React.useEffect(() => {
+    if (!currentProject) return;
+    const timer = setTimeout(() => {
+      persistFormData(formData);
+    }, 1500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]);
 
   const renderScreen = () => {
     switch (activeScreen) {
@@ -385,8 +444,9 @@ function MainApp() {
       <Sidebar
         activeScreen={activeScreen}
         setActiveScreen={setActiveScreen}
+        onNavigate={handleSidebarNavigate}
         currentProject={currentProject}
-        saveCurrentProject={() => saveCurrentProject({ formData })}
+        saveCurrentProject={() => saveCurrentProject(formData, currentProject?.results || {})}
         saveStatus={saveStatus}
       />
       <div

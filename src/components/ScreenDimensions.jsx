@@ -23,6 +23,37 @@ const C = {
 /* ── Field label + input row ── */
 function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = 'number' }) {
   const [focused, setFocused] = useState(false);
+  // Keep a local string so the user can clear/retype without pushing 0 into formData
+  const [localValue, setLocalValue] = useState(String(value ?? ''));
+
+  // Sync when the parent value changes (e.g. project load) but the field is not focused
+  React.useEffect(() => {
+    if (!focused) {
+      setLocalValue(String(value ?? ''));
+    }
+  }, [value, focused]);
+
+  const handleChange = (e) => {
+    setLocalValue(e.target.value);
+    const parsed = parseFloat(e.target.value);
+    // Only propagate a valid, positive number immediately so formData stays coherent
+    if (!isNaN(parsed) && parsed > 0) {
+      onChange(parsed);
+    }
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    const parsed = parseFloat(localValue);
+    if (!isNaN(parsed) && parsed > 0) {
+      onChange(parsed);
+      setLocalValue(String(parsed));
+    } else {
+      // Revert to last valid value on blur if the field is empty / invalid
+      setLocalValue(String(value ?? ''));
+    }
+  };
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
       <label style={{ color: C.muted, fontSize: '0.875rem', flexShrink: 0, minWidth: '130px', fontWeight: 500 }}>
@@ -31,13 +62,13 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
       <div style={{ position: 'relative', width: '160px' }}>
         <input
           type={type}
-          value={value}
+          value={localValue}
           min={min}
           max={max}
           step={step}
-          onChange={e => onChange(Number(e.target.value))}
+          onChange={handleChange}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={handleBlur}
           style={{
             width: '100%',
             background: C.input,
