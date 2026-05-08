@@ -28,6 +28,7 @@ export default function RoomSimulation2D({
 
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const heatmapCacheRef = useRef({ key: null, canvas: null });
 
   const length = parseFloat(formData?.room?.length) || 10;
   const width = parseFloat(formData?.room?.width) || 10;
@@ -167,30 +168,43 @@ export default function RoomSimulation2D({
         return match ? match.c : falseColors[falseColors.length - 1].c;
       };
 
-      const cellW = roomPixelW / 30; // Higher resolution grid
-      const cellH = roomPixelH / 30;
+      const cacheKey = `${activeCount}-${profile.E_nat}-${luxLimit}-${roomPixelW.toFixed(1)}-${roomPixelH.toFixed(1)}`;
       
-      for (let cx = 0; cx < 30; cx++) {
-        for (let cy = 0; cy < 30; cy++) {
-          const cellPx = originX + cx * cellW + cellW/2;
-          const cellPy = originY + cy * cellH + cellH/2;
-          
-          let e_local = profile.E_nat || 0;
-          for (let i = 0; i < activeCount; i++) {
-            const p = positions[i];
-            if (!p) continue;
-            const dx = cellPx - (originX + p.x * scale);
-            const dy = cellPy - (originY + p.y * scale);
-            const dz = (parseFloat(formData?.room?.ceilingHeight) || 3) * scale;
-            let d = Math.sqrt(dx*dx + dy*dy + dz*dz) / scale;
-            if (d < 0.5) d = 0.5;
-            e_local += (fluxPerUnit / (4 * Math.PI * d * d)) * 2; // Added multiplier for realistic scaling
+      if (heatmapCacheRef.current.key !== cacheKey || !heatmapCacheRef.current.canvas) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = roomPixelW;
+        offCanvas.height = roomPixelH;
+        const offCtx = offCanvas.getContext('2d');
+        
+        const cellW = roomPixelW / 30; // Higher resolution grid
+        const cellH = roomPixelH / 30;
+        
+        for (let cx = 0; cx < 30; cx++) {
+          for (let cy = 0; cy < 30; cy++) {
+            const cellPx = cx * cellW + cellW/2;
+            const cellPy = cy * cellH + cellH/2;
+            
+            let e_local = profile.E_nat || 0;
+            for (let i = 0; i < activeCount; i++) {
+              const p = positions[i];
+              if (!p) continue;
+              const dx = cellPx - (p.x * scale);
+              const dy = cellPy - (p.y * scale);
+              const dz = (parseFloat(formData?.room?.ceilingHeight) || 3) * scale;
+              let d = Math.sqrt(dx*dx + dy*dy + dz*dz) / scale;
+              if (d < 0.5) d = 0.5;
+              e_local += (fluxPerUnit / (4 * Math.PI * d * d)) * 2; // Added multiplier for realistic scaling
+            }
+            
+            offCtx.fillStyle = getFalseColor(e_local);
+            offCtx.fillRect(cx * cellW, cy * cellH, cellW + 0.5, cellH + 0.5); // Add 0.5 to prevent bleeding
           }
-          
-          ctx.fillStyle = getFalseColor(e_local);
-          ctx.fillRect(originX + cx * cellW, originY + cy * cellH, cellW + 0.5, cellH + 0.5); // Add 0.5 to prevent bleeding
         }
+        heatmapCacheRef.current.canvas = offCanvas;
+        heatmapCacheRef.current.key = cacheKey;
       }
+      
+      ctx.drawImage(heatmapCacheRef.current.canvas, originX, originY);
       ctx.globalAlpha = 1.0;
     }
 

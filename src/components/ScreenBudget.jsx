@@ -1,7 +1,6 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { DollarSign, Zap, TrendingUp, Building2 } from 'lucide-react';
-import { calculateLighting } from '../utils/calculateLighting';
-import { calculateBudget } from '../utils/calculateBudget';
+import { useSimulation } from '../hooks/useSimulation';
 
 const C = {
   bg: '#1C1D24', surface: '#23242B', surface2: '#2B2C35',
@@ -84,12 +83,12 @@ function BigTotal({ label, value, color = C.primary }) {
 }
 
 export default function ScreenBudget({ formData, updateFormData, onNext, onPrev }) {
-  const lightingResult = useMemo(() => calculateLighting(formData), [formData]);
+  const results = useSimulation(formData);
 
-  const budget = useMemo(
-    () => calculateBudget(formData, lightingResult),
-    [formData, lightingResult],
-  );
+  if (!results) return null;
+
+  const lightingResult = results.lighting;
+  const budget = results.budget;
 
   const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
 

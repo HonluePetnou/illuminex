@@ -301,8 +301,12 @@ export default function RoomSimulation3D({
     const coneRadius = Math.min(Hm * 0.45, 1.0);
     const coneHeight = Hm * 0.9;
 
+    const maxRealLights = 20;
+    const lightStep = Math.max(1, Math.floor(positions.length / maxRealLights));
+    let realLightsAdded = 0;
+
     luminairesRef.current = [];
-    positions.forEach((pos) => {
+    positions.forEach((pos, idx) => {
       const px = pos.x;
       const pz = pos.y;
       const py = ceilingHeight - 0.02;
@@ -382,20 +386,24 @@ export default function RoomSimulation3D({
       glow.position.y = -py + 0.04;
       group.add(glow);
 
-      // SpotLight — focused warm downlight
-      const light = new THREE.SpotLight(0xFFF0CC, 0, Hm * 2, Math.PI / 4.5, 0.75, 1.5);
-      light.position.y = -0.05;
-      const target = new THREE.Object3D();
-      target.position.set(0, -Hm, 0);
-      group.add(target);
-      light.target = target;
-      light.castShadow = false;
-      group.add(light);
+      // Add real lights only for a limited number of luminaires to avoid WebGL shader limits and pitch black walls
+      let light = null, pointLight = null;
+      if (idx % lightStep === 0 && realLightsAdded < maxRealLights) {
+        light = new THREE.SpotLight(0xFFF0CC, 0, Hm * 2, Math.PI / 4.5, 0.75, 1.5);
+        light.position.y = -0.05;
+        const target = new THREE.Object3D();
+        target.position.set(0, -Hm, 0);
+        group.add(target);
+        light.target = target;
+        light.castShadow = false;
+        group.add(light);
 
-      // PointLight — warm glow that bounces off nearby walls
-      const pointLight = new THREE.PointLight(0xFFE0A0, 0, Hm * 2, 1.5);
-      pointLight.position.y = -0.2;
-      group.add(pointLight);
+        pointLight = new THREE.PointLight(0xFFE0A0, 0, Hm * 2, 1.5);
+        pointLight.position.y = -0.2;
+        group.add(pointLight);
+        
+        realLightsAdded++;
+      }
 
       scene.add(group);
       luminairesRef.current.push({ group, housing, panel, light, pointLight, cone, glow });
@@ -425,42 +433,54 @@ export default function RoomSimulation3D({
     scene.add(sunLight.target);
     sunLightRef.current = sunLight;
 
-    // Very dim ambient — room should be lit primarily by luminaires
-    const ambient = new THREE.AmbientLight(0x404050, 0.06);
+    // Dim ambient but bright enough so nothing is 100% black
+    const ambient = new THREE.AmbientLight(0x404050, 0.15);
     scene.add(ambient);
     ambientLightRef.current = ambient;
 
-    // Subtle hemisphere light for soft fill
-    const hemiLight = new THREE.HemisphereLight(0x606070, 0x303030, 0.08);
+    // Hemisphere light for soft fill
+    const hemiLight = new THREE.HemisphereLight(0xfff5e6, 0x202020, 0.15);
     scene.add(hemiLight);
 
-    // ── Heatmap Grid on floor ──
-    heatmapCellsRef.current = [];
+    // ── Heatmap InstancedMesh ──
     const segCountX = Math.max(6, Math.round(length * 1.5));
     const segCountZ = Math.max(6, Math.round(width * 1.5));
+    const totalCells = segCountX * segCountZ;
     const segW = length / segCountX;
     const segZ = width / segCountZ;
 
+    const hmGeo = new THREE.PlaneGeometry(segW * 0.95, segZ * 0.95);
+    const hmMat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    
+    const instancedHM = new THREE.InstancedMesh(hmGeo, hmMat, totalCells);
+    instancedHM.position.set(0, 0.015, 0); // Position at floor level
+    instancedHM.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+    scene.add(instancedHM);
+    heatmapCellsRef.current = instancedHM;
+
+    const dummy = new THREE.Object3D();
+    const cellData = [];
+
     for (let x = 0; x < segCountX; x++) {
       for (let z = 0; z < segCountZ; z++) {
+        const idx = x * segCountZ + z;
         const cx = x * segW + segW / 2;
         const cz = z * segZ + segZ / 2;
-        const hmPlane = new THREE.Mesh(
-          new THREE.PlaneGeometry(segW * 0.95, segZ * 0.95),
-          new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.25,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-          })
-        );
-        hmPlane.rotation.x = -Math.PI / 2;
-        hmPlane.position.set(cx, 0.015, cz);
-        scene.add(hmPlane);
-        heatmapCellsRef.current.push({ mesh: hmPlane, cx, cz });
+        
+        dummy.position.set(cx, 0, cz); // World coordinates
+        dummy.rotation.x = -Math.PI / 2; // Make the plane lie flat
+        dummy.updateMatrix();
+        instancedHM.setMatrixAt(idx, dummy.matrix);
+        cellData.push({ cx, cz });
       }
     }
+    instancedHM.userData.cellData = cellData;
+    instancedHM.instanceMatrix.needsUpdate = true;
 
     // ── Resize ──
     const observer = new ResizeObserver(() => {
@@ -490,7 +510,7 @@ export default function RoomSimulation3D({
       // Gentle luminaire flicker via emissive pulsing
       const t = time * 0.001;
       luminairesRef.current.forEach((lum, i) => {
-        if (lum.light.intensity > 0) {
+        if (lum.light && lum.light.intensity > 0) {
           const flicker = 1.0 + Math.sin(t * 2.3 + i * 1.7) * 0.04;
           lum.light.intensity = lum.light._baseIntensity * flicker;
           lum.pointLight.intensity = lum.pointLight._baseIntensity * flicker;
@@ -603,7 +623,21 @@ export default function RoomSimulation3D({
     }
 
     // Luminaires
-    const intensityScale = N_total > 0 ? Math.min(1, 10 / N_total) : 1;
+    // Si beaucoup de luminaires, on compense l'éclairage global pour éclairer la pièce
+    // vu qu'on a limité le nombre de PointLights à 20 max.
+    const activeLumRatio = N_total > 0 ? (profile.N_active / N_total) : 0;
+    const globalLumIntensity = activeLumRatio * (fluxPerUnit / 2000);
+    
+    if (ambientLightRef.current && !profile.isDay) {
+      ambientLightRef.current.intensity = 0.15 + Math.min(0.8, globalLumIntensity * 0.5);
+    } else if (ambientLightRef.current) {
+      // Day time, sun provides ambient
+    }
+
+    const intensityScale = N_total > 0 ? Math.min(1, 20 / N_total) : 1;
+    // La transparence des cônes diminue drastiquement s'il y a des centaines de luminaires
+    // pour éviter l'éblouissement total (mur de lumière blanc).
+    const coneBaseOpacity = 0.1 * Math.min(1, 10 / Math.sqrt(N_total || 1));
 
     luminairesRef.current.forEach((lum, idx) => {
       const isActive = idx < profile.N_active;
@@ -614,34 +648,43 @@ export default function RoomSimulation3D({
         lum.housing.material.emissiveIntensity = 0.3;
         lum.panel.material.color.setHex(0xFFFDE0);
 
-        const baseSpot  = (fluxPerUnit / 2500) * intensityScale;
-        const basePt    = (fluxPerUnit / 6000) * intensityScale;
-        lum.light.intensity = baseSpot;
-        lum.light._baseIntensity = baseSpot;
-        lum.pointLight.intensity = basePt;
-        lum.pointLight._baseIntensity = basePt;
+        if (lum.light) {
+          const baseSpot  = (fluxPerUnit / 2500) * intensityScale;
+          const basePt    = (fluxPerUnit / 6000) * intensityScale;
+          lum.light.intensity = baseSpot;
+          lum.light._baseIntensity = baseSpot;
+          lum.pointLight.intensity = basePt;
+          lum.pointLight._baseIntensity = basePt;
+        }
 
-        lum.cone.material.opacity = 0.04 + 0.06 * intensityScale;
+        lum.cone.material.opacity = coneBaseOpacity;
         lum.cone.visible = true;
-        lum.glow.material.opacity = 0.1 + 0.1 * intensityScale;
+        lum.glow.material.opacity = coneBaseOpacity * 1.5;
         lum.glow.visible = true;
       } else {
         lum.housing.material.color.setHex(0x555555);
         if (lum.housing.material.emissive) lum.housing.material.emissive.setHex(0x000000);
         lum.panel.material.color.setHex(0x333333);
-        lum.light.intensity = 0;
-        lum.light._baseIntensity = 0;
-        lum.pointLight.intensity = 0;
-        lum.pointLight._baseIntensity = 0;
+        if (lum.light) {
+          lum.light.intensity = 0;
+          lum.light._baseIntensity = 0;
+          lum.pointLight.intensity = 0;
+          lum.pointLight._baseIntensity = 0;
+        }
         lum.cone.visible = false;
         lum.glow.visible = false;
       }
     });
 
     // Heatmap (visible si lumière présente)
+    const instancedHM = heatmapCellsRef.current;
     const hasAnyLight3D = profile.N_active > 0 || profile.E_nat > 0;
-    if (showHeatmap && hasAnyLight3D) {
-      heatmapCellsRef.current.forEach(cell => {
+    
+    if (instancedHM && showHeatmap && hasAnyLight3D) {
+      const cellData = instancedHM.userData.cellData;
+      const color = new THREE.Color();
+      
+      cellData.forEach((cell, idx) => {
         let totalE = profile.E_nat || 0;
         for (let i = 0; i < profile.N_active; i++) {
           const p = positions[i];
@@ -653,21 +696,21 @@ export default function RoomSimulation3D({
           if (dSquare < 0.5) dSquare = 0.5;
           totalE += fluxPerUnit / (4 * Math.PI * dSquare);
         }
-        cell.mesh.visible = true;
+        
         // Green/yellow/red like a real heatmap
         if (totalE >= E_required) {
-          cell.mesh.material.color.setHex(0x7CB342);
-          cell.mesh.material.opacity = 0.3;
+          color.setHex(0x7CB342);
         } else if (totalE >= E_required * 0.6) {
-          cell.mesh.material.color.setHex(0xE6C832);
-          cell.mesh.material.opacity = 0.25;
+          color.setHex(0xE6C832);
         } else {
-          cell.mesh.material.color.setHex(0xE65100);
-          cell.mesh.material.opacity = 0.2;
+          color.setHex(0xE65100);
         }
+        instancedHM.setColorAt(idx, color);
       });
-    } else {
-      heatmapCellsRef.current.forEach(cell => { cell.mesh.visible = false; });
+      instancedHM.visible = true;
+      if (instancedHM.instanceColor) instancedHM.instanceColor.needsUpdate = true;
+    } else if (instancedHM) {
+      instancedHM.visible = false;
     }
 
     // Ceiling opacity

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 
 import Sidebar from './components/Sidebar';
 import ProjectManager, { useProjectManager } from './components/ProjectManager';
+import { useProjectHistory } from './hooks/useProjectHistory';
 import SimulationDashboard from './components/SimulationDashboard';
 
 import ScreenDimensions from './components/ScreenDimensions';
@@ -153,6 +154,8 @@ function MainApp() {
 
   // State global formulaires
   const [formData, setFormData] = React.useState(defaultValues);
+  
+  const { pushState, undo, redo, canUndo, canRedo, resetHistory } = useProjectHistory(defaultValues);
 
   // Sync formData when project changes (e.g. opening a project), but NOT when we
   // triggered the currentProject update ourselves via updateFormData (avoid overwrite loop).
@@ -165,8 +168,10 @@ function MainApp() {
         results: currentProject.results || currentProject.formData.results || {}
       };
       setFormData(syncedFormData);
+      resetHistory(syncedFormData);
     } else {
       setFormData(defaultValues);
+      resetHistory(defaultValues);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProject?.id]); // only re-run when a DIFFERENT project is loaded
@@ -180,6 +185,9 @@ function MainApp() {
           ...values,
         },
       };
+      
+      pushState(next);
+
       // Keep currentProject in sync so navigation never loses data
       if (currentProject) {
         isSavingRef.current = true;
@@ -199,6 +207,30 @@ function MainApp() {
       }
       return next;
     });
+  };
+
+  const handleUndo = () => {
+    const previousState = undo();
+    if (previousState) {
+      setFormData(previousState);
+      if (currentProject) {
+        isSavingRef.current = true;
+        setCurrentProject(cp => ({ ...cp, formData: previousState, results: previousState.results || {} }));
+        setTimeout(() => { isSavingRef.current = false; }, 50);
+      }
+    }
+  };
+
+  const handleRedo = () => {
+    const nextState = redo();
+    if (nextState) {
+      setFormData(nextState);
+      if (currentProject) {
+        isSavingRef.current = true;
+        setCurrentProject(cp => ({ ...cp, formData: nextState, results: nextState.results || {} }));
+        setTimeout(() => { isSavingRef.current = false; }, 50);
+      }
+    }
   };
 
   // ── Validateurs par étape ──────────────────────────────────────────
@@ -448,6 +480,10 @@ function MainApp() {
         currentProject={currentProject}
         saveCurrentProject={() => saveCurrentProject(formData, currentProject?.results || {})}
         saveStatus={saveStatus}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       <div
         className="app-main"

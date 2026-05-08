@@ -86,19 +86,19 @@ export function calculateUsageProfile(formData, lightingResult, climateResult) {
         H_real: hoursPerDay
       },
       consumption: {
-        daily: Math.round((E_reelle / Jours_an) * 100) / 100,
+        daily: Jours_an > 0 ? Math.round((E_reelle / Jours_an) * 100) / 100 : 0,
         weekly: Math.round((E_reelle / 52) * 100) / 100,
         monthly: Math.round((E_reelle / 12) * 100) / 100,
         annual: Math.round(E_reelle * 100) / 100
       },
       cost: {
         tarifKwh: Cout_kWh,
-        daily: Math.round(Cout_annuel / Jours_an),
+        daily: Jours_an > 0 ? Math.round(Cout_annuel / Jours_an) : 0,
         monthly: Math.round(Cout_annuel / 12),
         annual: Math.round(Cout_annuel)
       },
       savings: {
-        C_day_noOptim: Math.round((E_annuelle / Jours_an) * 100) / 100,
+        C_day_noOptim: Jours_an > 0 ? Math.round((E_annuelle / Jours_an) * 100) / 100 : 0,
         annualSavings: Math.round(annualSavings),
         savingsPercent: Math.round(savingsPercent * 10) / 10
       },

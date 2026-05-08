@@ -1,11 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { FileText, ClipboardList, Coins, Settings, Hourglass, CheckCircle2, XCircle, Mail, Lightbulb, CornerUpLeft } from 'lucide-react';
 import { NORMS } from '../data/norms';
 import { COUT_KWH_PAR_PAYS } from '../data/luminaires-library';
-import { calculateLighting } from '../utils/calculateLighting';
-import { calculateUniformity } from '../utils/calculateUniformity';
-import { calculateClimateAdjustment } from '../utils/calculateClimateAdjustment';
-import { calculateUsageProfile } from '../utils/calculateUsageProfile';
+import { useSimulation } from '../hooks/useSimulation';
 import { exportToPDF, buildReportData } from '../utils/reportGenerator';
 
 const C = {
@@ -58,16 +55,17 @@ function FormField({ label, value, onChange, placeholder, type = 'text', readOnl
 export default function ScreenRapport({ formData, updateFormData, onNext, onPrev }) {
   const room     = formData?.room       || { length: 7, width: 6, ceilingHeight: 3 };
   const luminaire = formData?.luminaire || {};
-  const results  = formData?.results    || {};
   const location = formData?.location   || {};
-  const materiaux = formData?.materiaux || {};
 
   const roomType  = room.type || 'Bureau';
   const norm      = NORMS[roomType] || NORMS['Bureau'];
 
-  // Run calculation engines for preview — single source of truth
-  const lightingCalc   = useMemo(() => calculateLighting(formData), [formData]);
-  const uniformityCalc = useMemo(() => calculateUniformity(formData, lightingCalc), [formData, lightingCalc]);
+  // Run calculation engine — centralized hook
+  const results = useSimulation(formData);
+
+  if (!results) return null;
+
+  const { lighting: lightingCalc, uniformity: uniformityCalc } = results;
 
   // Données budget
   const N        = lightingCalc.N || luminaire.nbLuminaires || 4;
@@ -120,23 +118,7 @@ export default function ScreenRapport({ formData, updateFormData, onNext, onPrev
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      // Recalculate results to ensure they are up to date
-      const lighting   = calculateLighting(formData);
-      const uniformity = calculateUniformity(formData, lighting);
-      const solarData  = formData?.results?.solarData || null;
-      const climate    = calculateClimateAdjustment(formData, lighting, solarData);
-      const usage      = calculateUsageProfile({
-          ...formData,
-          budget: { ...formData?.budget, coutInstallation: reportInfo.coutInstallation } 
-      }, lighting, climate);
-
-      const allResults = {
-        lighting, uniformity, climate,
-        naturalLight: climate?.naturalLight || { solar: {}, hourlyProfile: {}, summary: {} },
-        usage
-      };
-
-      const baseReportData = buildReportData(formData, allResults);
+      const baseReportData = buildReportData(formData, results);
       // Mix in the user report settings
       const finalReportData = {
           ...baseReportData,

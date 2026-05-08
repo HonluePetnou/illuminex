@@ -2,10 +2,7 @@ import React, { useState } from 'react';
 import RoomSimulation2D from './RoomSimulation2D';
 import RoomSimulation3D from './RoomSimulation3D';
 import { exportToPDF, buildReportData } from '../utils/reportGenerator';
-import { calculateLighting } from '../utils/calculateLighting';
-import { calculateUniformity } from '../utils/calculateUniformity';
-import { calculateClimateAdjustment } from '../utils/calculateClimateAdjustment';
-import { calculateUsageProfile } from '../utils/calculateUsageProfile';
+import { useSimulation } from '../hooks/useSimulation';
 import { ArrowLeft, ArrowRight, LayoutGrid, AlertTriangle, Eye, Sun, Download, Search, Check, FileText } from 'lucide-react';
 
 const C = {
@@ -100,36 +97,9 @@ function FalseColorScale({ minVal, maxVal, onChange }) {
 
 export default function SimulationDashboard({ project, onNext, onPrev }) {
   const [viewMode, setViewMode] = useState('2d');
-  
-  const [computedResults, setComputedResults] = React.useState(null);
-  const [reportData, setReportData] = React.useState(null);
-  const [calcError, setCalcError] = React.useState(null);
   const [luxLimit, setLuxLimit] = useState(3000);
 
-  React.useEffect(() => {
-    if (project && project.formData) {
-      try {
-        const formData = project.formData;
-        const lighting   = calculateLighting(formData);
-        const climate    = calculateClimateAdjustment(formData, lighting);
-        const uniformity = calculateUniformity(formData, lighting);
-        const usage      = calculateUsageProfile(formData, lighting, climate);
-        
-        const results = {
-          lighting, uniformity, climate,
-          naturalLight: climate?.naturalLight || { solar: {}, hourlyProfile: {}, summary: {} },
-          usage
-        };
-        
-        setComputedResults(results);
-        setReportData(buildReportData(formData, results));
-        setCalcError(null);
-      } catch (err) {
-        console.error('Erreur de calcul SimulationDashboard :', err);
-        setCalcError(err.message);
-      }
-    }
-  }, [project]);
+  const results = useSimulation(project?.formData);
 
   if (!project || !project.formData) {
     return (
@@ -139,22 +109,17 @@ export default function SimulationDashboard({ project, onNext, onPrev }) {
     );
   }
 
-  if (calcError) {
+  if (!results) {
     return (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#ef4444', background: C.bg }}>
         <AlertTriangle size={64} style={{ marginBottom: '1rem', opacity: 0.8 }} />
         <h2>Erreur de Calcul</h2>
-        <p>{calcError}</p>
+        <p>Impossible de générer les résultats de simulation.</p>
       </div>
     );
   }
 
-  if (!computedResults) {
-    return <div style={{ flex: 1, background: C.bg }} />;
-  }
-
   const { formData } = project;
-  const results = computedResults;
 
   // Generate dynamic data for graph based on lighting result and natural light savings
   const avgLux = results.lighting?.E_real || 500;

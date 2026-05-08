@@ -2,7 +2,7 @@ import React from 'react';
 import {
   Hexagon, Folder, Layout, SunMedium, BarChart2,
   Mail, Power, ChevronRight, Save, CheckCircle2, AlertCircle, Clock,
-  Layers, CheckSquare, FileText, Lightbulb, DollarSign
+  Layers, CheckSquare, FileText, Lightbulb, DollarSign, Undo2, Redo2
 } from 'lucide-react';
 
 const C = {
@@ -48,7 +48,7 @@ const FLOW_ORDER = [
   'rapport'
 ];
 
-export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus, onNavigate }) {
+export default function Sidebar({ activeScreen, setActiveScreen, currentProject, saveCurrentProject, saveStatus, onNavigate, onUndo, onRedo, canUndo, canRedo }) {
   const navigate = (id) => {
     if (onNavigate) onNavigate(id);
     else setActiveScreen(id);
@@ -147,6 +147,36 @@ export default function Sidebar({ activeScreen, setActiveScreen, currentProject,
       {/* ── Action: Sauvegarde dynamique ── */}
       {activeScreen !== 'projets' && activeScreen !== 'accueil' && currentProject && (
         <div style={{ padding: '1rem 1.25rem 0' }}>
+           <div style={{ display: 'flex', gap: '8px', marginBottom: '0.5rem' }}>
+             <button
+               onClick={onUndo}
+               disabled={!canUndo}
+               title="Annuler (Undo)"
+               style={{
+                 flex: 1, padding: '0.5rem', borderRadius: '6px',
+                 background: canUndo ? C.surface2 : 'transparent', color: canUndo ? C.text : C.border, border: `1px solid ${canUndo ? C.border : 'transparent'}`,
+                 cursor: canUndo ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+               }}
+               onMouseEnter={e => { if(canUndo) e.currentTarget.style.background = C.border }}
+               onMouseLeave={e => { if(canUndo) e.currentTarget.style.background = C.surface2 }}
+             >
+               <Undo2 size={16} />
+             </button>
+             <button
+               onClick={onRedo}
+               disabled={!canRedo}
+               title="Refaire (Redo)"
+               style={{
+                 flex: 1, padding: '0.5rem', borderRadius: '6px',
+                 background: canRedo ? C.surface2 : 'transparent', color: canRedo ? C.text : C.border, border: `1px solid ${canRedo ? C.border : 'transparent'}`,
+                 cursor: canRedo ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+               }}
+               onMouseEnter={e => { if(canRedo) e.currentTarget.style.background = C.border }}
+               onMouseLeave={e => { if(canRedo) e.currentTarget.style.background = C.surface2 }}
+             >
+               <Redo2 size={16} />
+             </button>
+           </div>
            <button 
              onClick={saveCurrentProject}
              style={{

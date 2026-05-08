@@ -153,11 +153,11 @@ export class StorageService {
 
     const copy = {
       ...original,
-      id: undefined,  // remove id for auto-increment
       name: original.name + ' (copie)',
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
+    delete copy.id; // remove id for auto-increment
     return this.saveProject(copy);
   }
 
@@ -339,7 +339,7 @@ export class StorageService {
       reader.onload = async (e) => {
         try {
           const project = JSON.parse(e.target.result);
-          project.id = undefined;  // Remove ID to get a fresh auto-increment
+          delete project.id;  // Remove ID to get a fresh auto-increment
           project.name = (project.name || 'Projet') + ' (importé)';
           project.createdAt = Date.now();
           project.updatedAt = Date.now();

@@ -1,8 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CheckCircle2, XCircle, BarChart2, CheckSquare, Wrench, Lightbulb } from 'lucide-react';
 import { NORMS, NORMS_U0 } from '../data/norms';
-import { calculateLighting } from '../utils/calculateLighting';
-import { calculateUniformity } from '../utils/calculateUniformity';
+import { useSimulation } from '../hooks/useSimulation';
 
 function MetricCard({ label, value, unit, subValue, color = '#3B82F6' }) {
   return (
@@ -45,22 +44,21 @@ function ConformityBadge({ isConform }) {
 }
 
 export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev }) {
-  const room      = formData?.room       || { length: 7, width: 6, ceilingHeight: 3 };
-  const luminaire = formData?.luminaire  || {};
-
   const [showDetails, setShowDetails] = useState(false);
   const [showDelta, setShowDelta]     = useState(false);
+
+  // Run calculation engine — centralized hook
+  const results = useSimulation(formData);
+  
+  if (!results) return null;
+
+  const { lighting, uniformity } = results;
+  const room      = formData?.room       || { length: 7, width: 6, ceilingHeight: 3 };
+  const luminaire = formData?.luminaire  || {};
 
   const roomType = room.type || 'Bureau';
   const norm     = NORMS[roomType] || NORMS['Bureau'];
   const normU0   = NORMS_U0[roomType] || 0.60;
-
-  // Run calculation engines — single source of truth
-  const { lighting, uniformity } = useMemo(() => {
-    const lt = calculateLighting(formData);
-    const un = calculateUniformity(formData, lt);
-    return { lighting: lt, uniformity: un };
-  }, [formData]);
 
   const surface = lighting.S;
   const N       = lighting.N;
