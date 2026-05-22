@@ -50,9 +50,9 @@ docker-compose up --build
 
 Regardez dans votre dossier de projet `my-app`. Vous verrez qu'un nouveau dossier nommé **`out`** est apparu !
 
-Dans ce dossier `out/make`, vous trouverez les installeurs générés (fichiers `.zip`, fichiers `.deb` ou `.rpm` si générés sous Linux, etc.). 
+Dans ce dossier `out/make`, vous trouverez les installeurs générés (fichiers `.zip`, fichiers `.deb` ou `.rpm` pour Linux, ainsi que les fichiers `.exe` pour Windows). 
 
-**Remarque importante sur Electron :** Par défaut, un conteneur Docker (qui fonctionne sous Linux) génère des exécutables pour **Linux**. Si vous souhaitez compiler une application `.exe` pour Windows, nous vous recommandons d'exécuter la commande standard `npm run make` directement sur votre ordinateur Windows, ou d'utiliser ce conteneur Docker configuré avec des outils supplémentaires comme `Wine`.
+**Remarque :** Le conteneur a été spécialement configuré pour inclure un émulateur Windows (Wine). La commande génèrera automatiquement **à la fois la version Linux et la version Windows (.exe)** !
 
 ---
 
