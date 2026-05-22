@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  builder:
+    build: .
+    # Le nom de l'image qui sera créée
+    image: illuminex-builder
+    volumes:
+      # Exporte les exécutables générés dans le conteneur vers le dossier local "out"
+      - ./out:/app/out
