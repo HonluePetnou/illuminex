@@ -1,4 +1,4 @@
-# Guide d'Installation avec Docker (Pour Débutants)
+# Guide Docker (Pour les Développeurs et Contributeurs)
 
 Ce guide a pour but de vous aider à utiliser **Docker** pour compiler et installer le logiciel **Illuminex-BJ**, même si vous n'avez pas de compétences techniques avancées. 
 
@@ -50,9 +50,9 @@ docker-compose up --build
 
 Regardez dans votre dossier de projet `my-app`. Vous verrez qu'un nouveau dossier nommé **`out`** est apparu !
 
-Dans ce dossier `out/make`, vous trouverez les installeurs générés (fichiers `.zip`, fichiers `.deb` ou `.rpm` pour Linux, ainsi que les fichiers `.exe` pour Windows). 
+Dans ce dossier `out/make`, vous trouverez les installeurs générés (fichiers `.zip`, fichiers `.deb` ou `.rpm` si générés sous Linux, etc.). 
 
-**Remarque :** Le conteneur a été spécialement configuré pour inclure un émulateur Windows (Wine). La commande génèrera automatiquement **à la fois la version Linux et la version Windows (.exe)** !
+**Remarque importante sur Electron :** Par défaut, un conteneur Docker (qui fonctionne sous Linux) génère des exécutables pour **Linux**. Si vous souhaitez compiler une application `.exe` pour Windows, nous vous recommandons d'exécuter la commande standard `npm run make` directement sur votre ordinateur Windows, ou d'utiliser ce conteneur Docker configuré avec des outils supplémentaires comme `Wine`.
 
 ---
 
