@@ -48,11 +48,11 @@ const defaultValues = {
     daysPerWeek: 5,
   },
   luminaire: {
-    type: 'LED E27 12W',
-    fluxPerUnit: 1100,
+    type: 'led-e27-12w',
+    fluxPerUnit: 1200,
     powerPerUnit: 12,
     irc: 80,
-    prix: 3500,
+    prix: 2000,
     nbLuminaires: 4,
     haloType: 'led',
   },
@@ -60,6 +60,7 @@ const defaultValues = {
     hasWindows: true,
     orientation: 'S',
     windowArea: 5,
+    doorArea: 1.89,
     luminositesSoleil: 100,
     luminositeCiel: 75,
   },
@@ -71,6 +72,8 @@ const defaultValues = {
     climate: 'Tropical humide',
     zone: 'Afrique subsaharienne',
     buildingOrientation: 'N',
+    month: new Date().getMonth() + 1,
+    day: new Date().getDate(),
   },
   materiaux: {
     surfaces: {
@@ -144,12 +147,7 @@ function MainApp() {
   };
 
   const handleTemplateSelect = (template) => {
-    const mergedFormData = {
-      ...JSON.parse(JSON.stringify(defaultValues)),
-      ...template.formData,
-    };
-    setCurrentProject({ name: template.name, formData: mergedFormData });
-    setActiveScreen('dimensions');
+    handleOpenProject({ name: template.name, formData: template.formData || {} });
   };
 
   // State global formulaires
@@ -174,7 +172,7 @@ function MainApp() {
       resetHistory(defaultValues);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProject?.id]); // only re-run when a DIFFERENT project is loaded
+  }, [currentProject]); // re-run when ANY project attribute changes
 
   const updateFormData = (section, values) => {
     setFormData(prev => {
@@ -208,6 +206,50 @@ function MainApp() {
       return next;
     });
   };
+
+  // Background climate data synchronization based on location and date changes
+  React.useEffect(() => {
+    const climate = formData?.location?.climate;
+    const month = formData?.location?.month || (new Date().getMonth() + 1);
+    const hour = formData?.results?.solarData?.simHour || 12; // default to noon for peak natural daylight
+
+    if (!climate) return;
+
+    let cancel = false;
+    import('./utils/solar-calc').then(({ calculateSolarIrradiance }) => {
+      calculateSolarIrradiance({ climate, month, hour }).then(res => {
+        if (cancel) return;
+
+        const currentSolar = formData?.results?.solarData;
+        if (
+          !currentSolar ||
+          currentSolar.climate !== climate ||
+          currentSolar.simMonth !== month ||
+          currentSolar.simHour !== hour ||
+          currentSolar.eExterieur !== res.eExterieur
+        ) {
+          // Avoid loop by checking that changes are actual
+          updateFormData('results', {
+            solarData: {
+              eExterieur: res.eExterieur,
+              typeCiel:   res.typeCiel,
+              f:          res.f,
+              K:          res.K,
+              ALLSKY:     res.ALLSKY,
+              CLRSKY:     res.CLRSKY,
+              T2M:        res.T2M,
+              WS10M:      res.WS10M,
+              simMonth:   month,
+              simHour:    hour,
+              climate,
+            }
+          });
+        }
+      });
+    }).catch(err => console.error("Failed to load solar-calc in background:", err));
+
+    return () => { cancel = true; };
+  }, [formData?.location?.climate, formData?.location?.month]);
 
   const handleUndo = () => {
     const previousState = undo();

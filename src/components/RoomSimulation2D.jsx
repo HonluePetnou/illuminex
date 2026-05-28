@@ -218,13 +218,14 @@ export default function RoomSimulation2D({
 
       // position selon orientation
       let wx, wy, isHoriz, sunX, sunY;
-      if (orientation === 'Nord') {
+      const orientNorm = orientation.toUpperCase().trim();
+      if (orientNorm === 'NORD' || orientNorm === 'N') {
         wx = originX + (roomPixelW - wPx) / 2; wy = originY; isHoriz = true;
         sunX = wx + wPx / 2; sunY = wy - 18;
-      } else if (orientation === 'Sud') {
+      } else if (orientNorm === 'SUD' || orientNorm === 'S') {
         wx = originX + (roomPixelW - wPx) / 2; wy = originY + roomPixelH; isHoriz = true;
         sunX = wx + wPx / 2; sunY = wy + 18;
-      } else if (orientation === 'Ouest') {
+      } else if (orientNorm === 'OUEST' || orientNorm === 'O' || orientNorm === 'W') {
         wx = originX; wy = originY + (roomPixelH - wPx) / 2; isHoriz = false;
         sunX = wx - 18; sunY = wy + wPx / 2;
       } else {

@@ -87,21 +87,31 @@ export function calculateDaylightContribution({
   eExterieur,
   windowArea,
   floorArea,
-  transmission = 0.5,
+  transmission = 0.70,
   orientation = 'S',
+  doorType = 'porte-bois-moyen',
+  windowsOpen = true,
+  doorArea = 0,
 }) {
-  if (!windowArea || !floorArea) return 0;
+  if (!floorArea) return 0;
 
-  // Coefficient d'orientation (facteur de réduction selon ex position soleil)
+  // Coefficient d'orientation
+  const cleanOrient = (orientation || '').trim().toUpperCase();
   const ORIENTATION_FACTORS = {
     'N': 0.40, 'NE': 0.55, 'E': 0.75, 'SE': 0.90,
     'S': 1.00, 'SO': 0.90, 'O': 0.75, 'NO': 0.55,
+    'NORD': 0.40, 'SUD': 1.00, 'EST': 0.75, 'OUEST': 0.75,
   };
-  const orientFactor = ORIENTATION_FACTORS[orientation] || 0.80;
+  const orientFactor = ORIENTATION_FACTORS[cleanOrient] || 0.80;
 
-  // Facteur de lumière du jour (FLJ) simplifié
-  const flj = (windowArea * transmission * orientFactor) / floorArea;
-  const eInterieur = Math.round(eExterieur * flj * 0.10); // 10% habituel
+  const S_portes_ouvertes = windowsOpen ? doorArea : 0;
+
+  const S_ouverture = windowArea + S_portes_ouvertes;
+  if (S_ouverture <= 0) return 0;
+
+  const effectiveArea = (windowArea * transmission) + (S_portes_ouvertes * 1.0);
+  const flj = (effectiveArea / floorArea) * orientFactor;
+  const eInterieur = Math.round(eExterieur * flj * 0.10);
   return Math.max(0, eInterieur);
 }
 

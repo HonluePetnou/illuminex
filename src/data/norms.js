@@ -7,6 +7,10 @@ export const NORMS = {
     lux: 500, u0: 0.60, ugrMax: 19, ircMin: 80, tc: 4000,
     mf: 0.80, hauteurTravail: 0.85
   },
+  "Bureau open space": {
+    lux: 500, u0: 0.60, ugrMax: 19, ircMin: 80, tc: 4000,
+    mf: 0.80, hauteurTravail: 0.85
+  },
   "Salle de réunion": {
     lux: 500, u0: 0.60, ugrMax: 19, ircMin: 80, tc: 4000,
     mf: 0.80, hauteurTravail: 0.75
@@ -40,6 +44,7 @@ export const NORMS = {
 export const NORMS_U0 = {
   "Salle de classe":  0.60,
   "Bureau":           0.60,
+  "Bureau open space":0.60,
   "Salle de réunion": 0.60,
   "Cuisine":          0.70,
   "Chambre":          0.40,
@@ -59,6 +64,11 @@ const BUILDING_TO_ROOM = {
   'Commerce / Boutique':    'Commerce',
   'Hôpital / Clinique':     'Bureau',
   'Restaurant / Hôtel':     'Sanitaires',
+  // Mappings des nouvelles valeurs de buildingOptions dans ScreenDimensions
+  'Commercial':             'Commerce',
+  'Santé':                  'Sanitaires',
+  'Industrie':              'Commerce',
+  'Résidentiel':            'Salon',
 };
 
 // Calcul du CU depuis le ratio de salle k

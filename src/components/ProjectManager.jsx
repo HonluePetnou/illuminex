@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { storageService } from '../services/storageService';
+import { DEFAULT_LOCATIONS } from '../data/default-locations';
 import {
   FolderPlus, FileJson, HardDrive, Search, Filter,
   MoreVertical, Copy, Edit2, Download, FileText, Trash2,
@@ -116,10 +117,13 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
   const [storageInfo, setStorageInfo] = useState({ used: '0 Ko', total: '50 Mo', percent: '0%' });
   const [showNewModal, setShowNewModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectCountry, setNewProjectCountry] = useState('Bénin');
+  const [newProjectMonth, setNewProjectMonth] = useState(() => new Date().getMonth() + 1);
+  const [newProjectDay, setNewProjectDay] = useState(() => new Date().getDate());
 
   useEffect(() => {
-    storageService.getAllTemplates().then(t => setTemplates(t || []));
-    storageService.getStorageInfo().then(info => setStorageInfo(info || storageInfo));
+    storageService.getAllTemplates().then(t => setTemplates(t || [])).catch(() => setTemplates([]));
+    storageService.getStorageInfo().then(info => setStorageInfo(info || storageInfo)).catch(() => {});
   }, []);
 
   const handleImport = (e) => {
@@ -148,6 +152,29 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
   const border = 'rgba(255,255,255,0.06)';
   const inputBg = 'rgba(255,255,255,0.04)';
 
+  const handleCreateProject = () => {
+    if (!newProjectName.trim()) return;
+    const loc = DEFAULT_LOCATIONS.find(l => l.country === newProjectCountry) || DEFAULT_LOCATIONS[0];
+    onOpenProject({
+      name: newProjectName,
+      formData: {
+        location: {
+          country: loc.country,
+          climate: loc.climate,
+          city: loc.representativeCity,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          month: parseInt(newProjectMonth),
+          day: parseInt(newProjectDay),
+          zone: loc.zone || "Afrique subsaharienne",
+          buildingOrientation: 'N'
+        }
+      }
+    });
+    setShowNewModal(false);
+    setNewProjectName('');
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: bg, overflowY: 'auto' }}>
 
@@ -156,28 +183,73 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1C1D24', backdropFilter: 'blur(8px)' }}>
           <div style={{ background: '#1E2237', border: `1px solid ${border}`, borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#fff' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', color: '#fff' }}>Nouveau projet</h2>
-            <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Donnez un nom à votre projet pour l'identifier facilement.</p>
-            <input 
-              autoFocus
-              type="text" 
-              placeholder="Ex: Pharmacie Cotonou" 
-              value={newProjectName}
-              onChange={e => setNewProjectName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && newProjectName.trim()) {
-                  onOpenProject({ name: newProjectName, formData: {} });
-                  setShowNewModal(false);
-                  setNewProjectName('');
-                }
-                if (e.key === 'Escape') {
-                  setShowNewModal(false);
-                  setNewProjectName('');
-                }
-              }}
-              style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.875rem 1rem', borderRadius: '8px', fontSize: '0.9375rem', outline: 'none', marginBottom: '2rem', transition: 'border-color 0.2s' }}
-              onFocus={e => e.currentTarget.style.borderColor = '#3B82F6'}
-              onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
-            />
+            <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>Définissez les paramètres de base de votre simulation.</p>
+            
+            {/* Nom du projet */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', color: '#94A3B8', fontSize: '0.8125rem', marginBottom: '0.5rem', fontWeight: 500 }}>Nom du projet</label>
+              <input 
+                autoFocus
+                type="text" 
+                placeholder="Ex: Pharmacie Cotonou" 
+                value={newProjectName}
+                onChange={e => setNewProjectName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleCreateProject();
+                  if (e.key === 'Escape') {
+                    setShowNewModal(false);
+                    setNewProjectName('');
+                  }
+                }}
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.75rem 1rem', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={e => e.currentTarget.style.borderColor = '#3B82F6'}
+                onBlur={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+            </div>
+
+            {/* Localisation / Pays */}
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', color: '#94A3B8', fontSize: '0.8125rem', marginBottom: '0.5rem', fontWeight: 500 }}>Pays (Gisement & Climat)</label>
+              <select
+                value={newProjectCountry}
+                onChange={e => setNewProjectCountry(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.625rem 0.875rem', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
+              >
+                {DEFAULT_LOCATIONS.map(loc => (
+                  <option key={loc.country} value={loc.country} style={{ background: '#1E2237' }}>
+                    {loc.country} ({loc.climate})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date / Période de simulation */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', color: '#94A3B8', fontSize: '0.8125rem', marginBottom: '0.5rem', fontWeight: 500 }}>Mois à simuler</label>
+                <select
+                  value={newProjectMonth}
+                  onChange={e => setNewProjectMonth(parseInt(e.target.value))}
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.625rem 0.875rem', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', cursor: 'pointer' }}
+                >
+                  {['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'].map((m, i) => (
+                    <option key={i} value={i + 1} style={{ background: '#1E2237' }}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ width: '100px' }}>
+                <label style={{ display: 'block', color: '#94A3B8', fontSize: '0.8125rem', marginBottom: '0.5rem', fontWeight: 500 }}>Jour</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={31}
+                  value={newProjectDay}
+                  onChange={e => setNewProjectDay(parseInt(e.target.value) || 1)}
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.625rem 0.875rem', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', textAlign: 'right' }}
+                />
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                <button 
                  onClick={() => { setShowNewModal(false); setNewProjectName(''); }}
@@ -189,11 +261,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
                </button>
                <button 
                  disabled={!newProjectName.trim()}
-                 onClick={() => {
-                   onOpenProject({ name: newProjectName, formData: {} });
-                   setShowNewModal(false);
-                   setNewProjectName('');
-                 }}
+                 onClick={handleCreateProject}
                  style={{ background: '#3B82F6', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.875rem', cursor: newProjectName.trim() ? 'pointer' : 'not-allowed', padding: '0.625rem 1.5rem', borderRadius: '8px', opacity: newProjectName.trim() ? 1 : 0.5, transition: 'background 0.2s' }}
                  onMouseEnter={e => { if(newProjectName.trim()) e.currentTarget.style.background = '#2563EB'; }}
                  onMouseLeave={e => { if(newProjectName.trim()) e.currentTarget.style.background = '#3B82F6'; }}
@@ -356,14 +424,13 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
             {templates.length > 0 ? templates.map(tpl => (
               <TemplateCard key={tpl.id} template={tpl} onClick={() => onTemplateSelect(tpl)} />
             )) : (
-              /* Modèles par défaut si pas encore chargés */
               [
-                { id: 'b', name: 'Bureau PME', description: '7×6 m, 500 lux, LED', icon: <Building size={20} color="#F0A500" /> },
-                { id: 'h', name: 'Clinique', description: '6×5 m, 500 lux, IRC>90', icon: <Activity size={20} color="#F0A500" /> },
-                { id: 's', name: 'Salle de classe', description: '8×7 m, 300 lux, tubes LED', icon: <BookOpen size={20} color="#F0A500" /> },
-                { id: 'c', name: 'Commerce détail', description: '10×8 m, 750 lux, dalles LED', icon: <Store size={20} color="#F0A500" /> },
+                { id: 'b', name: 'Bureau standard', description: '5×4 m, 500 lux, LED', icon: <Building size={20} color="#F0A500" />, formData: { room: { type: 'Bureau', length: 5, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Bureau/Administration', occupants: 2, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'led-dalle-600-36w', name: 'Dalle LED 600×600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' } } },
+                { id: 'h', name: 'Sanitaires Clinique', description: '3×3 m, 200 lux, IRC>90', icon: <Activity size={20} color="#F0A500" />, formData: { room: { type: 'Sanitaires', length: 3, width: 3, ceilingHeight: 2.6, workPlaneHeight: 0 }, occupation: { buildingType: 'Santé', occupants: 1, hoursPerDay: 24, daysPerWeek: 7 }, luminaire: { type: 'led-spot-com-20w', name: 'Spot commercial LED 20W', fluxPerUnit: 1800, powerPerUnit: 20, irc: 90, prix: 10000, haloType: 'led', categorie: 'Commerce' } } },
+                { id: 's', name: 'Salle de classe', description: '8×7 m, 500 lux, tubes LED', icon: <BookOpen size={20} color="#F0A500" />, formData: { room: { type: 'Salle de classe', length: 8, width: 7, ceilingHeight: 3.0, workPlaneHeight: 0.75 }, occupation: { buildingType: 'Scolaire', occupants: 30, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'flu-t8-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' } } },
+                { id: 'c', name: 'Commerce détail', description: '15×10 m, 500 lux, dalles LED', icon: <Store size={20} color="#F0A500" />, formData: { room: { type: 'Commerce', length: 15, width: 10, ceilingHeight: 3.5, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Commercial', occupants: 50, hoursPerDay: 12, daysPerWeek: 6 }, luminaire: { type: 'led-dalle-com-40w', name: 'Dalle LED 600×600 40W (Commerce)', fluxPerUnit: 4000, powerPerUnit: 40, irc: 80, prix: 22000, haloType: 'led', categorie: 'Commerce' } } },
               ].map(tpl => (
-                <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: {} })} />
+                <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: tpl.formData || {} })} />
               ))
             )}
           </div>

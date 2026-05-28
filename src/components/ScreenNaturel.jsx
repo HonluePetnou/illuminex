@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ArrowLeft, Calendar, MapPin, Cloud, CloudSun, Sun, Moon, Maximize,
   SlidersHorizontal, Compass, Eye, Loader2, Check, Download
 } from 'lucide-react';
-import { calculateSolarIrradiance, calculateDaylightContribution, approximateSunTimes } from '../utils/solar-calc';
+import { calculateSolarIrradiance, calculateDaylightContribution, approximateSunTimes, approximateSunPosition } from '../utils/solar-calc';
 import CustomSlider from './CustomSlider';
+import RoomSimulation2D from './RoomSimulation2D';
+import RoomSimulation3D from './RoomSimulation3D';
+import { CATALOGUE_MATERIAUX } from '../data/materials-library';
 
 const C = {
   bg: '#1C1D24',
@@ -29,12 +32,19 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   const initialOrientation = formData?.naturalLight?.orientation || location.buildingOrientation || 'S';
   const naturalLight = formData?.naturalLight || { hasWindows: true, windowArea: 5, orientation: initialOrientation };
 
+  // FIX: synchronise simMonth avec formData.location.month (choisi dans Paramètres de Base)
   const [simMonth, setSimMonth] = useState(
-    formData?.results?.solarData?.simMonth ?? 4
+    formData?.results?.solarData?.simMonth
+      ?? formData?.location?.month
+      ?? (new Date().getMonth() + 1)
   );
   const [simHour, setSimHour] = useState(
     formData?.results?.solarData?.simHour ?? 12
   );
+  const handleMonthChange = (newMonth) => {
+    setSimMonth(newMonth);
+    updateFormData('location', { ...location, month: newMonth });
+  };
   const [sunData, setSunData] = useState(() => {
     // Restore cached solar data if available (avoid reload on navigation)
     const sd = formData?.results?.solarData;
@@ -88,12 +98,180 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.climate, location.latitude, simMonth, simHour]);
 
+  const vitresMatId = formData?.materiaux?.surfaces?.vitres?.materialId;
+  const vitresMat = CATALOGUE_MATERIAUX.find(m => m.id === vitresMatId);
+  const transmission = vitresMat?.transmittance || 0.70;
+
+  const [viewMode, setViewMode] = useState('3d');
+
   const luxInterieur = calculateDaylightContribution({
     eExterieur: sunData.eExterieur,
     windowArea: naturalLight.hasWindows ? naturalLight.windowArea : 0,
     floorArea,
+    transmission,
     orientation: naturalLight.orientation,
+    windowsOpen: naturalLight.windowsOpen !== false,
+    doorArea: naturalLight.doorArea || 0,
   });
+
+  // Dynamic simulation results for natural light (N=0)
+  const simResults = useMemo(() => {
+    const mockLighting = {
+      N: 0,
+      E_real: 0,
+      totalPower: 0,
+      S: floorArea,
+      CU: 0.60,
+      MF: 0.80
+    };
+
+    if (!naturalLight.hasWindows || luxInterieur <= 0) {
+      const emptyZones = Array.from({ length: 12 }, (_, idx) => ({
+        zone: '',
+        e: 0,
+        u: 0,
+        ok: false,
+      }));
+      return {
+        lighting: mockLighting,
+        uniformity: { U0: 0, E_min: 0, E_moy: 0, E_max: 0, layout: { cols: 0, rows: 0, spacingX: 0, spacingY: 0 }, positions: [] },
+        climate: { naturalLight: { E_natural: 0, windowArea: 0, hasWindows: false } },
+        naturalLight: { hourlyProfile: {}, E_natural: 0 },
+        zones: emptyZones,
+      };
+    }
+
+    const zoneRows = 3, zoneCols = 4;
+
+    // Position solaire pour déterminer la répartition dynamique
+    const sunPos = approximateSunPosition(location.latitude, simMonth, simHour);
+    const altitude = Math.max(0, sunPos.altitude);
+    const azimuth = sunPos.azimuth;
+
+    // Angle de la fenêtre (orientation du local)
+    const ORIENT_ANGLES = {
+      'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
+      'S': 180, 'SO': 225, 'O': 270, 'NO': 315,
+    };
+    const windowAngle = ORIENT_ANGLES[naturalLight.orientation] || 180;
+
+    // Angle relatif entre le soleil et la fenêtre (0 = soleil en face)
+    let relAngle = azimuth - windowAngle;
+    if (relAngle > 180) relAngle -= 360;
+    if (relAngle < -180) relAngle += 360;
+
+    // Altitude normalisée [0,1]
+    const altFactor = Math.min(1, altitude / 90);
+
+    // Déplacement latéral : quand le soleil est sur le côté, la lumière se déplace
+    // vers un côté de la pièce (rows)
+    const lateralDisp = -Math.sin(relAngle * Math.PI / 180) * altFactor * 0.6;
+
+    // Pénetration : soleil haut → pénètre plus profondément dans la pièce
+    const penetration = 0.6 + altFactor * 0.8;
+
+    // Distance-based decay from window and open door
+    const orient = (naturalLight.orientation || location.buildingOrientation || 'S').trim().toUpperCase();
+    let x_win = 0.5, y_win = 1.0; // default Sud
+    if (orient === 'N' || orient === 'NORD') { x_win = 0.5; y_win = 0.0; }
+    else if (orient === 'S' || orient === 'SUD') { x_win = 0.5; y_win = 1.0; }
+    else if (orient === 'O' || orient === 'OUEST' || orient === 'W') { x_win = 0.0; y_win = 0.5; }
+    else if (orient === 'E' || orient === 'EST') { x_win = 1.0; y_win = 0.5; }
+    else if (orient === 'NE') { x_win = 1.0; y_win = 0.0; }
+    else if (orient === 'SE') { x_win = 1.0; y_win = 1.0; }
+    else if (orient === 'SO') { x_win = 0.0; y_win = 1.0; }
+    else if (orient === 'NO') { x_win = 0.0; y_win = 0.0; }
+
+    const x_door = 0.2, y_door = 1.0; // Door on bottom wall (Sud) at 12% width
+    const windowsOpen = naturalLight.windowsOpen !== false;
+    const doorArea = parseFloat(naturalLight.doorArea) || 0;
+    const windowArea = parseFloat(naturalLight.windowArea) || 0;
+
+    const rawFactors = [];
+    for (let r = 0; r < zoneRows; r++) {
+      for (let c = 0; c < zoneCols; c++) {
+        const x_cell = (c + 0.5) / zoneCols;
+        const y_cell = (r + 0.5) / zoneRows;
+
+        // Window distance
+        const dx_win = x_cell - x_win;
+        const dy_win = y_cell - y_win;
+        const d_win = Math.sqrt(dx_win * dx_win + dy_win * dy_win);
+
+        // Door distance
+        const dx_door = x_cell - x_door;
+        const dy_door = y_cell - y_door;
+        const d_door = Math.sqrt(dx_door * dx_door + dy_door * dy_door);
+
+        // Calculate influence from each opening
+        // Softening factor 0.25 to prevent division by near-zero at boundaries
+        const w_win = (naturalLight.hasWindows && windowArea > 0) ? (windowArea * transmission) / (d_win + 0.25) : 0;
+        const w_door = (windowsOpen && doorArea > 0) ? (doorArea * 1.0) / (d_door + 0.25) : 0;
+
+        // Combined opening influence
+        const baseFactor = w_win + w_door;
+
+        // Déplacement latéral selon l'angle du soleil
+        const rowCenter = (r / (zoneRows - 1)) * 2 - 1;
+        const latFactor = 1.0 + lateralDisp * rowCenter;
+
+        const zoneFactor = baseFactor * latFactor * penetration;
+        rawFactors.push(zoneFactor);
+      }
+    }
+
+    // Scale values so that the average zone lux equals luxInterieur
+    const avgFactor = rawFactors.reduce((a, b) => a + b, 0) / rawFactors.length;
+    const res = rawFactors.map(factor => {
+      if (avgFactor > 0) {
+        return Math.max(1, Math.round((factor / avgFactor) * luxInterieur));
+      }
+      return 0;
+    });
+
+    const eMin = Math.min(...res);
+    const eMax = Math.max(...res);
+    const eMoy = Math.round(luxInterieur);
+    const u0 = eMoy > 0 ? eMin / eMoy : 0;
+
+    const zonesList = res.map((e, idx) => {
+      const colIdx = idx % 4;
+      const rowIdx = Math.floor(idx / 4);
+      return {
+        zone: `${(colIdx * (room.width / 4)).toFixed(1)}–${((colIdx + 1) * (room.width / 4)).toFixed(1)} m × ${(rowIdx * (room.length / 3)).toFixed(1)}–${((rowIdx + 1) * (room.length / 3)).toFixed(1)} m`,
+        e,
+        u: eMoy > 0 ? Math.round((e / eMoy) * 100) / 100 : 0,
+        ok: e >= 100,
+      };
+    });
+
+    return {
+      lighting: mockLighting,
+      uniformity: {
+        U0: u0,
+        E_min: eMin,
+        E_moy: eMoy,
+        E_max: eMax,
+        layout: { cols: 0, rows: 0, spacingX: 0, spacingY: 0 },
+        positions: []
+      },
+      climate: {
+        naturalLight: {
+          E_natural: luxInterieur,
+          windowArea: naturalLight.windowArea,
+          hasWindows: true
+        }
+      },
+      naturalLight: {
+        hourlyProfile: {},
+        E_natural: luxInterieur
+      },
+      zones: zonesList
+    };
+  }, [luxInterieur, floorArea, room.width, room.length, naturalLight.windowArea, naturalLight.orientation, naturalLight.doorArea, naturalLight.windowsOpen, transmission, simHour, simMonth, location.latitude]);
+
+  // FIX: protection contre simMonth hors bornes
+  const safeMonthLabel = (MONTHS[((simMonth || 1) - 1)] || MONTHS[0]).toLowerCase();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.bg, overflow: 'hidden', color: C.text, fontFamily: 'Inter, sans-serif' }}>
@@ -126,10 +304,10 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
            <div className="animate-slide-up" style={{ animationDelay: '0.05s', opacity: 0, display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.625rem 1rem', gap: '1rem', width: '280px', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: C.muted, fontSize: '0.8125rem' }}>
-                  <Calendar size={14} /> Date & Heure
+                  <Calendar size={14} /> Date &amp; Heure
                 </div>
                 <div style={{ color: C.text, fontSize: '0.8125rem', fontWeight: 500 }}>
-                  24 {MONTHS[simMonth-1].toLowerCase()}, {simHour}:00
+                  24 {safeMonthLabel}, {simHour}:00
                 </div>
               </div>
 
@@ -159,115 +337,192 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
               </div>
            </div>
 
-           {/* Transparency Row */}
-           <div className="animate-slide-up" style={{ animationDelay: '0.1s', opacity: 0, display: 'flex', alignItems: 'center', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.5rem 1rem', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '0.75rem', color: C.muted, marginRight: '1rem', width: '120px' }}>Transparency {transparency}</span>
-              <input type="range" min={0} max={100} value={transparency} onChange={e => setTransparency(Number(e.target.value))} style={{ flex: 1, cursor: 'pointer', appearance: 'none', background: C.border, height: '4px', borderRadius: '2px' }} />
-           </div>
-
            {/* ── Main Canvas & Right Options ── */}
-           <div style={{ display: 'flex', gap: '1.5rem', flex: 1, minHeight: '350px' }}>
+           <div style={{ display: 'flex', gap: '1.5rem', flex: 1, minHeight: '400px' }}>
               
-              {/* Left Canvas (Faux 3D Area) */}
-              <div className="animate-scale-in" style={{ animationDelay: '0.15s', opacity: 0, flex: 1, background: '#121215', border: `2px solid #000`, borderRadius: '8px', position: 'relative', overflow: 'hidden' }}>
-                 {/* Faux 3D Room Render via CSS */}
-                 <div style={{ 
-                    position: 'absolute', inset: 0, 
-                    background: `radial-gradient(ellipse at top, rgba(44, 45, 53, 0.8) 0%, rgba(21, 22, 26, 0.5) 100%)`,
-                    transition: 'background 0.3s'
-                  }}>
-                    {/* Walls with transparency */}
-                    <div style={{ position: 'absolute', top: 0, left: '10%', right: '10%', height: '30%', background: `linear-gradient(to bottom, rgba(17,17,17,${1-transparency/100}), rgba(51,51,51,${1-transparency/100}))`, transform: 'perspective(500px) rotateX(-20deg)', transformOrigin: 'top', transition: 'background 0.3s' }} />
-                    <div style={{ position: 'absolute', top: '10%', bottom: '10%', left: 0, width: '20%', background: `linear-gradient(to right, rgba(17,17,17,${1-transparency/100}), rgba(44,45,53,${1-transparency/100}))`, transform: 'perspective(500px) rotateY(20deg)', transformOrigin: 'left', transition: 'background 0.3s' }} />
-                    <div style={{ position: 'absolute', top: '10%', bottom: '10%', right: 0, width: '20%', background: `linear-gradient(to left, rgba(17,17,17,${1-transparency/100}), rgba(44,45,53,${1-transparency/100}))`, transform: 'perspective(500px) rotateY(-20deg)', transformOrigin: 'right', transition: 'background 0.3s' }} />
-                    {/* Floor grid */}
-                    <div style={{ position: 'absolute', top: '20%', bottom: '5%', left: '15%', right: '15%', border: '1px solid rgba(68, 68, 68, 0.4)', backgroundImage: 'linear-gradient(rgba(68, 68, 68, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(68, 68, 68, 0.5) 1px, transparent 1px)', backgroundSize: '40px 40px', transform: 'perspective(500px) rotateX(40deg)', transformOrigin: 'bottom', opacity: 0.5, transition: 'opacity 0.3s' }} />
-                    {/* Window light */}
-                    <div style={{ position: 'absolute', top: '5%', left: '40%', right: '40%', height: '15%', background: `rgba(255, 253, 240, 0.9)`, boxShadow: `0 0 40px rgba(255, 253, 240, 0.8)`, zIndex: 2, transition: 'all 0.3s' }} />
-                    {/* Volumetric Rays */}
-                    <div style={{ position: 'absolute', top: '15%', left: '30%', width: '40%', height: '70%', background: `linear-gradient(170deg, rgba(255,255,200,0.5) 0%, rgba(255,255,200,0) 80%)`, transform: 'perspective(500px) rotateX(40deg)', transformOrigin: 'top', filter: 'blur(8px)', zIndex: 3, transition: 'background 0.3s' }} />
-                 </div>
+              {/* Left Canvas - Real Interactive 2D/3D Room Simulation Area */}
+              <div className="animate-scale-in" style={{ animationDelay: '0.15s', opacity: 0, flex: 1, background: '#121215', border: `1px solid ${C.border}`, borderRadius: '12px', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {/* Internal Toolbar */}
+                <div style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', borderBottom: `1px solid ${C.border}`, background: C.surface, alignItems: 'center', zIndex: 10 }}>
+                   <div style={{ display: 'flex', background: C.input, borderRadius: '4px', padding: '2px' }}>
+                     <button onClick={() => setViewMode('2d')} style={{ background: viewMode === '2d' ? C.primary : 'transparent', color: viewMode === '2d' ? '#FFF' : C.dim, border: 'none', padding: '4px 12px', borderRadius: '2px', fontSize: '0.6875rem', cursor: 'pointer', fontWeight: 600 }}>2D</button>
+                     <button onClick={() => setViewMode('3d')} style={{ background: viewMode === '3d' ? C.primary : 'transparent', color: viewMode === '3d' ? '#FFF' : C.dim, border: 'none', padding: '4px 12px', borderRadius: '2px', fontSize: '0.6875rem', cursor: 'pointer', fontWeight: 600 }}>3D</button>
+                   </div>
+                   <span style={{ fontSize: '0.75rem', color: C.muted, marginLeft: 'auto' }}>Simulation Lumière Naturelle Uniquement</span>
+                </div>
+
+                <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+                   {viewMode === '2d' ? (
+                     <RoomSimulation2D 
+                       formData={{
+                         ...formData,
+                         luminaire: { ...formData?.luminaire, nbLuminaires: 0 } // force 0 artificial lights
+                       }} 
+                       lightingResult={simResults.lighting} 
+                       uniformityResult={simResults.uniformity} 
+                       climateResult={simResults.climate} 
+                       naturalLightResult={simResults.naturalLight} 
+                       luxLimit={3000} 
+                     />
+                   ) : (
+                     <RoomSimulation3D 
+                       formData={{
+                         ...formData,
+                         luminaire: { ...formData?.luminaire, nbLuminaires: 0 } // force 0 artificial lights
+                       }} 
+                       lightingResult={simResults.lighting} 
+                       uniformityResult={simResults.uniformity} 
+                       climateResult={simResults.climate} 
+                       naturalLightResult={simResults.naturalLight} 
+                     />
+                   )}
+                </div>
               </div>
 
               {/* Right Options Sidebar */}
-              <div className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0, width: '280px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Calcul Automatique</span>
-                    <CloudSun size={14} color={C.primary} />
+              <div className="animate-slide-up" style={{ animationDelay: '0.2s', opacity: 0, width: '280px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${C.border}`, paddingBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Simulation Temporelle</span>
+                    <CloudSun size={16} color={C.primary} />
                  </div>
 
-                 <div style={{ background: C.surface2, border: `1px solid ${C.border}`, padding: '1rem', borderRadius: '6px', fontSize: '0.8125rem', color: C.dim, lineHeight: '1.6', flex: 1 }}>
-                    <p style={{ margin: '0 0 1rem 0' }}>En accord avec la nouvelle directive, la <strong>luminosité du ciel</strong> et l'<strong>ensoleillement</strong> direct ne sont pas choisis manuellement par l'utilisateur.</p>
-                    <p style={{ margin: '0 0 1rem 0' }}>Ces valeurs sont <strong>extraites automatiquement</strong> à partir des tables climatiques (modélisation météorologique via les formules de calcul du PDF).</p>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '0.5rem', background: 'rgba(90, 132, 213, 0.1)', color: C.primary, borderRadius: '4px' }}>
-                      <Check size={16} /><span>Base données intégrée active</span>
-                    </div>
-                    <div style={{ marginTop: '1rem', color: C.text, fontSize: '0.75rem', background: C.input, padding: '0.5rem', borderRadius: '4px' }}>
-                       Climat: <span style={{ color: C.accent }}>{location.climate}</span>
+                 {/* Month selector */}
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                   <label style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 500 }}>Mois de simulation</label>
+                   <select
+                     value={simMonth}
+                     onChange={e => handleMonthChange(parseInt(e.target.value))}
+                     style={{
+                       width: '100%',
+                       background: C.input,
+                       border: `1px solid ${C.border}`,
+                       borderRadius: '6px',
+                       padding: '0.5rem 0.75rem',
+                       color: C.text,
+                       fontSize: '0.8125rem',
+                       outline: 'none',
+                       cursor: 'pointer',
+                     }}
+                   >
+                     {MONTHS.map((m, i) => (
+                       <option key={i} value={i + 1} style={{ background: C.surface }}>{m}</option>
+                     ))}
+                   </select>
+                 </div>
+
+                 {/* Hour selector */}
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <label style={{ fontSize: '0.75rem', color: C.muted, fontWeight: 500 }}>Heure de simulation</label>
+                     <span style={{ fontSize: '0.8125rem', color: C.accent, fontWeight: 600 }}>{simHour}h00</span>
+                   </div>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                     <Sun size={14} color={C.muted} />
+                     <CustomSlider
+                       value={simHour}
+                       min={6}
+                       max={19}
+                       onChange={e => setSimHour(parseInt(e.target.value))}
+                       color={C.accent}
+                     />
+                     <Moon size={14} color={C.muted} />
+                   </div>
+                 </div>
+
+                 <div style={{ background: C.surface2, border: `1px solid ${C.border}`, padding: '0.875rem', borderRadius: '6px', fontSize: '0.75rem', color: C.dim, lineHeight: '1.5', flex: 1 }}>
+                    <p style={{ margin: '0 0 0.5rem 0' }}>La <strong>luminosité du ciel</strong> et l'<strong>ensoleillement</strong> direct sont calculés automatiquement selon les coordonnées de gisement et les bases NASA POWER.</p>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', color: C.primary, fontWeight: 600, marginTop: '0.5rem' }}>
+                      <Check size={14} /><span>Algorithmes solaires actifs</span>
                     </div>
                  </div>
               </div>
 
            </div>
            
-
-           {/* ── Bottom Heatmap Row ── */}
+           {/* ── Bottom Heatmap & Uniformity Row ── */}
            <div className="animate-slide-up" style={{ animationDelay: '0.3s', opacity: 0, marginTop: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{ fontSize: '0.875rem', color: C.muted, marginBottom: '0.75rem' }}>
-                 Avrg. rlorte: <span style={{ color: C.text }}>{Math.round(luxInterieur)} Lux</span>
-              </div>
               <div style={{ display: 'flex', gap: '20px' }}>
                  
-                 {/* Heatmap Graphic */}
-                 <div style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1rem', position: 'relative' }}>
-                    {/* Mock Heatmap */}
-                    <div style={{ height: '80px', width: '100%', borderRadius: '4px', background: 'radial-gradient(ellipse at center, #FFFDF0 0%, #FDE047 20%, #4ADE80 50%, #1E3A8A 100%)', position: 'relative' }}>
-                       {/* Light sources mock */}
-                       <div style={{ position: 'absolute', top: '50%', left: '25%', width: '12px', height: '12px', background: '#FFF', transform: 'translate(-50%, -50%)', boxShadow: '0 0 10px #FFF' }} />
-                       <div style={{ position: 'absolute', top: '50%', left: '50%', width: '12px', height: '12px', background: '#FFF', transform: 'translate(-50%, -50%)', boxShadow: '0 0 10px #FFF' }} />
-                       <div style={{ position: 'absolute', top: '50%', left: '75%', width: '12px', height: '12px', background: '#FFF', transform: 'translate(-50%, -50%)', boxShadow: '0 0 10px #FFF' }} />
+                 {/* Real Heatmap Graphic & Uniformity Grid */}
+                 <div style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.25rem' }}>
+                    <h3 style={{ margin: '0 0 1rem', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                      Distribution de l'éclairement naturel (12 zones)
+                    </h3>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(4, 1fr)`,
+                      gap: 4,
+                      borderRadius: 8,
+                      overflow: 'hidden',
+                      marginBottom: '0.5rem',
+                    }}>
+                      {simResults.zones.map((z, i) => {
+                        const ratio = Math.min(1, z.e / 500);
+                        const bgCol = ratio > 0.6 ? '#22c55e' : ratio > 0.3 ? '#f59e0b' : '#ef4444';
+                        return (
+                          <div key={i} style={{
+                            background: `${bgCol}20`,
+                            border: `1px solid ${bgCol}50`,
+                            borderRadius: 4,
+                            padding: '0.5rem',
+                            textAlign: 'center',
+                          }}>
+                            <div style={{ color: bgCol, fontWeight: 700, fontSize: 13 }}>{z.e} Lux</div>
+                            <div style={{ color: C.dim, fontSize: 9 }}>U={z.u.toFixed(2)}</div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {/* Axis numbers */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5rem', color: C.dim, marginTop: '8px' }}>
-                       {Array.from({ length: 30 }).map((_, i) => <span key={i}>{i * 10}</span>)}
+                    {/* Légende */}
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: 10, color: C.dim, marginTop: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#22c55e', display: 'inline-block' }} /> Proche ouverture
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} /> Zone intermédiaire
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#ef4444', display: 'inline-block' }} /> Fond de pièce
+                      </div>
                     </div>
                  </div>
 
                  {/* Results & Actions Container */}
-                 <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                 <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                          <span style={{ color: C.muted }}>Averenne</span>
-                          <span style={{ color: C.text }}>{Math.round(luxInterieur)} Lux</span>
+                          <span style={{ color: C.muted }}>Moyenne Écl. Naturel</span>
+                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_moy} Lux</span>
                        </div>
                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                          <span style={{ color: C.muted }}>Max</span>
-                          <span style={{ color: C.text }}>{Math.round(luxInterieur * 2.6)} Lux</span>
+                          <span style={{ color: C.muted }}>Minimum</span>
+                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_min} Lux</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                          <span style={{ color: C.muted }}>Maximum</span>
+                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_max} Lux</span>
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', borderTop: `1px solid ${C.border}`, paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+                          <span style={{ color: C.primary, fontWeight: 600 }}>Uniformité U0 (naturelle)</span>
+                          <span style={{ color: C.primary, fontWeight: 700 }}>{simResults.uniformity.U0.toFixed(2)}</span>
                        </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flex: 1, alignItems: 'flex-end', flexDirection: 'column' }}>
-                       {validationError && (
-                          <div style={{ width: '100%', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8125rem', fontWeight: 600 }}>
-                            ! {validationError}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                           <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.75rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                              <Download size={14} /> Exporter
-                           </button>
-                           <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.75rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', transition: 'background 0.2s', boxShadow: '0 4px 12px rgba(90,132,213,0.3)' }}
-                             onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
-                             onMouseLeave={e => e.currentTarget.style.background = C.primary}
-                           >
-                              Continuer l'analyse
-                           </button>
-                        </div>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                       <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.65rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          <Download size={14} /> Exporter PNG
+                       </button>
+                       <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.65rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+                         onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
+                         onMouseLeave={e => e.currentTarget.style.background = C.primary}
+                       >
+                          Continuer
+                       </button>
                     </div>
                  </div>
               </div>
            </div>
-
-        </div>
+         </div>
       </div>
     </div>
   );

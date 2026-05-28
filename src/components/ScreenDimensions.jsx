@@ -140,6 +140,28 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
   const occupation = formData?.occupation || { buildingType: 'Bureau/Administration', occupants: 4, hoursPerDay: 8, daysPerWeek: 5 };
   const location = formData?.location || { country: 'Bénin', climate: 'Tropical humide', buildingOrientation: 'N' };
 
+  const ROOM_DEFAULTS = {
+    "Bureau": { length: 5, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.85 },
+    "Bureau open space": { length: 12, width: 10, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
+    "Salle de classe": { length: 8, width: 7, ceilingHeight: 3.0, workPlaneHeight: 0.75 },
+    "Salle de réunion": { length: 6, width: 5, ceilingHeight: 2.8, workPlaneHeight: 0.75 },
+    "Cuisine": { length: 4, width: 3, ceilingHeight: 2.6, workPlaneHeight: 0.90 },
+    "Chambre": { length: 4, width: 4, ceilingHeight: 2.6, workPlaneHeight: 0.70 },
+    "Salon": { length: 6, width: 5, ceilingHeight: 2.8, workPlaneHeight: 0.85 },
+    "Couloir": { length: 10, width: 2, ceilingHeight: 2.6, workPlaneHeight: 0.0 },
+    "Sanitaires": { length: 3, width: 3, ceilingHeight: 2.6, workPlaneHeight: 0.0 },
+    "Commerce": { length: 15, width: 10, ceilingHeight: 3.5, workPlaneHeight: 0.85 },
+  };
+
+  const handleRoomTypeChange = (newType) => {
+    const def = ROOM_DEFAULTS[newType];
+    if (def) {
+      updateFormData('room', { ...room, type: newType, length: def.length, width: def.width, ceilingHeight: def.ceilingHeight, workPlaneHeight: def.workPlaneHeight });
+    } else {
+      updateFormData('room', { ...room, type: newType });
+    }
+  };
+
   const surface = ((room.length || 0) * (room.width || 0)).toFixed(1);
   const volume  = ((room.length || 0) * (room.width || 0) * (room.ceilingHeight || 0)).toFixed(1);
 
@@ -289,7 +311,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
             }}>
               <Globe size={16} color={C.accent} style={{ flexShrink: 0 }} />
               <div>
-                 <div style={{ fontSize: '0.625rem', color: C.accent, fontWeight: 700, letterSpacing: '0.05em' }}>{location.country.toUpperCase()}</div>
+                 <div style={{ fontSize: '0.625rem', color: C.accent, fontWeight: 700, letterSpacing: '0.05em' }}>{location.country?.toUpperCase() || 'BÉNIN'}</div>
                  <div style={{ fontSize: '0.6875rem', color: '#fff', opacity: 0.9 }}>{location.climate}</div>
               </div>
             </div>
@@ -326,6 +348,13 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
               <LayoutDashboard size={16} color={C.primary} /> Dimensions de la pièce
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <SelectRow
+                label="Type de pièce"
+                value={room.type || 'Bureau'}
+                onChange={handleRoomTypeChange}
+                options={Object.keys(ROOM_DEFAULTS).map(k => ({ value: k, label: k }))}
+              />
+
               <FieldRow label="Longueur" unit="m" value={room.length} min={1} max={100} onChange={v => updateFormData('room', { length: v })} />
               <FieldRow label="Largeur"  unit="m" value={room.width}  min={1} max={100} onChange={v => updateFormData('room', { width: v  })} />
               <FieldRow label="Hauteur totale" unit="m" value={room.ceilingHeight} min={2} max={20} onChange={v => updateFormData('room', { ceilingHeight: v })} />
@@ -369,6 +398,33 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                 onChange={v => updateFormData('location', { ...location, buildingOrientation: v })}
                 options={orientationOptions}
               />
+              <SelectRow
+                label="Mois de simulation"
+                value={location.month || new Date().getMonth() + 1}
+                onChange={v => updateFormData('location', { month: parseInt(v) })}
+                options={[
+                  { value: 1, label: 'Janvier' },
+                  { value: 2, label: 'Février' },
+                  { value: 3, label: 'Mars' },
+                  { value: 4, label: 'Avril' },
+                  { value: 5, label: 'Mai' },
+                  { value: 6, label: 'Juin' },
+                  { value: 7, label: 'Juillet' },
+                  { value: 8, label: 'Août' },
+                  { value: 9, label: 'Septembre' },
+                  { value: 10, label: 'Octobre' },
+                  { value: 11, label: 'Novembre' },
+                  { value: 12, label: 'Décembre' }
+                ]}
+              />
+              <FieldRow
+                label="Jour de simulation"
+                value={location.day || new Date().getDate()}
+                min={1}
+                max={31}
+                step={1}
+                onChange={v => updateFormData('location', { day: parseInt(v) })}
+              />
               <div style={{ marginTop: '0.25rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.75rem', color: C.muted }}>
                 Climat chargé: <strong style={{color:'#fff'}}>{location.climate}</strong> <br/>
                 Ville gisement: <span style={{color:'#fff'}}>{location.city || location.country}</span>
@@ -379,7 +435,14 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                 unit="m²" 
                 value={formData?.naturalLight?.windowArea || 0} 
                 min={0} max={50} step={0.5} 
-                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, windowArea: v, hasWindows: v > 0 })} 
+                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, windowArea: v, hasWindows: v > 0 || (formData?.naturalLight?.doorArea || 0) > 0 })} 
+              />
+              <FieldRow 
+                label="Surface portes ouvertes" 
+                unit="m²" 
+                value={formData?.naturalLight?.doorArea || 0} 
+                min={0} max={50} step={0.5} 
+                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, doorArea: v, hasWindows: v > 0 || (formData?.naturalLight?.windowArea || 0) > 0 })} 
               />
               <SelectRow
                 label="Type de vitrage"

@@ -271,9 +271,9 @@ export class StorageService {
         name: "Salle de classe standard",
         description: "30 élèves, orientation Sud",
         formData: {
-          room: { length: 8, width: 6, ceilingHeight: 3.2, workPlaneHeight: 0.75 },
+          room: { length: 8, width: 6, ceilingHeight: 3.2, workPlaneHeight: 0.75, type: 'Salle de classe' },
           occupation: { buildingType: "École/Salle de classe", occupationType: "Continue", occupants: 30, hoursPerDay: 8, daysPerWeek: 5 },
-          luminaire: { type: "Dalle LED", fluxPerUnit: 4000, powerPerUnit: 36 },
+          luminaire: { type: 'flu-t8-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' },
           naturalLight: { hasWindows: true, orientation: "Sud", windowArea: 8 },
           location: { zone: "Sud (Cotonou, Porto-Novo)" }
         }
@@ -282,9 +282,9 @@ export class StorageService {
         name: "Bureau open space",
         description: "20 personnes, grande surface",
         formData: {
-          room: { length: 10, width: 8, ceilingHeight: 3.0, workPlaneHeight: 0.85 },
+          room: { length: 10, width: 8, ceilingHeight: 3.0, workPlaneHeight: 0.85, type: 'Bureau' },
           occupation: { buildingType: "Bureau/Administration", occupationType: "Continue", occupants: 20, hoursPerDay: 9, daysPerWeek: 5 },
-          luminaire: { type: "Dalle LED", fluxPerUnit: 4000, powerPerUnit: 36 },
+          luminaire: { type: 'led-dalle-600-36w', name: 'Dalle LED 600×600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' },
           naturalLight: { hasWindows: true, orientation: "Est", windowArea: 12 },
           location: { zone: "Sud (Cotonou, Porto-Novo)" }
         }
@@ -293,9 +293,9 @@ export class StorageService {
         name: "Logement résidentiel",
         description: "Famille, usage soir",
         formData: {
-          room: { length: 4, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.80 },
+          room: { length: 4, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.80, type: 'Chambre' },
           occupation: { buildingType: "Logement résidentiel", occupationType: "Mixte (jour + nuit)", occupants: 4, hoursPerDay: 6, daysPerWeek: 7 },
-          luminaire: { type: "Ampoule LED", fluxPerUnit: 800, powerPerUnit: 9 },
+          luminaire: { type: 'led-e27-9w', name: 'Ampoule LED E27 9W', fluxPerUnit: 810, powerPerUnit: 9, irc: 80, prix: 1500, haloType: 'led', categorie: 'Résidentiel' },
           naturalLight: { hasWindows: true, orientation: "Sud", windowArea: 3 },
           location: { zone: "Centre (Bohicon, Abomey)" }
         }
@@ -304,13 +304,24 @@ export class StorageService {
         name: "Salle de réunion",
         description: "12 personnes, usage intermittent",
         formData: {
-          room: { length: 6, width: 5, ceilingHeight: 2.8, workPlaneHeight: 0.75 },
+          room: { length: 6, width: 5, ceilingHeight: 2.8, workPlaneHeight: 0.75, type: 'Salle de réunion' },
           occupation: { buildingType: "Bureau/Administration", occupationType: "Intermittente", occupants: 12, hoursPerDay: 4, daysPerWeek: 5 },
-          luminaire: { type: "Dalle LED", fluxPerUnit: 4000, powerPerUnit: 36 },
+          luminaire: { type: 'led-downlight-24w', name: 'Downlight LED encastré 24W', fluxPerUnit: 2160, powerPerUnit: 24, irc: 80, prix: 12000, haloType: 'led', categorie: 'Tertiaire' },
           naturalLight: { hasWindows: true, orientation: "Ouest", windowArea: 5 },
           location: { zone: "Nord (Parakou, Natitingou)" }
         }
-      }
+      },
+      {
+        name: "Boutique / Commerce",
+        description: "Mise en valeur produits, IRC élevé",
+        formData: {
+          room: { length: 8, width: 5, ceilingHeight: 3.0, workPlaneHeight: 0.90, type: 'Commerce' },
+          occupation: { buildingType: "Commercial", occupationType: "Continue", occupants: 5, hoursPerDay: 10, daysPerWeek: 6 },
+          luminaire: { type: 'led-spot-com-20w', name: 'Spot commercial LED 20W', fluxPerUnit: 1800, powerPerUnit: 20, irc: 90, prix: 10000, haloType: 'led', categorie: 'Commerce' },
+          naturalLight: { hasWindows: true, orientation: "Est", windowArea: 4 },
+          location: { zone: "Sud (Cotonou, Porto-Novo)" }
+        }
+      },
     ];
     
     for (const template of templates) {

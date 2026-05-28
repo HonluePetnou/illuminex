@@ -31,15 +31,51 @@ const SURFACES_CONFIG = [
     area: (room) => room.length * room.width,
     areaLabel: 'Surface sol',
   },
+  {
+    key: 'portes',
+    label: 'Portes',
+    icon: <Square size={22} color="#10B981" fill="#10B981" fillOpacity={0.2} />,
+    defaultColor: '',
+    defaultMaterial: 'porte-bois-moyen',
+    area: (room) => 1.89,
+    areaLabel: 'Surface porte standard',
+  },
+  {
+    key: 'vitres',
+    label: 'Vitres / Fenêtres',
+    icon: <Square size={22} color="#06B6D4" fill="#06B6D4" fillOpacity={0.2} />,
+    defaultColor: '',
+    defaultMaterial: 'vitre-double',
+    area: (room, formData) => formData?.naturalLight?.windowArea || 2.0,
+    areaLabel: 'Surface vitrée totale',
+  },
+  {
+    key: 'tables',
+    label: 'Tables / Bureaux',
+    icon: <Square size={22} color="#F59E0B" fill="#F59E0B" fillOpacity={0.2} />,
+    defaultColor: '',
+    defaultMaterial: 'table-bois-clair',
+    area: (room) => 1.2,
+    areaLabel: 'Surface par table',
+  },
+  {
+    key: 'chaises',
+    label: 'Chaises / Sièges',
+    icon: <Square size={22} color="#EC4899" fill="#EC4899" fillOpacity={0.2} />,
+    defaultColor: '',
+    defaultMaterial: 'chaise-tissu-fonce',
+    area: (room) => 0.4,
+    areaLabel: 'Surface d\'assise',
+  },
 ];
 
-function SurfaceSection({ config, value, onChange, room }) {
+function SurfaceSection({ config, value, onChange, room, formData }) {
   const selectedColor = CATALOGUE_COULEURS.find(c => c.id === value.colorId);
   const selectedMaterial = CATALOGUE_MATERIAUX.find(m => m.id === value.materialId);
   const reflectance = selectedMaterial
     ? selectedMaterial.reflectance
     : (selectedColor ? selectedColor.reflectance : 0.5);
-  const area = Math.round(config.area(room) * 100) / 100;
+  const area = Math.round(config.area(room, formData) * 100) / 100;
 
   const pct = Math.round(reflectance * 100);
   const badgeColor = reflectance > 0.5 ? '#22c55e' : reflectance >= 0.3 ? '#f59e0b' : '#ef4444';
@@ -176,18 +212,22 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
     plafond: { colorId: 'blanc-mat',   materialId: '' },
     murs:    { colorId: 'blanc-casse', materialId: '' },
     sol:     { colorId: '',            materialId: 'carreau-blanc' },
+    portes:  { colorId: '',            materialId: 'porte-bois-moyen' },
+    vitres:  { colorId: '',            materialId: 'vitre-double' },
+    tables:  { colorId: '',            materialId: 'table-bois-clair' },
+    chaises: { colorId: '',            materialId: 'chaise-tissu-fonce' },
   };
 
   const [surfaces, setSurfaces] = useState(() => {
     const saved = formData?.materiaux?.surfaces;
-    if (saved && saved.plafond && saved.murs && saved.sol) return saved;
+    if (saved && saved.plafond && saved.murs && saved.sol && saved.portes) return saved;
     return defaultSurfaces;
   });
 
   // Sync when a different project is loaded (formData reference changes)
   React.useEffect(() => {
     const saved = formData?.materiaux?.surfaces;
-    if (saved && saved.plafond && saved.murs && saved.sol) {
+    if (saved && saved.plafond && saved.murs && saved.sol && saved.portes) {
       setSurfaces(saved);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -195,7 +235,7 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
 
   // Calculs de réflectance
   const getReflectance = (surfKey) => {
-    const val = surfaces[surfKey];
+    const val = surfaces[surfKey] || { colorId: '', materialId: '' };
     const mat = CATALOGUE_MATERIAUX.find(m => m.id === val.materialId);
     const col = CATALOGUE_COULEURS.find(c => c.id === val.colorId);
     return mat ? mat.reflectance : col ? col.reflectance : 0.5;
@@ -204,19 +244,36 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
   const rPlafond = getReflectance('plafond');
   const rMurs    = getReflectance('murs');
   const rSol     = getReflectance('sol');
+  const rPortes  = getReflectance('portes');
+  const rVitres  = getReflectance('vitres');
+  const rTables  = getReflectance('tables');
+  const rChaises = getReflectance('chaises');
 
   const aPlafond = room.length * room.width;
   const aMurs    = 2 * (room.length + room.width) * room.ceilingHeight;
   const aSol     = room.length * room.width;
-  const aTotal   = aPlafond + aMurs + aSol;
+  const aPortes  = 1.89;
+  const aVitres  = formData?.naturalLight?.windowArea || 2.0;
+  const aTables  = 1.2;
+  const aChaises = 0.4;
+  
+  const aTotal   = aPlafond + aMurs + aSol + aPortes + aVitres + aTables + aChaises;
 
   const rMoyen = useMemo(() => {
     if (!aTotal) return 0;
-    return (rPlafond * aPlafond + rMurs * aMurs + rSol * aSol) / aTotal;
-  }, [rPlafond, rMurs, rSol, aPlafond, aMurs, aSol, aTotal]);
+    return (
+      rPlafond * aPlafond +
+      rMurs * aMurs +
+      rSol * aSol +
+      rPortes * aPortes +
+      rVitres * aVitres +
+      rTables * aTables +
+      rChaises * aChaises
+    ) / aTotal;
+  }, [rPlafond, rMurs, rSol, rPortes, rVitres, rTables, rChaises, aPlafond, aMurs, aSol, aPortes, aVitres, aTables, aChaises, aTotal]);
 
-  // IRC indicatif (surface des fenêtres estimée ≈ 15% du sol)
-  const surfaceFenetres = formData?.naturalLight?.windowArea || aPlafond * 0.15;
+  // IRC indicatif (surface des fenêtres estimée)
+  const surfaceFenetres = aVitres;
   const surfaceTotale = aTotal;
   const irc = surfaceTotale > 0 && rMoyen < 1
     ? Math.min(100, Math.round((0.85 * surfaceFenetres) / (surfaceTotale * (1 - rMoyen)) * 100) / 100)
@@ -233,13 +290,30 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
     const rp = getReflectanceFromVal(updated.plafond);
     const rm = getReflectanceFromVal(updated.murs);
     const rs = getReflectanceFromVal(updated.sol);
+    const rpo = getReflectanceFromVal(updated.portes);
+    const rvi = getReflectanceFromVal(updated.vitres);
+    const rta = getReflectanceFromVal(updated.tables);
+    const rch = getReflectanceFromVal(updated.chaises);
     
     // Calculate new average reflectance
     const ap = room.length * room.width;
     const am = 2 * (room.length + room.width) * room.ceilingHeight;
     const as = room.length * room.width;
-    const at = ap + am + as;
-    const newRMoyen = at > 0 ? (rp * ap + rm * am + rs * as) / at : 0.5;
+    const apo = 1.89;
+    const avi = formData?.naturalLight?.windowArea || 2.0;
+    const ata = 1.2;
+    const ach = 0.4;
+    const at = ap + am + as + apo + avi + ata + ach;
+    
+    const newRMoyen = at > 0 ? (
+      rp * ap +
+      rm * am +
+      rs * as +
+      rpo * apo +
+      rvi * avi +
+      rta * ata +
+      rch * ach
+    ) / at : 0.5;
 
     // Sauvegarder dans formData avec les valeurs fraîches
     updateFormData('materiaux', {
@@ -247,11 +321,16 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
       rPlafond: rp,
       rMurs: rm,
       rSol: rs,
+      rPortes: rpo,
+      rVitres: rvi,
+      rTables: rta,
+      rChaises: rch,
       rMoyen: newRMoyen,
     });
   };
 
   const getReflectanceFromVal = (val) => {
+    if (!val) return 0.5;
     const mat = CATALOGUE_MATERIAUX.find(m => m.id === val.materialId);
     const col = CATALOGUE_COULEURS.find(c => c.id === val.colorId);
     return mat ? mat.reflectance : col ? col.reflectance : 0.5;
@@ -263,6 +342,10 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
       rPlafond,
       rMurs,
       rSol,
+      rPortes,
+      rVitres,
+      rTables,
+      rChaises,
       rMoyen,
     });
     onNext && onNext();
@@ -299,6 +382,7 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
                 value={surfaces[cfg.key]}
                 onChange={(val) => handleSurfaceChange(cfg.key, val)}
                 room={room}
+                formData={formData}
               />
             ))}
           </div>
@@ -322,21 +406,25 @@ export default function ScreenMateriaux({ formData, updateFormData, onNext, onPr
                 { label: 'Plafond', r: rPlafond, area: aPlafond },
                 { label: 'Murs',    r: rMurs,    area: aMurs },
                 { label: 'Sol',     r: rSol,     area: aSol },
+                { label: 'Portes',  r: rPortes,  area: aPortes },
+                { label: 'Vitres',  r: rVitres,  area: aVitres },
+                { label: 'Tables',  r: rTables,  area: aTables },
+                { label: 'Chaises', r: rChaises, area: aChaises },
               ].map(({ label, r, area }) => {
                 const pct = Math.round(r * 100);
                 const col = r > 0.5 ? '#22c55e' : r >= 0.3 ? '#f59e0b' : '#ef4444';
                 return (
                   <div key={label} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    marginBottom: '0.75rem', padding: '0.5rem 0.75rem',
-                    background: 'rgba(255,255,255,0.03)',
+                    marginBottom: '0.6rem', padding: '0.4rem 0.6rem',
+                    background: 'rgba(255,255,255,0.02)',
                     borderRadius: 8,
                   }}>
                     <div>
-                      <span style={{ color: '#94A3B8', fontSize: 13 }}>{label}</span>
-                      <span style={{ color: '#64748B', fontSize: 11, display: 'block' }}>{Math.round(area * 10) / 10} m²</span>
+                      <span style={{ color: '#94A3B8', fontSize: 12 }}>{label}</span>
+                      <span style={{ color: '#64748B', fontSize: 10, display: 'block' }}>{Math.round(area * 10) / 10} m²</span>
                     </div>
-                    <span style={{ color: col, fontWeight: 700, fontSize: 16 }}>{pct}%</span>
+                    <span style={{ color: col, fontWeight: 700, fontSize: 14 }}>{pct}%</span>
                   </div>
                 );
               })}

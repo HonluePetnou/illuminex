@@ -1,4 +1,8 @@
-ignoredBuiltDependencies:
-  - core-js
+allowBuilds:
+  core-js: set this to true or false
+  electron: set this to true or false
+  electron-winstaller: set this to true or false
+onlyBuiltDependencies:
   - electron
   - electron-winstaller
+  - core-js

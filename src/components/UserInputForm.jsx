@@ -130,13 +130,19 @@ export default function UserInputForm({ onSubmit, initialData }) {
     }
   };
 
-  // 5. AUTO-FILL LOGIC POUR LUMINAIRES
+  // 5. AUTO-FILL LOGIC POUR LUMINAIRES — valeurs alignées sur luminaires-library.js
   const handleLuminaireTypeChange = (value) => {
     let autoFillSettings = { fluxPerUnit: formData.luminaire.fluxPerUnit, powerPerUnit: formData.luminaire.powerPerUnit };
-    
-    if (value === "Tube LED") autoFillSettings = { fluxPerUnit: 3000, powerPerUnit: 18 };
-    else if (value === "Dalle LED") autoFillSettings = { fluxPerUnit: 4000, powerPerUnit: 36 };
-    else if (value === "Ampoule LED") autoFillSettings = { fluxPerUnit: 800, powerPerUnit: 9 };
+
+    // Flux réels vérifiés (source : Bibliotheque_Luminaires_ILLUMINEX.docx)
+    if      (value === "Tube LED 18W")      autoFillSettings = { fluxPerUnit: 1800, powerPerUnit: 18 };
+    else if (value === "Tube LED 36W")      autoFillSettings = { fluxPerUnit: 3600, powerPerUnit: 36 };
+    else if (value === "Dalle LED 36W")     autoFillSettings = { fluxPerUnit: 3600, powerPerUnit: 36 };
+    else if (value === "Dalle LED 40W")     autoFillSettings = { fluxPerUnit: 4000, powerPerUnit: 40 };
+    else if (value === "Ampoule LED E27 9W") autoFillSettings = { fluxPerUnit: 810,  powerPerUnit: 9  };
+    else if (value === "Ampoule LED E27 12W") autoFillSettings = { fluxPerUnit: 1200, powerPerUnit: 12 };
+    else if (value === "Highbay LED 100W")  autoFillSettings = { fluxPerUnit: 10000, powerPerUnit: 100 };
+    else if (value === "Highbay LED 150W")  autoFillSettings = { fluxPerUnit: 15000, powerPerUnit: 150 };
 
     setFormData(prev => ({
       ...prev,
@@ -263,10 +269,21 @@ export default function UserInputForm({ onSubmit, initialData }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <Field label="Type de Luminaire" section="luminaire" field="type" Component="select">
                 <option value="">Sélectionner...</option>
-                <option value="Tube LED">Tube LED</option>
-                <option value="Dalle LED">Dalle LED</option>
-                <option value="Ampoule LED">Ampoule LED</option>
-                <option value="Autre">Autre</option>
+                <optgroup label="Résidentiel">
+                  <option value="Ampoule LED E27 9W">Ampoule LED E27 9W — 810 lm</option>
+                  <option value="Ampoule LED E27 12W">Ampoule LED E27 12W — 1 200 lm</option>
+                </optgroup>
+                <optgroup label="Tertiaire">
+                  <option value="Tube LED 18W">Tube LED T8 18W — 1 800 lm</option>
+                  <option value="Tube LED 36W">Tube LED T8 36W — 3 600 lm</option>
+                  <option value="Dalle LED 36W">Dalle LED 600×600 36W — 3 600 lm</option>
+                  <option value="Dalle LED 40W">Dalle LED 600×600 40W — 4 000 lm</option>
+                </optgroup>
+                <optgroup label="Industriel">
+                  <option value="Highbay LED 100W">Highbay LED 100W — 10 000 lm</option>
+                  <option value="Highbay LED 150W">Highbay LED 150W — 15 000 lm</option>
+                </optgroup>
+                <option value="Autre">Autre (saisie manuelle)</option>
               </Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                 <Field label="Flux Lumineux par Unité (lm)" section="luminaire" field="fluxPerUnit" />

@@ -127,7 +127,8 @@ export default function ScreenRapport({ formData, updateFormData, onNext, onPrev
               buildingType: reportInfo.nomProjet || baseReportData.meta.buildingType,
               auteur: reportInfo.auteur,
               client: reportInfo.client,
-              adresse: reportInfo.adresse
+              adresse: reportInfo.adresse,
+              coverImage: window.__capture3D_DataUrl || baseReportData.meta.coverImage
           }
       };
 

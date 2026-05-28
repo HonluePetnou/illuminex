@@ -45,6 +45,7 @@ export default function RoomSimulation3D({
   const containerRef = useRef(null);
 
   const [currentHour, setCurrentHour] = useState(8);
+  const [webGLFailed, setWebGLFailed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1000);
   const [showCeiling, setShowCeiling] = useState(true);
@@ -69,8 +70,8 @@ export default function RoomSimulation3D({
   const heatmapCellsRef = useRef([]);
   const ceilingRef = useRef(null);
 
-  const length = parseFloat(formData?.room?.length) || 10;
-  const width = parseFloat(formData?.room?.width) || 10;
+  const length = parseFloat(formData?.room?.length) || 7;
+  const width = parseFloat(formData?.room?.width) || 6;
   const ceilingHeight = parseFloat(formData?.room?.ceilingHeight) || 3.0;
   const workPlaneHeight = parseFloat(formData?.room?.workPlaneHeight) || 0.85;
   const E_required = lightingResult?.E_required || 500;
@@ -145,7 +146,15 @@ export default function RoomSimulation3D({
     const containerH = container.clientHeight || container.offsetHeight || 500;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    } catch (err) {
+      console.warn("WebGL non supporté ou erreur d'initialisation :", err);
+      setWebGLFailed(true);
+      return;
+    }
+    setWebGLFailed(false);
     renderer.setSize(containerW, containerH);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
@@ -899,14 +908,23 @@ export default function RoomSimulation3D({
         </div>
 
         {/* Canvas */}
-        <div
-          ref={containerRef}
-          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp} onWheel={onWheel}
-          style={{ flex: 1, minHeight: '500px', height: '500px', background: '#1a1d24', position: 'relative', overflow: 'hidden', cursor: isDraggingRef.current ? 'grabbing' : 'grab', touchAction: 'none' }}
-        >
-          <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.625rem', color: 'rgba(255,255,255,0.7)', pointerEvents: 'none' }}>
-            Glissez pour tourner | Molette pour zoom
-          </div>
+        <div style={{ flex: 1, minHeight: '500px', height: '500px', position: 'relative', overflow: 'hidden', background: '#000' }}>
+          {webGLFailed ? (
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: C.muted, background: C.surface2, textAlign: 'center', padding: '2rem' }}>
+              <div style={{ marginBottom: '1rem' }}><Disc size={48} color={C.dim} /></div>
+              <h3 style={{ fontSize: '1.25rem', color: C.text, marginBottom: '0.5rem' }}>Aperçu 3D non disponible</h3>
+              <p style={{ fontSize: '0.875rem', lineHeight: 1.5, maxWidth: '400px' }}>Votre environnement (ou votre carte graphique) ne supporte pas l'accélération matérielle WebGL requise pour afficher cette scène en 3D. L'application continuera de fonctionner normalement pour les calculs.</p>
+            </div>
+          ) : (
+            <div ref={containerRef} style={{ width: '100%', height: '100%', outline: 'none', cursor: isDraggingRef.current ? 'grabbing' : 'grab', touchAction: 'none' }} tabIndex={0}
+              onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerLeave={onPointerUp} onWheel={onWheel}
+            />
+          )}
+          {!webGLFailed && (
+            <div style={{ position: 'absolute', top: '8px', left: '8px', background: 'rgba(0,0,0,0.5)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.625rem', color: 'rgba(255,255,255,0.7)', pointerEvents: 'none' }}>
+              Glissez pour tourner | Molette pour zoom
+            </div>
+          )}
         </div>
 
         {/* Right Panel */}
@@ -914,6 +932,21 @@ export default function RoomSimulation3D({
           <h3 style={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: C.dim, fontWeight: 700, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Settings size={12} /> Stats directes
           </h3>
+          <button 
+            onClick={() => {
+              if (rendererRef.current) {
+                window.__capture3D_DataUrl = rendererRef.current.domElement.toDataURL('image/png');
+                alert('📸 Scène 3D capturée ! Elle sera utilisée comme couverture sur votre rapport PDF.');
+              }
+            }}
+            style={{
+              background: C.primary, color: '#fff', border: 'none', borderRadius: '6px', 
+              padding: '0.5rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+            }}
+          >
+            <Eye size={14} /> Capturer pour le PDF
+          </button>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {[
               { label: 'Lumière Naturelle (Sol)', val: `${Math.round(currentProfile.E_nat)}`, unit: 'lux', color: '#4ade80' },

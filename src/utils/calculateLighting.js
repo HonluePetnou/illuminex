@@ -13,7 +13,8 @@ export function calculateLighting(formData) {
     const length = parseFloat(formData?.room?.length) || 10;
     const width = parseFloat(formData?.room?.width) || 10;
     const ceilingHeight = parseFloat(formData?.room?.ceilingHeight) || 3.0;
-    const workPlaneHeight = parseFloat(formData?.room?.workPlaneHeight) || 0.85;
+    const rawWPH = parseFloat(formData?.room?.workPlaneHeight);
+    const workPlaneHeight = (!isNaN(rawWPH) && rawWPH >= 0) ? rawWPH : 0.85;
     const roomType = formData?.room?.type || 'Bureau';
 
     const buildingType = formData?.occupation?.buildingType || 'Bureau/Administration';

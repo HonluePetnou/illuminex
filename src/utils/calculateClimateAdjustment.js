@@ -20,6 +20,7 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     const hasWindows    = formData?.naturalLight?.hasWindows === true;
     const orientation   = formData?.naturalLight?.orientation   || 'S';
     const windowArea    = parseFloat(formData?.naturalLight?.windowArea) || 0;
+    const doorArea      = parseFloat(formData?.naturalLight?.doorArea)   || 0;
 
     const climate       = formData?.location?.climate   || 'Tropical humide';
     const city          = formData?.location?.city      || 'Cotonou';
@@ -29,12 +30,11 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     const S   = lightingResult?.S  || 0;
     const CU  = lightingResult?.CU || 0.50;
     const MF  = lightingResult?.MF || 0.70;
-
-    // ── ÉTAPE 1 : Saison à partir du mois courant ──────────────────────────────
-    const month = new Date().getMonth() + 1; // 1-12
+    // ── ÉTAPE 1 : Saison à partir du mois de simulation choisi par l'utilisateur ──────────────
+    const month = parseInt(formData?.location?.month) || parseInt(solarData?.simMonth) || (new Date().getMonth() + 1);
+    const day = parseInt(formData?.location?.day) || (new Date().getDate());
 
     let season, dayDuration, naturalFactor;
-
     // Logique basée sur le type de climat
     if (climate.includes('Désertique') || climate.includes('Semi-aride')) {
       // Désertique / Sahel : très ensoleillé toute l'année
@@ -91,23 +91,36 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     }
 
     // ── ÉTAPE 3 : Facteur d'orientation ────────────────────────────────────────
+    const cleanOrient = (orientation || '').trim().toUpperCase();
     const ORIENTATION_FACTORS = {
       'N': 0.40, 'NE': 0.55, 'E': 0.75, 'SE': 0.90,
       'S': 1.00, 'SO': 0.90, 'O': 0.75, 'NO': 0.55,
-      'Nord': 0.40, 'Sud': 1.00, 'Est': 0.75, 'Ouest': 0.75,
+      'NORD': 0.40, 'SUD': 1.00, 'EST': 0.75, 'OUEST': 0.75,
     };
-    const orientationFactor = hasWindows
-      ? (ORIENTATION_FACTORS[orientation] || 0.70)
-      : 0;
+    const orientationFactor = ORIENTATION_FACTORS[cleanOrient] || 0.80;
 
-    // ── ÉTAPE 4 : Facteur de Lumière Naturelle (FLN) ────────────────────────────
-    const Tv = 0.6; // Transmittance vitrée typique
-    let FLN = 0;
+    // ── ÉTAPE 4 : Éclairement naturel intérieur ─────────────────────────────────
+    // Formule : E_int = E_ext × τ_eff × (S_ouv / S_sol)
+    // où τ_eff = (S_vitre × Tv + S_porte × 1.0) / S_ouv
+    const glazingType   = formData?.room?.glazingType || 'Double standard';
+    const GLAZING_TRANSMISSION = {
+      'Simple vitrage': 0.85,
+      'Double standard': 0.72,
+      'Double low-E': 0.65,
+      'Triple vitrage': 0.55,
+      'Vitrage teinté': 0.45,
+    };
+    const Tv = GLAZING_TRANSMISSION[glazingType] || 0.72;
     let E_natural = 0;
 
-    if (hasWindows && S > 0 && windowArea > 0) {
-      FLN     = (windowArea * Tv * naturalFactor * orientationFactor) / S;
-      E_natural = Math.round(FLN * E_exterior);
+    const windowsOpen = formData?.naturalLight?.windowsOpen !== false;
+    const effectiveDoorArea = windowsOpen ? doorArea : 0;
+    const totalOpeningArea = (hasWindows ? windowArea : 0) + effectiveDoorArea;
+
+    if (S > 0 && totalOpeningArea > 0) {
+      const effectiveArea = ((hasWindows ? windowArea : 0) * Tv) + (effectiveDoorArea * 1.0);
+      const tau_global = effectiveArea / totalOpeningArea;
+      E_natural = Math.round(E_exterior * tau_global * (totalOpeningArea / S) * orientationFactor * 0.10);
     }
 
     // ── ÉTAPE 5 : Besoin d'éclairement — réutilise la valeur du moteur photométrique
@@ -149,7 +162,7 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
         solarIrradiance,
       },
       naturalLight: {
-        FLN:             Math.round(FLN * 1000) / 1000,
+        FLN:             S > 0 && totalOpeningArea > 0 ? Math.round(((windowArea * Tv) + (doorArea * 1.0)) / S * 10000) / 10000 : 0,
         E_natural:       Math.round(E_natural),
         orientationFactor,
         Tv,
@@ -177,7 +190,7 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     console.error('Climate adjustment calculation failed:', error);
     return {
       climate:      { type: 'Inconnu', city: '', country: '', season: 'Inconnue', dayDuration: 12, E_exterior: 0, naturalFactor: 0, solarIrradiance: 5.2 },
-      naturalLight: { FLN: 0, E_natural: 0, orientationFactor: 0, Tv: 0.6, windowArea: 0, hasWindows: false },
+      naturalLight: { FLN: 0, E_natural: 0, orientationFactor: 0, Tv: 0.72, windowArea: 0, hasWindows: false },
       adjusted:     { E_artificial_needed: 0, N_adjusted: 0, eRequired: 300, dayHours: 0, nightHours: 0 },
       savings:      { luminairesSaved: 0, savingsPercent: 0, powerSaved: 0, dailySavings: 0, weeklySavings: 0 },
       hourlyIrradiance: [],

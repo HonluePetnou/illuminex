@@ -41,6 +41,34 @@ function Row({ label, value, editable, children }) {
 }
 
 function EditableRow({ label, value, unit, onChange, min = 0 }) {
+  const [focused, setFocused] = React.useState(false);
+  const [localValue, setLocalValue] = React.useState(String(value ?? ''));
+
+  React.useEffect(() => {
+    if (!focused) {
+      setLocalValue(String(value ?? ''));
+    }
+  }, [value, focused]);
+
+  const handleChange = (e) => {
+    setLocalValue(e.target.value);
+    const parsed = parseFloat(e.target.value);
+    if (!isNaN(parsed) && parsed >= min) {
+      onChange(parsed);
+    }
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    const parsed = parseFloat(localValue);
+    if (!isNaN(parsed) && parsed >= min) {
+      onChange(parsed);
+      setLocalValue(String(parsed));
+    } else {
+      setLocalValue(String(value ?? ''));
+    }
+  };
+
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -54,8 +82,10 @@ function EditableRow({ label, value, unit, onChange, min = 0 }) {
         <input
           type="number"
           min={min}
-          value={value}
-          onChange={e => onChange(parseFloat(e.target.value) || 0)}
+          value={localValue}
+          onChange={handleChange}
+          onFocus={() => setFocused(true)}
+          onBlur={handleBlur}
           style={{
             width: 90, background: '#1a1b22', border: '1px solid rgba(59,130,246,0.4)',
             borderRadius: 6, padding: '0.3rem 0.5rem', color: C.text,
@@ -124,9 +154,13 @@ export default function ScreenBudget({ formData, updateFormData, onNext, onPrev 
                 <span style={{ color: '#F0A500', fontWeight: 700 }}>{lightingResult.N} unités</span>
               </Row>
 
-              <Row label="Prix unitaire du luminaire">
-                {fmt(budget.prixUnitaire)} FCFA
-              </Row>
+              <EditableRow
+                label="Prix unitaire luminaire"
+                value={formData?.luminaire?.prix ?? budget.prixUnitaire}
+                unit="FCFA"
+                min={0}
+                onChange={v => updateFormData('luminaire', { prix: v })}
+              />
 
               <Row label="Coût total luminaires (N × prix)">
                 <span style={{ color: '#F0A500', fontWeight: 700 }}>

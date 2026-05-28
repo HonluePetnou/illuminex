@@ -31,39 +31,82 @@ function addToScene(scene, ...meshes) {
   meshes.forEach(m => scene.add(m));
 }
 
-// ─── Bureau ─────────────────────────────────────────────────────────────────
+// ─── Bureau (Disposition selon l'image demandée) ──────────────────────────────
 export function addBureauFurniture(scene, THREE, L, W, H) {
   const meshes = [];
+  const cx = L / 2;
+  const cz = W / 2;
 
-  // Bureau principal (contre mur gauche)
-  const desk = box(THREE, 1.4, 0.06, 0.7, HEX.woodLight, 0.9, 0.76, W * 0.35);
-  // Pieds bureau
-  const legH = 0.75;
-  [[0.25, 0.15], [1.55, 0.15], [0.25, 0.55], [1.55, 0.55]].forEach(([px, pz]) => {
-    meshes.push(box(THREE, 0.05, legH, 0.05, HEX.metal, px - 0.3 + 0.9, legH / 2, W * 0.35 - 0.35 + pz));
-  });
-  meshes.push(desk);
+  // Fonction utilitaire pour créer un bureau avec sa chaise
+  const createDeskSetup = (x, z, rotationY = 0) => {
+    const group = new THREE.Group();
+    group.position.set(x, 0, z);
+    group.rotation.y = rotationY;
 
-  // Moniteur sur le bureau
-  const monitor = box(THREE, 0.55, 0.35, 0.04, HEX.black, 0.9, 1.12, W * 0.35 - 0.18);
-  const monitorBase = box(THREE, 0.15, 0.02, 0.2, HEX.greyDark, 0.9, 0.79, W * 0.35 - 0.18);
-  const monitorArm = box(THREE, 0.03, 0.28, 0.03, HEX.greyDark, 0.9, 0.95, W * 0.35 - 0.18);
-  monitor.material = new THREE.MeshStandardMaterial({ color: HEX.black, emissive: 0x1a2a6c, emissiveIntensity: 0.3 });
-  meshes.push(monitor, monitorBase, monitorArm);
+    // Bureau (Plateau)
+    const desk = box(THREE, 1.4, 0.04, 0.7, HEX.woodLight, 0, 0.74, 0);
+    // Pieds du bureau
+    const legH = 0.72;
+    [[0.65, 0.3], [-0.65, 0.3], [0.65, -0.3], [-0.65, -0.3]].forEach(([px, pz]) => {
+      group.add(box(THREE, 0.05, legH, 0.05, HEX.metal, px, legH / 2, pz));
+    });
+    group.add(desk);
 
-  // Chaise bureau
-  const chairSeat = box(THREE, 0.55, 0.06, 0.55, HEX.fabric, 0.9, 0.47, W * 0.35 + 0.65);
-  const chairBack = box(THREE, 0.55, 0.45, 0.06, HEX.fabric, 0.9, 0.72, W * 0.35 + 0.92);
-  const chairBase = box(THREE, 0.1, 0.44, 0.1, HEX.metal, 0.9, 0.22, W * 0.35 + 0.65, 0, 0);
-  meshes.push(chairSeat, chairBack, chairBase);
+    // Écran PC
+    const monitor = box(THREE, 0.5, 0.3, 0.04, HEX.black, 0, 0.95, -0.15);
+    const monitorBase = box(THREE, 0.15, 0.02, 0.15, HEX.black, 0, 0.77, -0.15);
+    const monitorArm = box(THREE, 0.04, 0.15, 0.04, HEX.black, 0, 0.85, -0.15);
+    // Effet d'écran allumé
+    monitor.material = new THREE.MeshStandardMaterial({ color: HEX.black, emissive: 0x1a2a6c, emissiveIntensity: 0.5 });
+    
+    // Clavier PC
+    const keyboard = box(THREE, 0.42, 0.015, 0.16, 0x333333, 0, 0.765, 0.08);
 
-  // Bibliothèque (contre mur droit)
-  const bib = box(THREE, 0.35, 1.8, 1.0, HEX.woodDark, L - 0.25, 0.9, W * 0.6);
-  // Étagères
-  for (let i = 0; i < 4; i++) {
-    meshes.push(box(THREE, 0.33, 0.03, 0.96, HEX.wood, L - 0.25, 0.4 + i * 0.44, W * 0.6));
-  }
-  meshes.push(bib);
+    group.add(monitor, monitorBase, monitorArm, keyboard);
+
+    // Chaise noire (assise, dossier, pied)
+    const chairZ = 0.45;
+    const chairSeat = box(THREE, 0.5, 0.06, 0.5, HEX.black, 0, 0.45, chairZ);
+    const chairBack = box(THREE, 0.5, 0.45, 0.06, HEX.black, 0, 0.7, chairZ + 0.22);
+    const chairBase = box(THREE, 0.1, 0.42, 0.1, HEX.metal, 0, 0.21, chairZ);
+    group.add(chairSeat, chairBack, chairBase);
+
+    scene.add(group);
+  };
+
+  // On espace davantage les bureaux pour utiliser l'espace (pièce plus grande)
+  // 1. Bureau du haut
+  createDeskSetup(cx - 1.2, cz - 1.5, 0);
+
+  // 2. Bureau du bas
+  createDeskSetup(cx - 1.2, cz + 1.5, Math.PI);
+
+  // 3. Bureau de droite (près de la fenêtre)
+  createDeskSetup(cx + 1.5, cz, -Math.PI / 2);
+
+  // ─── Texte au sol "Room 1" ───
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const context = canvas.getContext('2d');
+  context.fillStyle = 'rgba(255, 255, 255, 0)'; // Transparent
+  context.fillRect(0, 0, 512, 128);
+  context.font = 'bold 80px Arial, sans-serif';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.fillStyle = '#0033CC'; // Bleu comme sur l'image
+  context.fillText('Room 1', 256, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 16;
+  const matText = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
+  const textPlane = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.5), matText);
+  // Rotation pour le poser au sol
+  textPlane.rotation.x = -Math.PI / 2;
+  // Le texte doit rester horizontal (lisible de face), donc on ne fait pas de rotation Z
+  textPlane.rotation.z = 0; 
+  textPlane.position.set(cx, 0.02, cz); // Juste au-dessus du sol
+  scene.add(textPlane);
 
   addToScene(scene, ...meshes);
   return meshes;
