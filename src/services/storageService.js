@@ -273,7 +273,7 @@ export class StorageService {
         formData: {
           room: { length: 8, width: 6, ceilingHeight: 3.2, workPlaneHeight: 0.75, type: 'Salle de classe' },
           occupation: { buildingType: "École/Salle de classe", occupationType: "Continue", occupants: 30, hoursPerDay: 8, daysPerWeek: 5 },
-          luminaire: { type: 'flu-t8-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' },
+          luminaire: { type: 'led-tube-scolaire-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' },
           naturalLight: { hasWindows: true, orientation: "Sud", windowArea: 8 },
           location: { zone: "Sud (Cotonou, Porto-Novo)" }
         }
@@ -284,7 +284,7 @@ export class StorageService {
         formData: {
           room: { length: 10, width: 8, ceilingHeight: 3.0, workPlaneHeight: 0.85, type: 'Bureau' },
           occupation: { buildingType: "Bureau/Administration", occupationType: "Continue", occupants: 20, hoursPerDay: 9, daysPerWeek: 5 },
-          luminaire: { type: 'led-dalle-600-36w', name: 'Dalle LED 600×600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' },
+          luminaire: { type: 'led-dalle-36w', name: 'Dalle LED 600x600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' },
           naturalLight: { hasWindows: true, orientation: "Est", windowArea: 12 },
           location: { zone: "Sud (Cotonou, Porto-Novo)" }
         }
@@ -295,7 +295,7 @@ export class StorageService {
         formData: {
           room: { length: 4, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.80, type: 'Chambre' },
           occupation: { buildingType: "Logement résidentiel", occupationType: "Mixte (jour + nuit)", occupants: 4, hoursPerDay: 6, daysPerWeek: 7 },
-          luminaire: { type: 'led-e27-9w', name: 'Ampoule LED E27 9W', fluxPerUnit: 810, powerPerUnit: 9, irc: 80, prix: 1500, haloType: 'led', categorie: 'Résidentiel' },
+          luminaire: { type: 'led-e27-9w', name: 'Ampoule LED E27 9W', fluxPerUnit: 810, powerPerUnit: 9, irc: 80, prix: 2000, haloType: 'led', categorie: 'Résidentiel' },
           naturalLight: { hasWindows: true, orientation: "Sud", windowArea: 3 },
           location: { zone: "Centre (Bohicon, Abomey)" }
         }

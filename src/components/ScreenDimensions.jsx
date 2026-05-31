@@ -33,11 +33,11 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
     }
   }, [value, focused]);
 
+  const minVal = min !== undefined ? min : 0;
   const handleChange = (e) => {
     setLocalValue(e.target.value);
     const parsed = parseFloat(e.target.value);
-    // Only propagate a valid, positive number immediately so formData stays coherent
-    if (!isNaN(parsed) && parsed > 0) {
+    if (!isNaN(parsed) && parsed >= minVal) {
       onChange(parsed);
     }
   };
@@ -45,11 +45,10 @@ function FieldRow({ label, unit, value, onChange, min, max, step = 0.1, type = '
   const handleBlur = () => {
     setFocused(false);
     const parsed = parseFloat(localValue);
-    if (!isNaN(parsed) && parsed > 0) {
+    if (!isNaN(parsed) && parsed >= minVal) {
       onChange(parsed);
       setLocalValue(String(parsed));
     } else {
-      // Revert to last valid value on blur if the field is empty / invalid
       setLocalValue(String(value ?? ''));
     }
   };
@@ -154,12 +153,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
   };
 
   const handleRoomTypeChange = (newType) => {
-    const def = ROOM_DEFAULTS[newType];
-    if (def) {
-      updateFormData('room', { ...room, type: newType, length: def.length, width: def.width, ceilingHeight: def.ceilingHeight, workPlaneHeight: def.workPlaneHeight });
-    } else {
-      updateFormData('room', { ...room, type: newType });
-    }
+    updateFormData('room', { ...room, type: newType });
   };
 
   const surface = ((room.length || 0) * (room.width || 0)).toFixed(1);
@@ -401,7 +395,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
               <SelectRow
                 label="Mois de simulation"
                 value={location.month || new Date().getMonth() + 1}
-                onChange={v => updateFormData('location', { month: parseInt(v) })}
+                onChange={v => updateFormData('location', { ...location, month: parseInt(v) })}
                 options={[
                   { value: 1, label: 'Janvier' },
                   { value: 2, label: 'Février' },
@@ -453,7 +447,8 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                   {value: 'Double standard', label: 'Double standard'},
                   {value: 'Double low-E', label: 'Double low-E'},
                   {value: 'Triple vitrage', label: 'Triple vitrage'},
-                  {value: 'Vitrage teinté', label: 'Vitrage teinté'}
+                  {value: 'Vitrage teinté', label: 'Vitrage teinté'},
+                  {value: 'Fenêtres jalousie', label: 'Fenêtres jalousie - reflectance (10%)'}
                 ]}
               />
               <SelectRow
@@ -496,6 +491,7 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                   { value: 'Porte double battant',     label: 'Double battant' },
                   { value: 'Rideau métallique',        label: 'Rideau métallique' },
                   { value: 'Porte automatique',        label: 'Automatique (capteur)' },
+                  { value: 'Portes jalousies',          label: 'Portes jalousies - reflectance (10%)' },
                   { value: 'Sans porte',               label: 'Sans porte / Ouvert' },
                 ]}
               />

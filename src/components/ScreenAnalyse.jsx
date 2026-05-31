@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle2, XCircle, BarChart2, CheckSquare, Wrench, Lightbulb } from 'lucide-react';
 import { NORMS, NORMS_U0 } from '../data/norms';
 import { useSimulation } from '../hooks/useSimulation';
@@ -45,7 +45,6 @@ function ConformityBadge({ isConform }) {
 
 export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev }) {
   const [showDetails, setShowDetails] = useState(false);
-  const [showDelta, setShowDelta]     = useState(false);
 
   // Run calculation engine — centralized hook
   const results = useSimulation(formData);
@@ -77,48 +76,8 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
   const conform_u0  = u0 >= normU0;
   const conform_irc = (luminaire.irc || 80) >= norm.ircMin;
 
-  // Deterministic heatmap zones based on luminaire positions
-  const zones = useMemo(() => {
-    const zoneRows = 3, zoneCols = 4;
-    const cellW = room.width / zoneCols;
-    const cellH = room.length / zoneRows;
-    const Hm = (room.ceilingHeight || 3) - (room.workPlaneHeight || 0.85);
-    const positions = uniformity.positions;
-    const res = [];
-
-    for (let r = 0; r < zoneRows; r++) {
-      for (let c = 0; c < zoneCols; c++) {
-        const cx = (c + 0.5) * cellW; // zone center X (along width)
-        const cy = (r + 0.5) * cellH; // zone center Y (along length)
-
-        // Sum inverse-square contributions from each luminaire
-        let totalContrib = 0;
-        for (const p of positions) {
-          const dx = cx - p.y; // p.x is along length, p.y along width in the engine
-          const dy = cy - p.x;
-          const distSq = dx * dx + dy * dy + Hm * Hm;
-          totalContrib += 1 / distSq;
-        }
-
-        res.push({ cx, cy, contrib: totalContrib });
-      }
-    }
-
-    // Normalize so average matches eMoy
-    const avgContrib = res.reduce((s, z) => s + z.contrib, 0) / res.length;
-    const scale = avgContrib > 0 ? eMoy / avgContrib : 0;
-
-    return res.map((z, i) => {
-      const e = Math.round(z.contrib * scale);
-      const zoneU = eMoy > 0 ? Math.round((Math.min(e, eMoy) / Math.max(e, eMoy)) * 100) / 100 : 0;
-      return {
-        zone: `${((i % 4) * (room.width / 4)).toFixed(1)}–${(((i % 4) + 1) * (room.width / 4)).toFixed(1)} m × ${(Math.floor(i / 4) * (room.length / 3)).toFixed(1)}–${((Math.floor(i / 4) + 1) * (room.length / 3)).toFixed(1)} m`,
-        e,
-        u: zoneU,
-        ok: e >= norm.lux,
-      };
-    });
-  }, [uniformity, eMoy, norm.lux, room]);
+  // Heatmap zones from the uniformity results
+  const zones = uniformity.zones || [];
 
   // Heatmap color based on lux level
   const lxColor = (lx) => {
@@ -214,7 +173,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: 14, fontWeight: 700 }}>
-                  Carte thermique — Éclairement (Lux)
+                  Carte de distribution lumineuse — Éclairement (Lux)
                 </h3>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
@@ -227,17 +186,6 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                     }}
                   >
                     Afficher détails
-                  </button>
-                  <button
-                    onClick={() => setShowDelta(!showDelta)}
-                    style={{
-                      background: showDelta ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${showDelta ? '#3B82F6' : 'rgba(255,255,255,0.1)'}`,
-                      color: showDelta ? '#3B82F6' : '#94A3B8',
-                      borderRadius: 6, padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: 12,
-                    }}
-                  >
-                    Delta sur le plan
                   </button>
                 </div>
               </div>
@@ -261,11 +209,6 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                   }}>
                     <div style={{ color: lxColor(z.e), fontWeight: 700, fontSize: 15 }}>{z.e}</div>
                     <div style={{ color: '#64748B', fontSize: 10 }}>Lux</div>
-                    {showDelta && (
-                      <div style={{ color: '#94A3B8', fontSize: 10, marginTop: 2 }}>
-                        U={z.u.toFixed(2)}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -300,7 +243,7 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                   <thead>
                     <tr>
-                      {['Zone', 'Écl. Moy.', 'Uniformité', 'Conformité'].map(h => (
+                      {['Zone', 'Écl. Moy.', 'Conformité'].map(h => (
                         <th key={h} style={{
                           textAlign: 'left', color: '#64748B', fontSize: 11, fontWeight: 600,
                           padding: '0.5rem 0.75rem', borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -314,9 +257,8 @@ export default function ScreenAnalyse({ formData, updateFormData, onNext, onPrev
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                         <td style={{ padding: '0.6rem 0.75rem', color: '#94A3B8', fontSize: 12 }}>{z.zone}</td>
                         <td style={{ padding: '0.6rem 0.75rem', color: lxColor(z.e), fontWeight: 700 }}>{z.e} Lux</td>
-                        <td style={{ padding: '0.6rem 0.75rem', color: z.u >= normU0 ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>{z.u.toFixed(2)}</td>
                         <td style={{ padding: '0.6rem 0.75rem' }}>
-                          <ConformityBadge isConform={z.ok && z.u >= normU0} />
+                          <ConformityBadge isConform={z.ok} />
                         </td>
                       </tr>
                     ))}

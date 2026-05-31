@@ -93,11 +93,11 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     // ── ÉTAPE 3 : Facteur d'orientation ────────────────────────────────────────
     const cleanOrient = (orientation || '').trim().toUpperCase();
     const ORIENTATION_FACTORS = {
-      'N': 0.40, 'NE': 0.55, 'E': 0.75, 'SE': 0.90,
-      'S': 1.00, 'SO': 0.90, 'O': 0.75, 'NO': 0.55,
-      'NORD': 0.40, 'SUD': 1.00, 'EST': 0.75, 'OUEST': 0.75,
+      'N': 0.7, 'NE': 0.8, 'E': 0.9, 'SE': 1.05,
+      'S': 1.2, 'SO': 1.1, 'O': 1.0, 'NO': 0.85,
+      'NORD': 0.7, 'SUD': 1.2, 'EST': 0.9, 'OUEST': 1.0,
     };
-    const orientationFactor = ORIENTATION_FACTORS[cleanOrient] || 0.80;
+    const orientationFactor = ORIENTATION_FACTORS[cleanOrient] || 0.90;
 
     // ── ÉTAPE 4 : Éclairement naturel intérieur ─────────────────────────────────
     // Formule : E_int = E_ext × τ_eff × (S_ouv / S_sol)
@@ -109,6 +109,7 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
       'Double low-E': 0.65,
       'Triple vitrage': 0.55,
       'Vitrage teinté': 0.45,
+      'Fenêtres jalousie': 0.90,
     };
     const Tv = GLAZING_TRANSMISSION[glazingType] || 0.72;
     let E_natural = 0;
@@ -120,7 +121,7 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
     if (S > 0 && totalOpeningArea > 0) {
       const effectiveArea = ((hasWindows ? windowArea : 0) * Tv) + (effectiveDoorArea * 1.0);
       const tau_global = effectiveArea / totalOpeningArea;
-      E_natural = Math.round(E_exterior * tau_global * (totalOpeningArea / S) * orientationFactor * 0.10);
+      E_natural = Math.round(E_exterior * tau_global * (totalOpeningArea / S) * orientationFactor);
     }
 
     // ── ÉTAPE 5 : Besoin d'éclairement — réutilise la valeur du moteur photométrique

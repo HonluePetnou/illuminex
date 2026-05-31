@@ -131,6 +131,7 @@ function MainApp() {
     const fullProject = {
       ...project,
       formData: {
+        projectName:  project.name || project.formData?.projectName || 'Projet Illuminex',
         room:         { ...defaultValues.room, ...baseRoom },
         occupation:   { ...defaultValues.occupation, ...baseOccupation },
         luminaire:    { ...defaultValues.luminaire, ...baseLuminaire },
@@ -163,6 +164,7 @@ function MainApp() {
       // Ensure results are also in sync if they exist at top level but not in formData
       const syncedFormData = {
         ...currentProject.formData,
+        projectName: currentProject.name || currentProject.formData.projectName || 'Projet Illuminex',
         results: currentProject.results || currentProject.formData.results || {}
       };
       setFormData(syncedFormData);
@@ -176,13 +178,21 @@ function MainApp() {
 
   const updateFormData = (section, values) => {
     setFormData(prev => {
-      const next = {
-        ...prev,
-        [section]: {
-          ...prev[section],
-          ...values,
-        },
-      };
+      let next;
+      if (typeof values !== 'object' || values === null) {
+        next = {
+          ...prev,
+          [section]: values
+        };
+      } else {
+        next = {
+          ...prev,
+          [section]: {
+            ...prev[section],
+            ...values,
+          },
+        };
+      }
       
       pushState(next);
 
@@ -196,6 +206,7 @@ function MainApp() {
           if (!cp) return cp;
           return { 
             ...cp, 
+            name: section === 'projectName' ? values : cp.name,
             formData: next,
             results: latestResults
           };

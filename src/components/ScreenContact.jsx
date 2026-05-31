@@ -155,7 +155,7 @@ export default function ScreenContact() {
       
       {/* ── Footer ── */}
       <div style={{ marginTop: 'auto', padding: '1.5rem', textAlign: 'center', borderTop: `1px solid ${C.border}`, fontSize: '0.75rem', color: C.dim }}>
-        © 2026 ILLUMINEX-BJ (Illuminaire Nuilere) par Supra Stores. Tous droits réservés.
+        © 2026 ILLUMINEX-BJ (Illuminaire Nuilere) par HELENA RUTH. Tous droits réservés.
       </div>
     </div>
   );

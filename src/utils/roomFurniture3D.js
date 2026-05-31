@@ -117,20 +117,28 @@ export function addSalonFurniture(scene, THREE, L, W, H) {
   const meshes = [];
   const cx = L / 2, cz = W / 2;
 
-  // Canapé 3 places
-  const canape = box(THREE, 2.1, 0.45, 0.85, HEX.fabric, cx, 0.225, W - 1.2);
-  const canapeBack = box(THREE, 2.1, 0.6, 0.25, HEX.fabric, cx, 0.52, W - 0.82);
-  const canapeL = box(THREE, 0.25, 0.6, 0.85, HEX.fabric, cx - 1.0, 0.3, W - 1.2);
-  const canapeR = box(THREE, 0.25, 0.6, 0.85, HEX.fabric, cx + 1.0, 0.3, W - 1.2);
+  // Canapé 3 places collé au mur gauche (petit espace ~5 cm)
+  const sofaX = 0.55;
+  const sofaZ = cz;
+  const canape = box(THREE, 0.85, 0.45, 2.1, HEX.fabric, sofaX, 0.225, sofaZ);
+  const canapeBack = box(THREE, 0.25, 0.6, 2.1, HEX.fabric, sofaX - 0.38, 0.52, sofaZ);
+  const canapeL = box(THREE, 0.85, 0.6, 0.25, HEX.fabric, sofaX, 0.3, sofaZ - 1.0);
+  const canapeR = box(THREE, 0.85, 0.6, 0.25, HEX.fabric, sofaX, 0.3, sofaZ + 1.0);
   meshes.push(canape, canapeBack, canapeL, canapeR);
 
-  // Table basse
-  const table = box(THREE, 1.0, 0.04, 0.55, HEX.woodLight, cx, 0.36, cz + 0.5);
+  // Fauteuil côté droit
+  const fauteuil = box(THREE, 0.8, 0.4, 0.75, HEX.fabric, L * 0.75, 0.2, W - 0.9);
+  const fauteuilBack = box(THREE, 0.8, 0.55, 0.2, HEX.fabric, L * 0.75, 0.47, W - 0.55);
+  meshes.push(fauteuil, fauteuilBack);
+
+  // Table basse devant le canapé
+  const tblX = sofaX + 1.3;
+  const table = box(THREE, 0.7, 0.04, 1.2, HEX.woodLight, tblX, 0.36, sofaZ);
   const [tl1, tl2, tl3, tl4] = [
-    box(THREE, 0.04, 0.34, 0.04, HEX.metal, cx - 0.46, 0.17, cz + 0.25),
-    box(THREE, 0.04, 0.34, 0.04, HEX.metal, cx + 0.46, 0.17, cz + 0.25),
-    box(THREE, 0.04, 0.34, 0.04, HEX.metal, cx - 0.46, 0.17, cz + 0.73),
-    box(THREE, 0.04, 0.34, 0.04, HEX.metal, cx + 0.46, 0.17, cz + 0.73),
+    box(THREE, 0.04, 0.34, 0.04, HEX.metal, tblX - 0.31, 0.17, sofaZ - 0.56),
+    box(THREE, 0.04, 0.34, 0.04, HEX.metal, tblX - 0.31, 0.17, sofaZ + 0.56),
+    box(THREE, 0.04, 0.34, 0.04, HEX.metal, tblX + 0.31, 0.17, sofaZ - 0.56),
+    box(THREE, 0.04, 0.34, 0.04, HEX.metal, tblX + 0.31, 0.17, sofaZ + 0.56),
   ];
   meshes.push(table, tl1, tl2, tl3, tl4);
 

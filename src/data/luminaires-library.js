@@ -7,15 +7,60 @@
 
 export const LUMINAIRES_LIBRARY = {
 
-  // ─── RÉSIDENTIEL ──────────────────────────────────────────────
+  // ─── LED / SPOTS / DALLES ─────────────────────────────────────
   led: [
+    // 🏠 RÉSIDENTIEL
+    {
+      id: 'led-e27-1w-veilleuse',
+      name: 'Ampoule LED E27 1W (veilleuse)',
+      flux: 80,
+      puissance: 1,
+      irc: 65,
+      prix: 500,
+      description: 'Veilleuse, urgence',
+      haloType: 'led',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'led-e27-3w',
+      name: 'Ampoule LED E27 3W',
+      flux: 250,
+      puissance: 3,
+      irc: 70,
+      prix: 700,
+      description: 'Couloir, WC',
+      haloType: 'led',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'led-e27-5w',
+      name: 'Ampoule LED E27 5W',
+      flux: 400,
+      puissance: 5,
+      irc: 70,
+      prix: 900,
+      description: 'Chambre économique',
+      haloType: 'led',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'led-e27-7w',
+      name: 'Ampoule LED E27 7W',
+      flux: 560,
+      puissance: 7,
+      irc: 70,
+      prix: 1200,
+      description: 'Chambre, WC',
+      haloType: 'led',
+      categorie: 'Résidentiel',
+    },
     {
       id: 'led-e27-9w',
       name: 'Ampoule LED E27 9W',
       flux: 810,
       puissance: 9,
       irc: 80,
-      prix: 2500,
+      prix: 2000,
       description: 'Chambre, salon',
       haloType: 'led',
       categorie: 'Résidentiel',
@@ -26,7 +71,7 @@ export const LUMINAIRES_LIBRARY = {
       flux: 1200,
       puissance: 12,
       irc: 80,
-      prix: 3500,
+      prix: 2000,
       description: 'Salon, cuisine',
       haloType: 'led',
       categorie: 'Résidentiel',
@@ -37,7 +82,7 @@ export const LUMINAIRES_LIBRARY = {
       flux: 1500,
       puissance: 15,
       irc: 80,
-      prix: 4500,
+      prix: 2500,
       description: 'Séjour',
       haloType: 'led',
       categorie: 'Résidentiel',
@@ -65,7 +110,7 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Résidentiel',
     },
     {
-      id: 'led-spot-gu10-7w',
+      id: 'led-spot-7w',
       name: 'Spot encastré LED 7W',
       flux: 630,
       puissance: 7,
@@ -76,7 +121,7 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Résidentiel',
     },
     {
-      id: 'led-spot-gu10-12w',
+      id: 'led-spot-12w',
       name: 'Spot encastré LED 12W',
       flux: 1080,
       puissance: 12,
@@ -87,10 +132,10 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Résidentiel',
     },
 
-    // ─── BUREAU / TERTIAIRE ────────────────────────────────────────
+    // 🏢 BUREAU / TERTIAIRE
     {
-      id: 'led-dalle-600-36w',
-      name: 'Dalle LED 600×600 36W',
+      id: 'led-dalle-36w',
+      name: 'Dalle LED 600x600 36W',
       flux: 3600,
       puissance: 36,
       irc: 80,
@@ -100,8 +145,8 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Tertiaire',
     },
     {
-      id: 'led-dalle-600-40w',
-      name: 'Dalle LED 600×600 40W',
+      id: 'led-dalle-40w',
+      name: 'Dalle LED 600x600 40W',
       flux: 4000,
       puissance: 40,
       irc: 80,
@@ -112,7 +157,7 @@ export const LUMINAIRES_LIBRARY = {
     },
     {
       id: 'led-dalle-300-36w',
-      name: 'Dalle LED 300×1200 36W',
+      name: 'Dalle LED 300x1200 36W',
       flux: 3500,
       puissance: 36,
       irc: 80,
@@ -143,11 +188,44 @@ export const LUMINAIRES_LIBRARY = {
       haloType: 'led',
       categorie: 'Tertiaire',
     },
+    {
+      id: 'led-plafonnier-saillie-30w',
+      name: 'Plafonnier LED saillie 30W',
+      flux: 2700,
+      puissance: 30,
+      irc: 80,
+      prix: 11000,
+      description: "Salle d'attente, bureau sans faux plafond",
+      haloType: 'led',
+      categorie: 'Tertiaire',
+    },
+    {
+      id: 'led-e27-30w-2650',
+      name: 'Ampoule LED E27 30W - 2650lm',
+      flux: 2650,
+      puissance: 30,
+      irc: 80,
+      prix: 3000,
+      description: 'Grand espace, atelier',
+      haloType: 'led',
+      categorie: 'Tertiaire',
+    },
+    {
+      id: 'led-e27-30w-3100',
+      name: 'Ampoule LED E27 30W - 3100lm',
+      flux: 3100,
+      puissance: 30,
+      irc: 80,
+      prix: 3000,
+      description: 'Grand espace, atelier',
+      haloType: 'led',
+      categorie: 'Tertiaire',
+    },
 
-    // ─── SCOLAIRE / INSTITUTIONNEL ────────────────────────────────
+    // 🏫 SCOLAIRE / INSTITUTIONNEL
     {
       id: 'led-dalle-scolaire-40w',
-      name: 'Dalle LED 600×600 40W (Scolaire)',
+      name: 'Dalle LED 600x600 40W',
       flux: 4000,
       puissance: 40,
       irc: 80,
@@ -156,8 +234,19 @@ export const LUMINAIRES_LIBRARY = {
       haloType: 'led',
       categorie: 'Scolaire',
     },
+    {
+      id: 'led-plafonnier-scolaire-36w',
+      name: 'Plafonnier LED saillie 36W',
+      flux: 3200,
+      puissance: 36,
+      irc: 80,
+      prix: 14000,
+      description: 'Classe sans faux plafond',
+      haloType: 'led',
+      categorie: 'Scolaire',
+    },
 
-    // ─── COMMERCE / BOUTIQUE ──────────────────────────────────────
+    // 🏪 COMMERCE / BOUTIQUE
     {
       id: 'led-spot-com-15w',
       name: 'Spot commercial LED 15W',
@@ -182,7 +271,7 @@ export const LUMINAIRES_LIBRARY = {
     },
     {
       id: 'led-dalle-com-40w',
-      name: 'Dalle LED 600×600 40W (Commerce)',
+      name: 'Dalle LED 600x600 40W',
       flux: 4000,
       puissance: 40,
       irc: 80,
@@ -203,20 +292,20 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Commerce',
     },
     {
-      id: 'led-reglette-com-40w',
-      name: 'Réglette LED 40W (Commerce)',
-      flux: 4000,
-      puissance: 40,
+      id: 'led-e27-15w-com',
+      name: 'Ampoule LED E27 15W (enseigne)',
+      flux: 1500,
+      puissance: 15,
       irc: 80,
-      prix: 14000,
-      description: 'Marché couvert',
+      prix: 2500,
+      description: 'Enseigne, vitrine simple',
       haloType: 'led',
       categorie: 'Commerce',
     },
 
-    // ─── INDUSTRIEL / ATELIER ─────────────────────────────────────
+    // 🏭 INDUSTRIEL / ATELIER
     {
-      id: 'led-reglette-50w',
+      id: 'led-reglette-indus-50w',
       name: 'Réglette industrielle 50W',
       flux: 5000,
       puissance: 50,
@@ -244,7 +333,7 @@ export const LUMINAIRES_LIBRARY = {
       puissance: 150,
       irc: 80,
       prix: 65000,
-      description: 'Grande hauteur (>6m)',
+      description: 'Grande hauteur',
       haloType: 'led',
       categorie: 'Industriel',
     },
@@ -252,8 +341,66 @@ export const LUMINAIRES_LIBRARY = {
 
   // ─── FLUORESCENT / TUBES LED ──────────────────────────────────
   fluorescent: [
+    // 🏠 RÉSIDENTIEL
     {
-      id: 'flu-t8-18w',
+      id: 'lbc-8w',
+      name: 'Ampoule LBC (fluo-compact) 8W',
+      flux: 430,
+      puissance: 8,
+      irc: 80,
+      prix: 800,
+      description: 'Chambre, cuisine',
+      haloType: 'fluorescent',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'lbc-15w',
+      name: 'Ampoule LBC (fluo-compact) 15W',
+      flux: 900,
+      puissance: 15,
+      irc: 80,
+      prix: 1200,
+      description: 'Salon, cuisine',
+      haloType: 'fluorescent',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'lbc-20w',
+      name: 'Ampoule LBC (fluo-compact) 20W',
+      flux: 1200,
+      puissance: 20,
+      irc: 80,
+      prix: 1500,
+      description: 'Séjour, boutique',
+      haloType: 'fluorescent',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'flu-t8-18w-60cm',
+      name: 'Néon fluorescent T8 18W 60cm',
+      flux: 1100,
+      puissance: 18,
+      irc: 75,
+      prix: 2000,
+      description: 'Cuisine, couloir',
+      haloType: 'fluorescent',
+      categorie: 'Résidentiel',
+    },
+    {
+      id: 'flu-t8-36w-120cm',
+      name: 'Néon fluorescent T8 36W 120cm',
+      flux: 2500,
+      puissance: 36,
+      irc: 75,
+      prix: 3500,
+      description: 'Salon, garage',
+      haloType: 'fluorescent',
+      categorie: 'Résidentiel',
+    },
+
+    // 🏢 BUREAU / TERTIAIRE
+    {
+      id: 'led-tube-t8-18w',
       name: 'Tube LED T8 18W 120cm',
       flux: 1800,
       puissance: 18,
@@ -264,7 +411,7 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Tertiaire',
     },
     {
-      id: 'flu-t8-22w',
+      id: 'led-tube-t8-22w',
       name: 'Tube LED T8 22W 150cm',
       flux: 2200,
       puissance: 22,
@@ -275,7 +422,7 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Tertiaire',
     },
     {
-      id: 'flu-reglette-40w',
+      id: 'led-reglette-40w',
       name: 'Réglette LED 40W',
       flux: 4000,
       puissance: 40,
@@ -286,7 +433,31 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Tertiaire',
     },
     {
-      id: 'flu-t8-36w',
+      id: 'led-tube-t8-9w',
+      name: 'Tube LED T8 9W 60cm',
+      flux: 850,
+      puissance: 9,
+      irc: 75,
+      prix: 3500,
+      description: 'Petit bureau, caisse',
+      haloType: 'fluorescent',
+      categorie: 'Tertiaire',
+    },
+    {
+      id: 'flu-reglette-2x18w',
+      name: 'Réglette fluorescente 2×18W (existant)',
+      flux: 2200,
+      puissance: 36,
+      irc: 75,
+      prix: 7000,
+      description: 'Bureau classique ancien',
+      haloType: 'fluorescent',
+      categorie: 'Tertiaire',
+    },
+
+    // 🏫 SCOLAIRE / INSTITUTIONNEL
+    {
+      id: 'led-tube-scolaire-36w',
       name: 'Tube LED T8 36W 120cm',
       flux: 3600,
       puissance: 36,
@@ -297,7 +468,7 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Scolaire',
     },
     {
-      id: 'flu-industrielle-50w',
+      id: 'reglette-indus-scolaire-50w',
       name: 'Réglette industrielle 50W',
       flux: 5000,
       puissance: 50,
@@ -308,8 +479,67 @@ export const LUMINAIRES_LIBRARY = {
       categorie: 'Scolaire',
     },
     {
-      id: 'flu-t8-36w-ip65',
-      name: 'Tube LED T8 36W (étanche)',
+      id: 'flu-neon-scolaire-36w',
+      name: 'Néon fluorescent T8 36W (existant)',
+      flux: 2500,
+      puissance: 36,
+      irc: 75,
+      prix: 3500,
+      description: 'Classe ancienne génération',
+      haloType: 'fluorescent',
+      categorie: 'Scolaire',
+    },
+
+    // 🏪 COMMERCE / BOUTIQUE
+    {
+      id: 'led-reglette-com-40w',
+      name: 'Réglette LED 40W',
+      flux: 4000,
+      puissance: 40,
+      irc: 80,
+      prix: 14000,
+      description: 'Marché couvert',
+      haloType: 'fluorescent',
+      categorie: 'Commerce',
+    },
+    {
+      id: 'lbc-20w-com',
+      name: 'Ampoule LBC 20W (devanture)',
+      flux: 1200,
+      puissance: 20,
+      irc: 80,
+      prix: 1500,
+      description: 'Devanture boutique, kiosque',
+      haloType: 'fluorescent',
+      categorie: 'Commerce',
+    },
+    {
+      id: 'led-tube-com-18w',
+      name: 'Tube LED T8 18W 120cm (économique)',
+      flux: 1800,
+      puissance: 18,
+      irc: 80,
+      prix: 5000,
+      description: 'Boutique, épicerie',
+      haloType: 'fluorescent',
+      categorie: 'Commerce',
+    },
+    {
+      id: 'flu-reglette-com-36w',
+      name: 'Réglette fluorescente 1×36W (marché)',
+      flux: 2500,
+      puissance: 36,
+      irc: 75,
+      prix: 5000,
+      description: 'Marché couvert, hangar',
+      haloType: 'fluorescent',
+      categorie: 'Commerce',
+    },
+
+    // 🏭 INDUSTRIEL / ATELIER
+    {
+      id: 'led-tube-indus-36w',
+      name: 'Tube LED T8 36W étanche',
       flux: 3600,
       puissance: 36,
       irc: 80,
@@ -320,58 +550,8 @@ export const LUMINAIRES_LIBRARY = {
     },
   ],
 
-  // ─── HALOGÈNE ─────────────────────────────────────────────────
-  halogene: [
-    {
-      id: 'hal-gu10-28w',
-      name: 'Halogène GU10 28W',
-      flux: 340,
-      puissance: 28,
-      irc: 100,
-      prix: 1200,
-      description: 'Spot halogène standard',
-      haloType: 'halogene',
-      categorie: 'Résidentiel',
-    },
-    {
-      id: 'hal-gu10-50w',
-      name: 'Halogène GU10 50W',
-      flux: 680,
-      puissance: 50,
-      irc: 100,
-      prix: 1800,
-      description: 'Spot halogène puissant',
-      haloType: 'halogene',
-      categorie: 'Résidentiel',
-    },
-  ],
-
-  // ─── INCANDESCENT ─────────────────────────────────────────────
-  incandescent: [
-    {
-      id: 'inc-e27-60w',
-      name: 'Ampoule E27 60W',
-      flux: 800,
-      puissance: 60,
-      irc: 100,
-      prix: 1000,
-      description: 'Ampoule classique standard',
-      haloType: 'incandescent',
-      categorie: 'Résidentiel',
-    },
-
-    {
-      id: 'inc-e27-100w',
-      name: 'Ampoule E27 100W',
-      flux: 1380,
-      puissance: 100,
-      irc: 100,
-      prix: 1500,
-      description: 'Ampoule classique forte puissance — faible efficacité',
-      haloType: 'incandescent',
-      categorie: 'Résidentiel',
-    },
-  ],
+  halogene: [],
+  incandescent: [],
 };
 
 

@@ -202,8 +202,8 @@ export default function ScreenLuminaires({ formData, updateFormData, onNext, onP
   const [search,      setSearch]      = useState('');
   const [activeTab,   setActiveTab]   = useState('all');
   const [maxFlux,     setMaxFlux]     = useState(20000);
-  const [maxWatt,     setMaxWatt]     = useState(200);
-  const [minIrc,      setMinIrc]      = useState(80);
+  const [maxWatt,     setMaxWatt]     = useState(500);
+  const [minIrc,      setMinIrc]      = useState(0);
   const [showFilters, setShowFilters] = useState(false);
 
   /* Aplatissement de toute la bibliothèque */
@@ -438,7 +438,7 @@ export default function ScreenLuminaires({ formData, updateFormData, onNext, onP
                     type="number"
                     value={luminaire.prix ?? ''}
                     min={0}
-                    onChange={e => updateFormData('luminaire', { ...luminaire, prix: parseInt(e.target.value) || 0 })}
+                    onChange={e => { const v = parseInt(e.target.value); updateFormData('luminaire', { ...luminaire, prix: isNaN(v) ? '' : v }); }}
                     style={{
                       width: 72, background: C.input, border: `1px solid ${C.border}`,
                       borderRadius: 4, padding: '2px 6px', color: C.accent, fontSize: '0.75rem',

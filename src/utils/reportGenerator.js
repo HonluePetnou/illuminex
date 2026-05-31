@@ -1,6 +1,85 @@
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { calculateThermalComfort } from './thermalComfort';
+import { NORMS } from '../data/norms';
+
+/**
+ * Calcul des recommandations et niveau d'économie pour la lumière naturelle.
+ */
+export function calculateDaylightRecommendations(E_moyen_naturel, E_norme_piece) {
+  let status = "";
+  let comment = "";
+  let recs = [];
+  let shortMsg = "";
+  let economyMsg = "";
+
+  if (E_moyen_naturel > 2 * E_norme_piece) {
+    status = "Éclairement naturel trop élevé";
+    comment = "L’apport de lumière naturelle est très important. Bien qu’il permette de réduire fortement l’éclairage artificiel, il peut également provoquer de l’éblouissement ou une gêne visuelle.";
+    recs = [
+      "installer des stores, rideaux ou brise-soleil ;",
+      "éviter l’exposition directe prolongée des postes de travail ;",
+      "utiliser des vitrages à contrôle solaire ;",
+      "réorganiser les postes sensibles à l’éblouissement ;",
+      "prévoir une gestion par zones de l’éclairage artificiel."
+    ];
+    shortMsg = "L’apport naturel est très élevé. Il permet des économies importantes, mais peut entraîner un risque d’éblouissement.";
+    economyMsg = "Économie potentielle très élevée, mais à surveiller ⚡";
+  } else if (E_moyen_naturel >= E_norme_piece) {
+    status = "Lumière naturelle suffisante";
+    comment = "L’apport de lumière naturelle est suffisant pour couvrir les besoins lumineux de la pièce durant la période analysée. L’utilisation de l’éclairage artificiel peut être fortement réduite, voire évitée pendant cette tranche horaire.";
+    recs = [
+      "privilégier l’éclairage naturel durant cette période ;",
+      "prévoir une commande séparée des luminaires proches des ouvertures ;",
+      "installer des détecteurs de luminosité ou variateurs si possible ;",
+      "éviter l’allumage systématique de tous les luminaires en journée."
+    ];
+    shortMsg = "La lumière naturelle couvre les besoins lumineux pendant la période analysée. L’éclairage artificiel peut être fortement réduit.";
+    economyMsg = "Économie potentielle élevée ✅";
+  } else if (E_moyen_naturel >= 0.7 * E_norme_piece) {
+    status = "Lumière naturelle partiellement suffisante";
+    comment = "L’apport de lumière naturelle couvre une partie importante des besoins lumineux, mais il reste insuffisant pour garantir seul le niveau d’éclairement recommandé dans toute la pièce.";
+    recs = [
+      "conserver un éclairage artificiel complémentaire ;",
+      "allumer prioritairement les luminaires situés dans les zones éloignées des ouvertures ;",
+      "séparer les circuits d’éclairage par zones ;",
+      "exploiter la lumière naturelle près des fenêtres ;",
+      "éviter l’allumage complet de tous les luminaires si certaines zones sont déjà bien éclairées."
+    ];
+    shortMsg = "La lumière naturelle contribue significativement à l’éclairage de la pièce, mais un complément artificiel reste nécessaire.";
+    economyMsg = "Économie potentielle moyenne ⚠️";
+  } else if (E_moyen_naturel >= 0.3 * E_norme_piece) {
+    status = "Lumière naturelle insuffisante";
+    comment = "L’apport de lumière naturelle reste insuffisant pour assurer seul le confort visuel requis. L’éclairage artificiel demeure nécessaire pour atteindre le niveau recommandé.";
+    recs = [
+      "maintenir l’éclairage artificiel en fonctionnement ;",
+      "améliorer si possible l’accès à la lumière naturelle ;",
+      "utiliser des couleurs claires sur les murs et le plafond ;",
+      "éviter les obstacles devant les fenêtres ;",
+      "optimiser la disposition du mobilier afin de ne pas bloquer la lumière naturelle."
+    ];
+    shortMsg = "L’éclairage naturel ne permet pas d’atteindre seul le niveau recommandé. L’éclairage artificiel reste nécessaire.";
+    economyMsg = "Économie potentielle faible ⚠️";
+  } else {
+    status = "Lumière naturelle très faible";
+    comment = "L’apport de lumière naturelle est très faible. La pièce dépend principalement de l’éclairage artificiel pour atteindre le niveau d’éclairement recommandé.";
+    recs = [
+      "prévoir un éclairage artificiel permanent pendant les heures d’occupation ;",
+      "améliorer les ouvertures si possible ;",
+      "augmenter la réflectance des surfaces intérieures ;",
+      "vérifier l’orientation du bâtiment et les éventuels masques solaires ;",
+      "privilégier des luminaires LED efficaces pour limiter la consommation."
+    ];
+    shortMsg = "La pièce dépend principalement de l’éclairage artificiel. Les économies liées à la lumière naturelle sont limitées.";
+    economyMsg = "Économie potentielle très limitée ❌";
+  }
+
+  const taux = E_norme_piece > 0 ? (E_moyen_naturel / E_norme_piece) : 0;
+  const economie_pct = Math.round(Math.min(1.0, taux) * 100);
+
+  return { status, comment, recs, shortMsg, economyMsg, economie_pct };
+}
+
 
 /**
  * PART A - Assembler les données pour le générateur de rapport
@@ -17,14 +96,20 @@ export function buildReportData(formData, allResults) {
   const usar = allResults.usage || {};
   const nlr = allResults.naturalLight || {};
 
+  const E_moyen_nat = cr.naturalLight?.E_natural || 0;
+  const E_norme = lr.E_required || 300;
+  const daylightInfo = calculateDaylightRecommendations(E_moyen_nat, E_norme);
+
   const reportData = {
     meta: {
       title: "Rapport de dimensionnement ILLUMINEX-BJ",
       buildingType: formData?.occupation?.buildingType || 'Non spécifié',
+      roomType: formData?.room?.type || 'Bureau',
       date: date,
       version: "1.0",
       zone: formData?.location?.zone || 'Non spécifiée'
     },
+    daylightInfo: daylightInfo,
     inputs: {
       room: {
         length: formData?.room?.length || 0,
@@ -32,7 +117,11 @@ export function buildReportData(formData, allResults) {
         ceilingHeight: formData?.room?.ceilingHeight || 0,
         workPlaneHeight: formData?.room?.workPlaneHeight || 0,
         surface: lr.S || 0,
-        reflectance: formData?.room?.reflectance || { ceiling: 70, walls: 50, floor: 20 }
+        reflectance: {
+          ceiling: Math.round((parseFloat(formData?.materiaux?.rPlafond) || 0.85) * 100),
+          walls:   Math.round((parseFloat(formData?.materiaux?.rMurs)    || 0.80) * 100),
+          floor:   Math.round((parseFloat(formData?.materiaux?.rSol)     || 0.70) * 100),
+        }
       },
       occupation: {
         buildingType: formData?.occupation?.buildingType || '',
@@ -64,7 +153,8 @@ export function buildReportData(formData, allResults) {
       U0_color: ur.statusColor || '#000',
       layout: ur.layout || { rows: 0, cols: 0, spacingX: 0, spacingY: 0, spacingWarning: false, S_max: 0 },
       totalPower: lr.totalPower || 0,
-      UGR: lr.UGR || 19
+      UGR: lr.UGR || 19,
+      zones: ur.zones || []
     },
     climate: {
       type:            cr.climate?.type      || 'Inconnu',
@@ -123,7 +213,7 @@ export function buildReportData(formData, allResults) {
  * @returns {Array} Array of strings with recommendations
  */
 export function generateRecommendations(reportData) {
-  const recs = { general: [], thermal: null };
+  const recs = { general: [], thermal: null, daylight: null };
   
   const U0 = reportData.lighting?.U0 || 0;
   const layout = reportData.lighting?.layout || {};
@@ -138,10 +228,6 @@ export function generateRecommendations(reportData) {
     recs.general.push("Uniformité insuffisante. Réduire l'espacement entre les luminaires.");
   }
   
-  if (layout.spacingWarning) {
-    recs.general.push(`Espacement trop grand détecté. Envisager d'ajouter des luminaires ou d'ajuster leur hauteur.`);
-  }
-
   if (savingsPercent > 50) {
     recs.general.push("L'apport en lumière naturelle est très significatif. Il est vivement conseillé d'installer des détecteurs de luminosité et des variateurs pour maximiser ces économies.");
   }
@@ -160,6 +246,16 @@ export function generateRecommendations(reportData) {
 
   if (cost_annual > 100000) {
     recs.general.push("Coût d'exploitation annuel élevé (> 100 000 FCFA). Un investissement dans un système de gestion automatique centralisée (DALI, KNX) serait très vite rentabilisé sur ce projet.");
+  }
+
+  // Apport en Lumière Naturelle
+  const daylightInfo = reportData.daylightInfo;
+  if (daylightInfo) {
+    recs.daylight = {
+      status: daylightInfo.status,
+      message: daylightInfo.comment,
+      bullets: daylightInfo.recs
+    };
   }
 
   if (thermalStatus === "Très confortable") {
@@ -224,10 +320,10 @@ export function generateRecommendations(reportData) {
         "Réaliser une analyse thermique approfondie du bâtiment."
       ]
     };
-  } else if (thermalStatus === "Froid") {
+  } else if (thermalStatus === "Froid" || thermalStatus === "Frais") {
     recs.thermal = {
-      status: "Froid",
-      message: "Les conditions thermiques sont inférieures à la zone de confort recommandée.",
+      status: "Frais",
+      message: "Les conditions thermiques sont inférieures à la zone de confort recommandée (sensation de fraîcheur).",
       bullets: [
         "Réduire les infiltrations d’air ;",
         "Améliorer l’isolation des parois ;",
@@ -360,7 +456,7 @@ export function exportToPDF(reportData) {
   addTocEntry("Sommaire", 2);
   addTocEntry("Résumé de la pièce & Liste des luminaires", 3);
   addTocEntry("Plan d'implantation des luminaires", 4);
-  addTocEntry("Uniformité de l'Éclairage (Carte thermique)", 5);
+  addTocEntry("Uniformité de l'Éclairage (Carte de distribution lumineuse)", 5);
   addTocEntry("Analyse Énergétique et Confort Thermique", 6);
   
   let nextPage = 7;
@@ -435,7 +531,9 @@ export function exportToPDF(reportData) {
   const u0 = reportData.lighting.U0.toFixed(2);
   const checkU = reportData.lighting.U0 >= 0.40 ? '__PASS__' : '__FAIL__';
   const ugr = reportData.lighting.UGR || 19;
-  const checkUGR = ugr <= 19 ? '__PASS__' : '__FAIL__';
+  const roomType = reportData.meta?.roomType || 'Bureau';
+  const targetUgr = NORMS[roomType]?.ugrMax || 19;
+  const checkUGR = ugr <= targetUgr ? '__PASS__' : '__FAIL__';
 
   doc.autoTable({
     startY: currentY,
@@ -443,7 +541,7 @@ export function exportToPDF(reportData) {
     body: [
       ['E_perpendiculaire (Plan utile)', `${realE} lx`, `>= ${targetE} lx`, checkE],
       ['Uniformité Uo (g1)', `${u0}`, `>= 0.40`, checkU],
-      ['Indice d\'éblouissement (UGR)', `${ugr}`, `<= 19`, checkUGR],
+      ['Indice d\'éblouissement (UGR)', `${ugr}`, `<= ${targetUgr}`, checkUGR],
       ['Densité de puissance', `${lpd} W/m²`, '-', '-']
     ],
     theme: 'grid',
@@ -540,96 +638,114 @@ export function exportToPDF(reportData) {
   addFooter(4);
 
   // ==========================================
-  // PAGE 5: LIGHT UNIFORMITY (HEATMAP)
+  // PAGE 5: LIGHT UNIFORMITY (CARTE DE DISTRIBUTION LUMINEUSE)
   // ==========================================
   doc.addPage();
-  currentY = addPageHeader("Bâtiment 1 · Niveau 1 · Pièce 1", "Uniformité de l'Éclairage (Carte thermique)");
+  currentY = addPageHeader("Bâtiment 1 · Niveau 1 · Pièce 1", "Uniformité de l'Éclairage (Carte de distribution lumineuse)");
 
   const hmWidth = pageWidth - margin * 2;
   const hmHeight = 120;
   
-  // Calculate grid dimensions
-  const hmCols = Math.min(Math.max(reportData.lighting.layout.cols || 4, 3), 6);
-  const hmRows = Math.min(Math.max(reportData.lighting.layout.rows || 3, 2), 6);
-  const cellW = hmWidth / hmCols;
-  const cellH = hmHeight / hmRows;
-
-  // Retrieve values or mock them based on E_real and U0
   const E_moy = Math.round(reportData.lighting.E_real) || 500;
   const u0_val = reportData.lighting.U0 || 0.6;
   const E_min = Math.round(E_moy * u0_val);
   const E_max = Math.round(E_moy * (2 - u0_val));
 
-  // Draw Heatmap Grid
-  let gridY = currentY;
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(200, 200, 200);
+  // Always show the clean analysis grid with real zone values
+  currentY = drawMockGridInline(currentY);
 
-  for (let r = 0; r < hmRows; r++) {
-    for (let c = 0; c < hmCols; c++) {
-      const cx = margin + c * cellW;
-      const cy = gridY + r * cellH;
-      
-      // Interpolate value based on position (edges are usually darker)
-      const distCenterR = Math.abs((r + 0.5) - (hmRows / 2)) / (hmRows / 2);
-      const distCenterC = Math.abs((c + 0.5) - (hmCols / 2)) / (hmCols / 2);
-      const dist = (distCenterR + distCenterC) / 2; // 0 at center, 1 at corners
-      
-      let cellLux = Math.round(E_max - dist * (E_max - E_min));
-      // Add slight randomness for realism (-5% to +5%)
-      cellLux = Math.round(cellLux * (0.95 + Math.random() * 0.1));
-      cellLux = Math.max(E_min, Math.min(cellLux, E_max));
-
-      // Color mapping
-      const targetE = reportData.lighting.E_required || 500;
-      let rFill = 255, gFill = 255, bFill = 255;
-      
-      if (cellLux < targetE * 0.8) {
-        // Insufficient (Reddish)
-        rFill = 253; gFill = 224; bFill = 224;
-      } else if (cellLux < targetE) {
-        // Average (Yellow/Orangeish)
-        rFill = 254; gFill = 243; bFill = 199;
-      } else {
-        // Good (Greenish/Brownish)
-        rFill = 220; gFill = 252; bFill = 231;
-      }
-
-      doc.setFillColor(rFill, gFill, bFill);
-      doc.rect(cx, cy, cellW, cellH, 'FD');
-      
-      doc.setFont('helvetica', 'bold');
+  // Optionally add the 2D canvas capture below the grid as a supplementary visual
+  if (reportData.meta.cover2DImage) {
+    try {
       doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(50, 50, 50);
-      
-      const textW = doc.getTextWidth(cellLux.toString());
-      doc.text(cellLux.toString(), cx + cellW/2 - textW/2, cy + cellH/2);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const luxLabelW = doc.getTextWidth("Lux");
-      doc.text("Lux", cx + cellW/2 - luxLabelW/2, cy + cellH/2 + 5);
+      doc.text("Aperçu 2D de la simulation", margin, currentY);
+      currentY += 5;
+      const imgH = 70;
+      doc.addImage(reportData.meta.cover2DImage, 'PNG', margin, currentY, hmWidth, imgH);
+      currentY += imgH + 10;
+    } catch (e) {
+      console.error("Failed to add 2D capture image:", e);
     }
   }
 
-  currentY = gridY + hmHeight + 15;
+  function drawMockGridInline(startY) {
+    const realZones = reportData.lighting.zones || [];
+    const hasRealZones = realZones.length === 12;
 
-  // Legend
-  doc.setFillColor(220, 252, 231);
-  doc.rect(margin, currentY, 4, 4, 'F');
-  doc.setFontSize(9);
-  doc.setTextColor(50, 50, 50);
-  doc.text(`>= ${reportData.lighting.E_required} lux (Bon)`, margin + 6, currentY + 3.5);
+    // Always use 4 cols × 3 rows (matching the analysis grid)
+    const hmCols = 4;
+    const hmRows = 3;
+    const cellW = hmWidth / hmCols;
+    const cellH = hmHeight / hmRows;
 
-  doc.setFillColor(254, 243, 199);
-  doc.rect(margin + 60, currentY, 4, 4, 'F');
-  doc.text("Moyen", margin + 66, currentY + 3.5);
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(200, 200, 200);
 
-  doc.setFillColor(253, 224, 224);
-  doc.rect(margin + 100, currentY, 4, 4, 'F');
-  doc.text("Insuffisant", margin + 106, currentY + 3.5);
+    for (let r = 0; r < hmRows; r++) {
+      for (let c = 0; c < hmCols; c++) {
+        const idx = r * hmCols + c;
+        const cx = margin + c * cellW;
+        const cy = startY + r * cellH;
+        
+        let cellLux;
+        if (hasRealZones) {
+          cellLux = realZones[idx]?.e || 0;
+        } else {
+          // Fallback: distance-based estimation
+          const distCenterR = Math.abs((r + 0.5) - (hmRows / 2)) / (hmRows / 2);
+          const distCenterC = Math.abs((c + 0.5) - (hmCols / 2)) / (hmCols / 2);
+          const dist = (distCenterR + distCenterC) / 2;
+          cellLux = Math.round(E_max - dist * (E_max - E_min));
+          cellLux = Math.max(E_min, Math.min(cellLux, E_max));
+        }
 
-  currentY += 20;
+        const targetE = reportData.lighting.E_required || 500;
+        let rFill = 255, gFill = 255, bFill = 255;
+        
+        if (cellLux < targetE * 0.8) {
+          rFill = 253; gFill = 224; bFill = 224;
+        } else if (cellLux < targetE) {
+          rFill = 254; gFill = 243; bFill = 199;
+        } else {
+          rFill = 220; gFill = 252; bFill = 231;
+        }
+
+        doc.setFillColor(rFill, gFill, bFill);
+        doc.rect(cx, cy, cellW, cellH, 'FD');
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(50, 50, 50);
+        
+        const textW = doc.getTextWidth(cellLux.toString());
+        doc.text(cellLux.toString(), cx + cellW/2 - textW/2, cy + cellH/2);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        const luxLabelW = doc.getTextWidth("Lux");
+        doc.text("Lux", cx + cellW/2 - luxLabelW/2, cy + cellH/2 + 5);
+      }
+    }
+
+    const legendY = startY + hmHeight + 15;
+    doc.setFillColor(220, 252, 231);
+    doc.rect(margin, legendY, 4, 4, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(50, 50, 50);
+    doc.text(`>= ${reportData.lighting.E_required} lux (Bon)`, margin + 6, legendY + 3.5);
+
+    doc.setFillColor(254, 243, 199);
+    doc.rect(margin + 60, legendY, 4, 4, 'F');
+    doc.text("Moyen", margin + 66, legendY + 3.5);
+
+    doc.setFillColor(253, 224, 224);
+    doc.rect(margin + 100, legendY, 4, 4, 'F');
+    doc.text("Insuffisant", margin + 106, legendY + 3.5);
+
+    return legendY + 20;
+  }
 
   // Global Results
   doc.setFontSize(12);
@@ -675,6 +791,14 @@ export function exportToPDF(reportData) {
   doc.addPage();
   currentY = addPageHeader("Bâtiment 1 · Niveau 1 · Pièce 1", "Analyse Énergétique & Confort");
 
+  // Helper to strip emojis for PDF rendering
+  const stripEmojis = (text) => {
+    if (typeof text !== 'string') return text;
+    return text
+      .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
+      .trim();
+  };
+
   doc.autoTable({
     startY: currentY,
     head: [['Paramètre Climatique / Thermique', 'Valeur']],
@@ -683,8 +807,11 @@ export function exportToPDF(reportData) {
       ['Ville', reportData.climate.city || '-'],
       ['Saison', reportData.climate.season],
       ['Facteur Lumière du Jour (FLN)', reportData.climate.FLN.toFixed(3)],
-      ['Économie due à la lumière naturelle', 'économie potentielle maximale'],
+      ['Économie due à la lumière naturelle', stripEmojis(reportData.daylightInfo?.economyMsg || '—')],
       ['T. Extérieure / Vent', `${reportData.thermal.T2M}°C / ${reportData.thermal.WS10M}m/s`],
+      ['Température ressentie', `${reportData.thermal.T_ressentie} °C`],
+      ['Vent utilisé', `${reportData.thermal.WS10M} m/s`],
+      ['État des ouvertures', reportData.thermal.windowsOpen ? 'ouvertes' : 'fermées'],
       ['Température de Confort', `${reportData.thermal.T_confort}°C`],
       ['Statut Thermique', reportData.thermal.statut]
     ],
@@ -692,7 +819,11 @@ export function exportToPDF(reportData) {
     headStyles: { fontStyle: 'bold', fillColor: [29, 78, 216], textColor: [255, 255, 255] },
     bodyStyles: { textColor: [50, 50, 50] },
     alternateRowStyles: { fillColor: [245, 247, 250] },
-    margin: { left: margin, right: margin }
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      0: { cellWidth: 100 },
+      1: { cellWidth: 'auto' }
+    }
   });
 
   currentY = doc.lastAutoTable.finalY + 15;
@@ -725,7 +856,7 @@ export function exportToPDF(reportData) {
   // PAGE 7: RECOMMENDATIONS (Optional)
   // ==========================================
   const recsData = reportData.recommendations;
-  if (recsData && ((recsData.general && recsData.general.length > 0) || recsData.thermal)) {
+  if (recsData && ((recsData.general && recsData.general.length > 0) || recsData.thermal || recsData.daylight)) {
     doc.addPage();
     currentY = addPageHeader("Recommandations Techniques");
     
@@ -742,6 +873,37 @@ export function exportToPDF(reportData) {
         const splitText = doc.splitTextToSize(`• ${rec}`, pageWidth - margin * 2);
         doc.text(splitText, margin, currentY);
         currentY += (splitText.length * 6) + 4;
+      });
+      currentY += 5;
+    }
+
+    if (recsData.daylight) {
+      // Check space
+      if (currentY > pageHeight - 60) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Apport en Lumière Naturelle", margin, currentY);
+      currentY += 8;
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Statut : ${recsData.daylight.status}`, margin, currentY);
+      currentY += 6;
+
+      doc.setFont('helvetica', 'italic');
+      const msgLines = doc.splitTextToSize(recsData.daylight.message, pageWidth - margin * 2);
+      doc.text(msgLines, margin, currentY);
+      currentY += (msgLines.length * 5) + 4;
+
+      doc.setFont('helvetica', 'normal');
+      recsData.daylight.bullets.forEach((bullet) => {
+        const bulletLines = doc.splitTextToSize(`• ${bullet}`, pageWidth - margin * 2);
+        doc.text(bulletLines, margin, currentY);
+        currentY += (bulletLines.length * 5) + 2;
       });
       currentY += 5;
     }
@@ -788,7 +950,7 @@ export function exportToPDF(reportData) {
   const terms = [
     { title: "Éclairement moyen (E_moyen)", text: "Décrit le rapport entre le flux lumineux qui frappe une certaine surface et la taille de cette surface (lm/m² = lx). Il s'agit de la moyenne de la lumière reçue sur le plan de travail, sans évaluer la perception humaine." },
     { title: "Uniformité (U0 ou g1)", text: "Désigne l'uniformité globale de l'éclairement sur une surface. Il s'agit du quotient de E_min (minimum) sur E_moyen, exigé par la norme EN 12464-1 pour assurer un confort visuel sans taches d'ombres." },
-    { title: "Éblouissement d'inconfort (UGR)", text: "Unified Glare Rating. Mesure de l'effet d'éblouissement psychologique en intérieur. Plus la valeur est faible, moins le luminaire est éblouissant. Un UGR <= 19 est recommandé pour les bureaux." },
+    { title: "Éblouissement d'inconfort (UGR)", text: `Unified Glare Rating. Mesure de l'effet d'éblouissement psychologique en intérieur. Plus la valeur est faible, moins le luminaire est éblouissant. Un UGR <= ${NORMS[reportData.meta?.roomType]?.ugrMax || 19} est recommandé pour ce type de local.` },
     { title: "Facteur de maintenance (MF)", text: "Facteur sous forme de nombre décimal qui décrit la réduction du flux lumineux au fil du temps (salissure des luminaires et baisse de rendement de la source). Souvent pris à 0.80 pour les environnements propres." },
     { title: "Densité de puissance d'éclairage (LPD)", text: "Lighting Power Density. Ratio de la puissance électrique totale consommée par l'éclairage divisée par la surface de la pièce (exprimé en W/m²). Un LPD bas indique une bonne efficacité énergétique." },
     { title: "Facteur Lumière du Jour (FLN)", text: "Rapport entre l'éclairement intérieur dû uniquement à la lumière du jour et l'éclairement horizontal extérieur. Un FLN élevé (souvent supérieur à 2%) permet de réduire l'éclairage artificiel en journée." }

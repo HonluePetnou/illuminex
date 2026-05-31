@@ -44,7 +44,9 @@ export default function RoomSimulation3D({
 }) {
   const containerRef = useRef(null);
 
-  const [currentHour, setCurrentHour] = useState(8);
+  const [currentHour, setCurrentHour] = useState(
+    formData?.results?.solarData?.simHour ?? 12
+  );
   const [webGLFailed, setWebGLFailed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1000);
@@ -693,8 +695,58 @@ export default function RoomSimulation3D({
       const cellData = instancedHM.userData.cellData;
       const color = new THREE.Color();
       
+      const hasWindows = formData?.naturalLight?.hasWindows !== false;
+      const windowArea = parseFloat(formData?.naturalLight?.windowArea) || 0;
+      const doorArea = parseFloat(formData?.naturalLight?.doorArea) || 0;
+      const windowsOpen = formData?.naturalLight?.windowsOpen !== false;
+      const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'S';
+
+      const vitresMatId = formData?.materiaux?.surfaces?.vitres?.materialId;
+      const vitresMat = CATALOGUE_MATERIAUX.find(m => m.id === vitresMatId);
+      const transmission = vitresMat?.transmittance || 0.70;
+
+      const orient = (orientation || '').trim().toUpperCase();
+      let x_win = 0.5, y_win = 1.0;
+      if (orient === 'N' || orient === 'NORD') { x_win = 0.5; y_win = 0.0; }
+      else if (orient === 'S' || orient === 'SUD') { x_win = 0.5; y_win = 1.0; }
+      else if (orient === 'O' || orient === 'OUEST' || orient === 'W') { x_win = 0.0; y_win = 0.5; }
+      else if (orient === 'E' || orient === 'EST') { x_win = 1.0; y_win = 0.5; }
+      else if (orient === 'NE') { x_win = 1.0; y_win = 0.0; }
+      else if (orient === 'SE') { x_win = 1.0; y_win = 1.0; }
+      else if (orient === 'SO') { x_win = 0.0; y_win = 1.0; }
+      else if (orient === 'NO') { x_win = 0.0; y_win = 0.0; }
+
+      const x_door = 0.2, y_door = 1.0;
+      const effectiveDoorArea = windowsOpen ? doorArea : 0;
+
+      let sumFactor = 0;
+      const cellFactors = [];
+      cellData.forEach(cell => {
+        const x_norm = cell.cx / length;
+        const y_norm = cell.cz / width;
+
+        const dx_win = x_norm - x_win;
+        const dy_win = y_norm - y_win;
+        const d_win = Math.sqrt(dx_win * dx_win + dy_win * dy_win);
+
+        const dx_door = x_norm - x_door;
+        const dy_door = y_norm - y_door;
+        const d_door = Math.sqrt(dx_door * dx_door + dy_door * dy_door);
+
+        const w_win = (hasWindows && windowArea > 0) ? (windowArea * transmission) / (d_win + 0.25) : 0;
+        const w_door = (effectiveDoorArea > 0) ? (effectiveDoorArea * 1.0) / (d_door + 0.25) : 0;
+
+        const factor = w_win + w_door;
+        cellFactors.push(factor);
+        sumFactor += factor;
+      });
+
+      const avgFactor = cellData.length > 0 ? (sumFactor / cellData.length) : 1;
+
       cellData.forEach((cell, idx) => {
-        let totalE = profile.E_nat || 0;
+        const baseFactor = cellFactors[idx];
+        const localNatLight = avgFactor > 0 ? (baseFactor / avgFactor) * (profile.E_nat || 0) : (profile.E_nat || 0);
+        let totalE = localNatLight;
         for (let i = 0; i < profile.N_active; i++) {
           const p = positions[i];
           if (!p) continue;
@@ -883,7 +935,7 @@ export default function RoomSimulation3D({
             <h3 style={{ fontSize: '0.6875rem', textTransform: 'uppercase', color: C.dim, fontWeight: 700, marginBottom: '0.75rem', letterSpacing: '0.05em' }}>Affichage</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {[
-                { label: 'Heatmap Sol', icon: Sun, state: showHeatmap, setState: setShowHeatmap },
+                { label: 'Distribution Sol', icon: Sun, state: showHeatmap, setState: setShowHeatmap },
                 { label: 'Plafond', icon: Maximize, state: showCeiling, setState: setShowCeiling },
                 { label: 'Ombres', icon: Eye, state: showShadows, setState: setShowShadows },
               ].map(item => (

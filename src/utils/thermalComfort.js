@@ -11,7 +11,8 @@ export function calculateThermalComfort(formData, climateData, month, hour) {
     'Double standard': { T: 0.72, SHGC: 0.65 },
     'Double low-E': { T: 0.65, SHGC: 0.35 },
     'Triple vitrage': { T: 0.55, SHGC: 0.25 },
-    'Vitrage teinté': { T: 0.45, SHGC: 0.25 }
+    'Vitrage teinté': { T: 0.45, SHGC: 0.25 },
+    'Fenêtres jalousie': { T: 0.90, SHGC: 0.80 }
   };
   const SHGC = GLAZING[glazingType]?.SHGC || 0.65;
 
@@ -32,28 +33,31 @@ export function calculateThermalComfort(formData, climateData, month, hour) {
 
   let DeltaT_gain_solaire = 0;
   let DeltaT_vent = 0;
-  let T_ressentie = 0;
-  let plageConf = '';
 
   if (windowsOpen) {
     DeltaT_gain_solaire = (ALLSKY / 1000) * SHGC * ratioFenetres * 2.5;
-    DeltaT_vent = 0.15 * Math.max(0, WS10M - 0.2);
-    T_ressentie = T2M + DeltaT_gain_solaire - DeltaT_vent;
-
-    if (T_ressentie < T_confort - 2.5) plageConf = 'Trop froid';
-    else if (T_ressentie <= T_confort + 2.5) plageConf = 'Confortable';
-    else if (T_ressentie <= T_confort + 3.5) plageConf = 'Légèrement chaud';
-    else plageConf = 'Trop chaud';
-
+    const effet_vent = 0.35 * Math.max(0, WS10M - 0.2);
+    DeltaT_vent = effet_vent > 2.0 ? 2.0 : effet_vent;
   } else {
     DeltaT_gain_solaire = (ALLSKY / 1000) * SHGC * ratioFenetres * 4.0;
-    DeltaT_vent = 0;
-    T_ressentie = T2M + DeltaT_gain_solaire;
+    const effet_vent = 0.15 * Math.max(0, WS10M - 0.2);
+    DeltaT_vent = effet_vent > 2.0 ? 2.0 : effet_vent;
+  }
 
-    if (T_ressentie < T_confort - 3.5) plageConf = 'Trop froid';
-    else if (T_ressentie <= T_confort + 3.5) plageConf = 'Confortable';
-    else if (T_ressentie <= T_confort + 4.5) plageConf = 'Légèrement chaud';
-    else plageConf = 'Trop chaud';
+  const T_ressentie = T2M + DeltaT_gain_solaire - DeltaT_vent;
+  const deltaThermique = T_ressentie - T_confort;
+  let plageConf = '';
+
+  if (deltaThermique <= -2.0) {
+    plageConf = 'Frais';
+  } else if (deltaThermique <= 1.0) {
+    plageConf = 'Confortable';
+  } else if (deltaThermique <= 2.5) {
+    plageConf = 'Légèrement chaud';
+  } else if (deltaThermique <= 4.0) {
+    plageConf = 'Chaud';
+  } else {
+    plageConf = 'Très chaud';
   }
 
   const conseils = [];

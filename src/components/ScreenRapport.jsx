@@ -113,7 +113,12 @@ export default function ScreenRapport({ formData, updateFormData, onNext, onPrev
   const [isExporting, setIsExporting] = useState(false);
   const [exported, setExported]       = useState(false);
 
-  const setField = (key, val) => setReportInfo(prev => ({ ...prev, [key]: val }));
+  const setField = (key, val) => {
+    setReportInfo(prev => ({ ...prev, [key]: val }));
+    if (key === 'nomProjet') {
+      updateFormData('projectName', val);
+    }
+  };
 
   const handleExport = async () => {
     setIsExporting(true);

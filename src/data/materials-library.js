@@ -16,6 +16,7 @@ export const CATALOGUE_MATERIAUX = [
   { id: "porte-bois-fonce",  name: "Porte bois verni foncé",  type: "Porte",       reflectance: 0.12, description: "Porte en bois sombre" },
   { id: "porte-metal-blanc", name: "Porte métal peint blanc", type: "Porte",       reflectance: 0.75, description: "Porte métallique blanche" },
   { id: "porte-alu-gris",    name: "Porte aluminium gris",    type: "Porte",       reflectance: 0.55, description: "Porte en aluminium anodisé" },
+  { id: "porte-jalousie",    name: "Portes jalousies",        type: "Porte",       reflectance: 0.10, description: "Porte jalousie (réflectance 10%)" },
 
   // Matériaux pour Mobilier (Tables, Chaises)
   { id: "table-bois-clair",  name: "Table bois clair",        type: "Mobilier",    reflectance: 0.45, description: "Surface de table claire" },
@@ -31,4 +32,5 @@ export const CATALOGUE_MATERIAUX = [
   { id: "vitre-double",      name: "Double vitrage",          type: "Vitrage",     reflectance: 0.12, transmittance: 0.70, description: "Double vitrage standard (70%)" },
   { id: "vitre-lowe",        name: "Double vitrage low-E",    type: "Vitrage",     reflectance: 0.15, transmittance: 0.60, description: "Basse émissivité (60%)" },
   { id: "vitre-teinte",      name: "Vitrage teinté",          type: "Vitrage",     reflectance: 0.06, transmittance: 0.40, description: "Contrôle solaire (40%)" },
+  { id: "vitre-jalousie",    name: "Fenêtres jalousie",       type: "Vitrage",     reflectance: 0.10, transmittance: 0.90, description: "Jalousie vitrée (90%)" },
 ];

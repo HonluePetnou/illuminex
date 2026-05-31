@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, Sun, Moon, Download, Layers, Grid as GridIcon, Users, Tag, Settings } from 'lucide-react';
+import { CATALOGUE_MATERIAUX } from '../data/materials-library';
 
 /* ── Tokens ── */
 const C = {
@@ -17,7 +18,9 @@ export default function RoomSimulation2D({
   usageResult = {},
   luxLimit = 3000
 }) {
-  const [currentHour, setCurrentHour] = useState(8);
+  const [currentHour, setCurrentHour] = useState(
+    formData?.results?.solarData?.simHour ?? 12
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1000);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -47,6 +50,61 @@ export default function RoomSimulation2D({
     }
     return occs;
   }, [occupants, length, width]);
+
+  const naturalDecayGrid = useMemo(() => {
+    const hasWindows = formData?.naturalLight?.hasWindows !== false;
+    const windowArea = parseFloat(formData?.naturalLight?.windowArea) || 0;
+    const doorArea = parseFloat(formData?.naturalLight?.doorArea) || 0;
+    const windowsOpen = formData?.naturalLight?.windowsOpen !== false;
+    const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'S';
+    
+    const vitresMatId = formData?.materiaux?.surfaces?.vitres?.materialId;
+    const vitresMat = CATALOGUE_MATERIAUX.find(m => m.id === vitresMatId);
+    const transmission = vitresMat?.transmittance || 0.70;
+
+    const orient = (orientation || '').trim().toUpperCase();
+    let x_win = 0.5, y_win = 1.0;
+    if (orient === 'N' || orient === 'NORD') { x_win = 0.5; y_win = 0.0; }
+    else if (orient === 'S' || orient === 'SUD') { x_win = 0.5; y_win = 1.0; }
+    else if (orient === 'O' || orient === 'OUEST' || orient === 'W') { x_win = 0.0; y_win = 0.5; }
+    else if (orient === 'E' || orient === 'EST') { x_win = 1.0; y_win = 0.5; }
+    else if (orient === 'NE') { x_win = 1.0; y_win = 0.0; }
+    else if (orient === 'SE') { x_win = 1.0; y_win = 1.0; }
+    else if (orient === 'SO') { x_win = 0.0; y_win = 1.0; }
+    else if (orient === 'NO') { x_win = 0.0; y_win = 0.0; }
+
+    const x_door = 0.2, y_door = 1.0;
+    const effectiveDoorArea = windowsOpen ? doorArea : 0;
+
+    const grid = [];
+    let sumFactor = 0;
+    for (let cx = 0; cx < 30; cx++) {
+      const row = [];
+      const x_cell = (cx + 0.5) / 30;
+      for (let cy = 0; cy < 30; cy++) {
+        const y_cell = (cy + 0.5) / 30;
+
+        const dx_win = x_cell - x_win;
+        const dy_win = y_cell - y_win;
+        const d_win = Math.sqrt(dx_win * dx_win + dy_win * dy_win);
+
+        const dx_door = x_cell - x_door;
+        const dy_door = y_cell - y_door;
+        const d_door = Math.sqrt(dx_door * dx_door + dy_door * dy_door);
+
+        const w_win = (hasWindows && windowArea > 0) ? (windowArea * transmission) / (d_win + 0.25) : 0;
+        const w_door = (effectiveDoorArea > 0) ? (effectiveDoorArea * 1.0) / (d_door + 0.25) : 0;
+
+        const factor = w_win + w_door;
+        row.push(factor);
+        sumFactor += factor;
+      }
+      grid.push(row);
+    }
+
+    const avgFactor = sumFactor / 900;
+    return grid.map(row => row.map(val => (avgFactor > 0 ? val / avgFactor : 1.0)));
+  }, [formData]);
 
   const getActiveProfileAtHour = useCallback((hour) => {
     if (naturalLightResult?.hourlyProfile?.[hour]) {
@@ -184,7 +242,7 @@ export default function RoomSimulation2D({
             const cellPx = cx * cellW + cellW/2;
             const cellPy = cy * cellH + cellH/2;
             
-            let e_local = profile.E_nat || 0;
+            let e_local = (profile.E_nat || 0) * naturalDecayGrid[cx][cy];
             for (let i = 0; i < activeCount; i++) {
               const p = positions[i];
               if (!p) continue;
@@ -320,8 +378,9 @@ export default function RoomSimulation2D({
         rect(0.5, length < 6 ? 1.1 : 1.3, 0.55, 0.55, '🪑');
         rect(width - 1.5, 0.5, 0.35, 1.0, '📚');
       } else if (roomType === 'Salon') {
-        rect(width * 0.3, length * 0.5, 2.0, 0.85, 'Canapé');
-        rect(width * 0.4, length * 0.35, 1.0, 0.55, 'Table');
+        rect(width * 0.15, length * 0.5, 1.8, 0.75, 'Canapé');
+        rect(width * 0.65, length * 0.45, 0.7, 0.65, 'Fauteuil');
+        rect(width * 0.38, length * 0.35, 0.8, 0.55, 'Table basse');
       } else if (roomType === 'Salle de classe') {
         const rows = 3; const cols = Math.min(4, Math.floor(width / 1.5));
         for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -457,7 +516,7 @@ export default function RoomSimulation2D({
   }, [
     currentHour, length, width, showGrid, showHeatmap, showWindows, 
     showOccupants, showLabels, positions, randomOccupants, 
-    getActiveProfileAtHour, formData, E_required, fluxPerUnit, N_total
+    getActiveProfileAtHour, formData, E_required, fluxPerUnit, N_total, naturalDecayGrid
   ]);
 
   useEffect(() => {
@@ -575,7 +634,7 @@ export default function RoomSimulation2D({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {[
                 { label: 'Grille', icon: GridIcon, state: showGrid, setState: setShowGrid },
-                { label: 'Heatmap', icon: Sun, state: showHeatmap, setState: setShowHeatmap },
+                { label: 'Distribution lumineuse', icon: Sun, state: showHeatmap, setState: setShowHeatmap },
                 { label: 'Fenêtres', icon: Layers, state: showWindows, setState: setShowWindows, disabled: formData?.naturalLight?.hasWindows === false },
                 { label: 'Occupants', icon: Users, state: showOccupants, setState: setShowOccupants },
                 { label: 'Étiquettes', icon: Tag, state: showLabels, setState: setShowLabels },

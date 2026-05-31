@@ -3,11 +3,12 @@ import {
   ArrowLeft, Calendar, MapPin, Cloud, CloudSun, Sun, Moon, Maximize,
   SlidersHorizontal, Compass, Eye, Loader2, Check, Download
 } from 'lucide-react';
-import { calculateSolarIrradiance, calculateDaylightContribution, approximateSunTimes, approximateSunPosition } from '../utils/solar-calc';
+import { calculateSolarIrradiance, calculateDaylightContribution, approximateSunTimes, approximateSunPosition, calculateNaturalHeatmap } from '../utils/solar-calc';
 import CustomSlider from './CustomSlider';
 import RoomSimulation2D from './RoomSimulation2D';
 import RoomSimulation3D from './RoomSimulation3D';
 import { CATALOGUE_MATERIAUX } from '../data/materials-library';
+import { NORMS } from '../data/norms';
 
 const C = {
   bg: '#1C1D24',
@@ -117,23 +118,18 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   // Dynamic simulation results for natural light (N=0)
   const simResults = useMemo(() => {
     const mockLighting = {
-      N: 0,
-      E_real: 0,
-      totalPower: 0,
-      S: floorArea,
-      CU: 0.60,
-      MF: 0.80
+      N: 0, E_real: 0, totalPower: 0, S: floorArea, CU: 0.60, MF: 0.80,
     };
 
-    if (!naturalLight.hasWindows || luxInterieur <= 0) {
+    const nhm = calculateNaturalHeatmap(formData, sunData.eExterieur > 0 ? { eExterieur: sunData.eExterieur } : null);
+
+    if (!naturalLight.hasWindows || nhm.E_sol <= 0) {
       const emptyZones = Array.from({ length: 12 }, (_, idx) => ({
-        zone: '',
-        e: 0,
-        u: 0,
-        ok: false,
+        zone: '', e: 0, d: 0, ok: false,
       }));
       return {
         lighting: mockLighting,
+        E_ext: 0, E_sol: 0,
         uniformity: { U0: 0, E_min: 0, E_moy: 0, E_max: 0, layout: { cols: 0, rows: 0, spacingX: 0, spacingY: 0 }, positions: [] },
         climate: { naturalLight: { E_natural: 0, windowArea: 0, hasWindows: false } },
         naturalLight: { hourlyProfile: {}, E_natural: 0 },
@@ -141,134 +137,41 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
       };
     }
 
-    const zoneRows = 3, zoneCols = 4;
+    const { zones, uniformity } = nhm;
 
-    // Position solaire pour déterminer la répartition dynamique
-    const sunPos = approximateSunPosition(location.latitude, simMonth, simHour);
-    const altitude = Math.max(0, sunPos.altitude);
-    const azimuth = sunPos.azimuth;
-
-    // Angle de la fenêtre (orientation du local)
-    const ORIENT_ANGLES = {
-      'N': 0, 'NE': 45, 'E': 90, 'SE': 135,
-      'S': 180, 'SO': 225, 'O': 270, 'NO': 315,
-    };
-    const windowAngle = ORIENT_ANGLES[naturalLight.orientation] || 180;
-
-    // Angle relatif entre le soleil et la fenêtre (0 = soleil en face)
-    let relAngle = azimuth - windowAngle;
-    if (relAngle > 180) relAngle -= 360;
-    if (relAngle < -180) relAngle += 360;
-
-    // Altitude normalisée [0,1]
-    const altFactor = Math.min(1, altitude / 90);
-
-    // Déplacement latéral : quand le soleil est sur le côté, la lumière se déplace
-    // vers un côté de la pièce (rows)
-    const lateralDisp = -Math.sin(relAngle * Math.PI / 180) * altFactor * 0.6;
-
-    // Pénetration : soleil haut → pénètre plus profondément dans la pièce
-    const penetration = 0.6 + altFactor * 0.8;
-
-    // Distance-based decay from window and open door
-    const orient = (naturalLight.orientation || location.buildingOrientation || 'S').trim().toUpperCase();
-    let x_win = 0.5, y_win = 1.0; // default Sud
-    if (orient === 'N' || orient === 'NORD') { x_win = 0.5; y_win = 0.0; }
-    else if (orient === 'S' || orient === 'SUD') { x_win = 0.5; y_win = 1.0; }
-    else if (orient === 'O' || orient === 'OUEST' || orient === 'W') { x_win = 0.0; y_win = 0.5; }
-    else if (orient === 'E' || orient === 'EST') { x_win = 1.0; y_win = 0.5; }
-    else if (orient === 'NE') { x_win = 1.0; y_win = 0.0; }
-    else if (orient === 'SE') { x_win = 1.0; y_win = 1.0; }
-    else if (orient === 'SO') { x_win = 0.0; y_win = 1.0; }
-    else if (orient === 'NO') { x_win = 0.0; y_win = 0.0; }
-
-    const x_door = 0.2, y_door = 1.0; // Door on bottom wall (Sud) at 12% width
-    const windowsOpen = naturalLight.windowsOpen !== false;
-    const doorArea = parseFloat(naturalLight.doorArea) || 0;
-    const windowArea = parseFloat(naturalLight.windowArea) || 0;
-
-    const rawFactors = [];
-    for (let r = 0; r < zoneRows; r++) {
-      for (let c = 0; c < zoneCols; c++) {
-        const x_cell = (c + 0.5) / zoneCols;
-        const y_cell = (r + 0.5) / zoneRows;
-
-        // Window distance
-        const dx_win = x_cell - x_win;
-        const dy_win = y_cell - y_win;
-        const d_win = Math.sqrt(dx_win * dx_win + dy_win * dy_win);
-
-        // Door distance
-        const dx_door = x_cell - x_door;
-        const dy_door = y_cell - y_door;
-        const d_door = Math.sqrt(dx_door * dx_door + dy_door * dy_door);
-
-        // Calculate influence from each opening
-        // Softening factor 0.25 to prevent division by near-zero at boundaries
-        const w_win = (naturalLight.hasWindows && windowArea > 0) ? (windowArea * transmission) / (d_win + 0.25) : 0;
-        const w_door = (windowsOpen && doorArea > 0) ? (doorArea * 1.0) / (d_door + 0.25) : 0;
-
-        // Combined opening influence
-        const baseFactor = w_win + w_door;
-
-        // Déplacement latéral selon l'angle du soleil
-        const rowCenter = (r / (zoneRows - 1)) * 2 - 1;
-        const latFactor = 1.0 + lateralDisp * rowCenter;
-
-        const zoneFactor = baseFactor * latFactor * penetration;
-        rawFactors.push(zoneFactor);
-      }
-    }
-
-    // Scale values so that the average zone lux equals luxInterieur
-    const avgFactor = rawFactors.reduce((a, b) => a + b, 0) / rawFactors.length;
-    const res = rawFactors.map(factor => {
-      if (avgFactor > 0) {
-        return Math.max(1, Math.round((factor / avgFactor) * luxInterieur));
-      }
-      return 0;
-    });
-
-    const eMin = Math.min(...res);
-    const eMax = Math.max(...res);
-    const eMoy = Math.round(luxInterieur);
-    const u0 = eMoy > 0 ? eMin / eMoy : 0;
-
-    const zonesList = res.map((e, idx) => {
-      const colIdx = idx % 4;
-      const rowIdx = Math.floor(idx / 4);
-      return {
-        zone: `${(colIdx * (room.width / 4)).toFixed(1)}–${((colIdx + 1) * (room.width / 4)).toFixed(1)} m × ${(rowIdx * (room.length / 3)).toFixed(1)}–${((rowIdx + 1) * (room.length / 3)).toFixed(1)} m`,
-        e,
-        u: eMoy > 0 ? Math.round((e / eMoy) * 100) / 100 : 0,
-        ok: e >= 100,
-      };
-    });
+    const zonesList = zones.map((z, idx) => ({
+      zone: `${(z.col * (room.width / 4)).toFixed(1)}–${((z.col + 1) * (room.width / 4)).toFixed(1)} m × ${(z.row * (room.length / 3)).toFixed(1)}–${((z.row + 1) * (room.length / 3)).toFixed(1)} m`,
+      e: z.e,
+      d: z.d,
+      ok: z.ok,
+    }));
 
     return {
       lighting: mockLighting,
+      E_ext: nhm.E_ext,
+      E_sol: nhm.E_sol,
       uniformity: {
-        U0: u0,
-        E_min: eMin,
-        E_moy: eMoy,
-        E_max: eMax,
+        U0: uniformity.U0,
+        E_min: uniformity.E_min,
+        E_moy: uniformity.E_moy,
+        E_max: nhm.E_max,
         layout: { cols: 0, rows: 0, spacingX: 0, spacingY: 0 },
-        positions: []
+        positions: [],
       },
       climate: {
         naturalLight: {
-          E_natural: luxInterieur,
+          E_natural: nhm.E_sol,
           windowArea: naturalLight.windowArea,
-          hasWindows: true
+          hasWindows: true,
         }
       },
       naturalLight: {
         hourlyProfile: {},
-        E_natural: luxInterieur
+        E_natural: nhm.E_sol,
       },
-      zones: zonesList
+      zones: zonesList,
     };
-  }, [luxInterieur, floorArea, room.width, room.length, naturalLight.windowArea, naturalLight.orientation, naturalLight.doorArea, naturalLight.windowsOpen, transmission, simHour, simMonth, location.latitude]);
+  }, [formData, sunData.eExterieur, floorArea, room.width, room.length, naturalLight.hasWindows, simHour, simMonth]);
 
   // FIX: protection contre simMonth hors bornes
   const safeMonthLabel = (MONTHS[((simMonth || 1) - 1)] || MONTHS[0]).toLowerCase();
@@ -441,86 +344,101 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
            
            {/* ── Bottom Heatmap & Uniformity Row ── */}
            <div className="animate-slide-up" style={{ animationDelay: '0.3s', opacity: 0, marginTop: '1.5rem', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', gap: '20px' }}>
-                 
-                 {/* Real Heatmap Graphic & Uniformity Grid */}
-                 <div style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.25rem' }}>
-                    <h3 style={{ margin: '0 0 1rem', color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                      Distribution de l'éclairement naturel (12 zones)
-                    </h3>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: `repeat(4, 1fr)`,
-                      gap: 4,
-                      borderRadius: 8,
-                      overflow: 'hidden',
-                      marginBottom: '0.5rem',
-                    }}>
-                      {simResults.zones.map((z, i) => {
-                        const ratio = Math.min(1, z.e / 500);
-                        const bgCol = ratio > 0.6 ? '#22c55e' : ratio > 0.3 ? '#f59e0b' : '#ef4444';
-                        return (
-                          <div key={i} style={{
-                            background: `${bgCol}20`,
-                            border: `1px solid ${bgCol}50`,
-                            borderRadius: 4,
-                            padding: '0.5rem',
-                            textAlign: 'center',
-                          }}>
-                            <div style={{ color: bgCol, fontWeight: 700, fontSize: 13 }}>{z.e} Lux</div>
-                            <div style={{ color: C.dim, fontSize: 9 }}>U={z.u.toFixed(2)}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Légende */}
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: 10, color: C.dim, marginTop: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#22c55e', display: 'inline-block' }} /> Proche ouverture
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} /> Zone intermédiaire
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: '#ef4444', display: 'inline-block' }} /> Fond de pièce
-                      </div>
-                    </div>
-                 </div>
+               <div style={{ display: 'flex', gap: '20px' }}>
+                  
+                  {/* Grille des résultats normalisés */}
+                  <div style={{ flex: 1, background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1.25rem' }}>
+                     <h3 style={{ margin: '0 0 0.75rem', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                       Distribution de l'éclairement naturel (12 zones)
+                     </h3>
 
-                 {/* Results & Actions Container */}
-                 <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                          <span style={{ color: C.muted }}>Moyenne Écl. Naturel</span>
-                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_moy} Lux</span>
+                     <div style={{
+                       display: 'grid',
+                       gridTemplateColumns: 'repeat(4, 1fr)',
+                       gap: 4,
+                       borderRadius: 8,
+                       overflow: 'hidden',
+                       marginBottom: '0.5rem',
+                     }}>
+                        {simResults.zones.map((z, i) => {
+                          const ratio = z.d;
+                          const bgCol = ratio > 0.6 ? '#22c55e' : ratio > 0.3 ? '#f59e0b' : '#ef4444';
+                          return (
+                            <div key={i} style={{
+                              background: `${bgCol}15`,
+                              border: `1px solid ${bgCol}40`,
+                              borderRadius: 4,
+                              padding: '0.5rem 0.35rem',
+                              textAlign: 'center',
+                            }}>
+                              <div style={{ color: bgCol, fontWeight: 700, fontSize: 15 }}>{z.d.toFixed(2).replace('.', ',')}</div>
+                            </div>
+                          );
+                        })}
+                     </div>
+
+                     {/* Légende */}
+                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', fontSize: 10, color: C.dim, marginTop: '6px' }}>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                         <span style={{ width: 8, height: 8, borderRadius: 2, background: '#22c55e', display: 'inline-block' }} /> Proche ouverture
                        </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                          <span style={{ color: C.muted }}>Minimum</span>
-                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_min} Lux</span>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                         <span style={{ width: 8, height: 8, borderRadius: 2, background: '#f59e0b', display: 'inline-block' }} /> Zone intermédiaire
                        </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                          <span style={{ color: C.muted }}>Maximum</span>
-                          <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_max} Lux</span>
+                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                         <span style={{ width: 8, height: 8, borderRadius: 2, background: '#ef4444', display: 'inline-block' }} /> Fond de pièce
                        </div>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', borderTop: `1px solid ${C.border}`, paddingTop: '0.4rem', marginTop: '0.2rem' }}>
-                          <span style={{ color: C.primary, fontWeight: 600 }}>Uniformité U0 (naturelle)</span>
-                          <span style={{ color: C.primary, fontWeight: 700 }}>{simResults.uniformity.U0.toFixed(2)}</span>
-                       </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                       <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.65rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                          <Download size={14} /> Exporter PNG
-                       </button>
-                       <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.65rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
-                         onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
-                         onMouseLeave={e => e.currentTarget.style.background = C.primary}
-                       >
-                          Continuer
-                       </button>
-                    </div>
-                 </div>
-              </div>
+                     </div>
+
+                  </div>
+
+                  {/* Results & Actions Container */}
+                  <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                         <div style={{ fontSize: '0.75rem', color: C.accent, fontWeight: 600, marginBottom: '0.25rem' }}>
+                           {simHour}h00 — {safeMonthLabel}
+                         </div>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                            <span style={{ color: C.muted }}>Éclairement extérieur (E<sub>ext</sub>)</span>
+                            <span style={{ color: C.text, fontWeight: 600 }}>{simResults.E_ext.toLocaleString('fr-FR')} lx</span>
+                         </div>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                            <span style={{ color: C.muted }}>Éclairement au sol (E<sub>sol</sub>)</span>
+                            <span style={{ color: C.text, fontWeight: 600 }}>{simResults.E_sol.toLocaleString('fr-FR')} lx</span>
+                         </div>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                            <span style={{ color: C.muted }}>Maximum brut (E<sub>max</sub>)</span>
+                            <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_max.toLocaleString('fr-FR')} lx</span>
+                         </div>
+                         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                               <span style={{ color: C.muted }}>E<sub>min</sub> (normalisé)</span>
+                               <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_min.toFixed(2)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+                               <span style={{ color: C.muted }}>E<sub>moy</sub> (normalisé)</span>
+                               <span style={{ color: C.text, fontWeight: 600 }}>{simResults.uniformity.E_moy.toFixed(2)}</span>
+                            </div>
+                         </div>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', borderTop: `1px solid ${C.border}`, paddingTop: '0.4rem', marginTop: '0.2rem' }}>
+                            <span style={{ color: C.primary, fontWeight: 600 }}>Uniformité U0 (naturelle)</span>
+                            <span style={{ color: C.primary, fontWeight: 700, fontSize: '1rem' }}>{simResults.uniformity.U0.toFixed(2)}</span>
+                         </div>
+                      </div>
+                     
+                     <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                        <button style={{ flex: 1, background: C.surface2, border: `1px solid ${C.border}`, borderRadius: '6px', padding: '0.65rem', color: C.text, fontSize: '0.8125rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                           <Download size={14} /> Exporter PNG
+                        </button>
+                        <button onClick={onNext} style={{ flex: 1, background: C.primary, border: 'none', borderRadius: '6px', padding: '0.65rem', color: '#FFF', fontSize: '0.8125rem', cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#4A74C5'}
+                          onMouseLeave={e => e.currentTarget.style.background = C.primary}
+                        >
+                           Continuer
+                        </button>
+                     </div>
+                  </div>
+               </div>
            </div>
          </div>
       </div>

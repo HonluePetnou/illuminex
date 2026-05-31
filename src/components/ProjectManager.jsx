@@ -158,6 +158,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
     onOpenProject({
       name: newProjectName,
       formData: {
+        projectName: newProjectName,
         location: {
           country: loc.country,
           climate: loc.climate,
@@ -244,7 +245,7 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
                   min={1}
                   max={31}
                   value={newProjectDay}
-                  onChange={e => setNewProjectDay(parseInt(e.target.value) || 1)}
+                  onChange={e => { const v = parseInt(e.target.value); setNewProjectDay(isNaN(v) ? '' : v); }}
                   style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(0,0,0,0.2)', border: `1px solid rgba(255,255,255,0.1)`, color: '#fff', padding: '0.625rem 0.875rem', borderRadius: '8px', fontSize: '0.875rem', outline: 'none', textAlign: 'right' }}
                 />
               </div>
@@ -425,10 +426,10 @@ export default function ProjectManager({ onOpenProject, onTemplateSelect }) {
               <TemplateCard key={tpl.id} template={tpl} onClick={() => onTemplateSelect(tpl)} />
             )) : (
               [
-                { id: 'b', name: 'Bureau standard', description: '5×4 m, 500 lux, LED', icon: <Building size={20} color="#F0A500" />, formData: { room: { type: 'Bureau', length: 5, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Bureau/Administration', occupants: 2, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'led-dalle-600-36w', name: 'Dalle LED 600×600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' } } },
+                { id: 'b', name: 'Bureau standard', description: '5×4 m, 500 lux, LED', icon: <Building size={20} color="#F0A500" />, formData: { room: { type: 'Bureau', length: 5, width: 4, ceilingHeight: 2.8, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Bureau/Administration', occupants: 2, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'led-dalle-36w', name: 'Dalle LED 600x600 36W', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 18000, haloType: 'led', categorie: 'Tertiaire' } } },
                 { id: 'h', name: 'Sanitaires Clinique', description: '3×3 m, 200 lux, IRC>90', icon: <Activity size={20} color="#F0A500" />, formData: { room: { type: 'Sanitaires', length: 3, width: 3, ceilingHeight: 2.6, workPlaneHeight: 0 }, occupation: { buildingType: 'Santé', occupants: 1, hoursPerDay: 24, daysPerWeek: 7 }, luminaire: { type: 'led-spot-com-20w', name: 'Spot commercial LED 20W', fluxPerUnit: 1800, powerPerUnit: 20, irc: 90, prix: 10000, haloType: 'led', categorie: 'Commerce' } } },
-                { id: 's', name: 'Salle de classe', description: '8×7 m, 500 lux, tubes LED', icon: <BookOpen size={20} color="#F0A500" />, formData: { room: { type: 'Salle de classe', length: 8, width: 7, ceilingHeight: 3.0, workPlaneHeight: 0.75 }, occupation: { buildingType: 'Scolaire', occupants: 30, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'flu-t8-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' } } },
-                { id: 'c', name: 'Commerce détail', description: '15×10 m, 500 lux, dalles LED', icon: <Store size={20} color="#F0A500" />, formData: { room: { type: 'Commerce', length: 15, width: 10, ceilingHeight: 3.5, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Commercial', occupants: 50, hoursPerDay: 12, daysPerWeek: 6 }, luminaire: { type: 'led-dalle-com-40w', name: 'Dalle LED 600×600 40W (Commerce)', fluxPerUnit: 4000, powerPerUnit: 40, irc: 80, prix: 22000, haloType: 'led', categorie: 'Commerce' } } },
+                { id: 's', name: 'Salle de classe', description: '8×7 m, 500 lux, tubes LED', icon: <BookOpen size={20} color="#F0A500" />, formData: { room: { type: 'Salle de classe', length: 8, width: 7, ceilingHeight: 3.0, workPlaneHeight: 0.75 }, occupation: { buildingType: 'Scolaire', occupants: 30, hoursPerDay: 8, daysPerWeek: 5 }, luminaire: { type: 'led-tube-scolaire-36w', name: 'Tube LED T8 36W 120cm', fluxPerUnit: 3600, powerPerUnit: 36, irc: 80, prix: 8500, haloType: 'fluorescent', categorie: 'Scolaire' } } },
+                { id: 'c', name: 'Commerce détail', description: '15×10 m, 500 lux, dalles LED', icon: <Store size={20} color="#F0A500" />, formData: { room: { type: 'Commerce', length: 15, width: 10, ceilingHeight: 3.5, workPlaneHeight: 0.85 }, occupation: { buildingType: 'Commercial', occupants: 50, hoursPerDay: 12, daysPerWeek: 6 }, luminaire: { type: 'led-dalle-com-40w', name: 'Dalle LED 600x600 40W', fluxPerUnit: 4000, powerPerUnit: 40, irc: 80, prix: 22000, haloType: 'led', categorie: 'Commerce' } } },
               ].map(tpl => (
                 <TemplateCard key={tpl.id} template={tpl} onClick={() => onOpenProject({ name: tpl.name, formData: tpl.formData || {} })} />
               ))
