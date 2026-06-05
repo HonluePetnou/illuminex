@@ -18,9 +18,15 @@ export default function RoomSimulation2D({
   usageResult = {},
   luxLimit = 3000
 }) {
-  const [currentHour, setCurrentHour] = useState(
-    formData?.results?.solarData?.simHour ?? 12
-  );
+  const [currentHour, setCurrentHour] = useState(() => {
+    return formData?.results?.solarData?.simHour ?? 12;
+  });
+  React.useEffect(() => {
+    const extHour = formData?.results?.solarData?.simHour;
+    if (extHour != null && extHour !== currentHour) {
+      setCurrentHour(extHour);
+    }
+  }, [formData?.results?.solarData?.simHour]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1000);
   const [showHeatmap, setShowHeatmap] = useState(true);
@@ -117,27 +123,29 @@ export default function RoomSimulation2D({
       ? (usageResult.timeline[hour]?.active ?? false)
       : true;  // défaut : occupée
 
-    const isDay = hour >= 7 && hour <= 18;
+    const isDay = hour >= 7 && hour < 18;
 
     let mode = 'Inactif';
     let N_active = 0;
     let E_nat = 0;
 
-    if (isOccupied) {
-      if (isDay) {
-        const rawENat = climateResult?.naturalLight?.E_natural || 0;
-        const sunPeak = Math.max(0, 1 - Math.abs(12 - hour) / 6);
-        E_nat = rawENat * sunPeak;
-        N_active = climateResult?.adjusted?.N_adjusted ?? N_total;
-        mode = N_active === 0 ? 'Naturel' : 'Mixte';
-      } else {
-        N_active = N_total;
-        mode = 'Artificiel';
-      }
+    const rawENat = climateResult?.naturalLight?.E_natural || 0;
+    const sunPeak = Math.max(0, 1 - Math.abs(12 - hour) / 6);
+    E_nat = rawENat * sunPeak;
+
+    if (isDay && E_nat > 0) {
+      // S'il y a du soleil (lumière naturelle > 0), les lampes s'éteignent seules
+      N_active = 0;
+      mode = 'Naturel';
+    } else {
+      // S'il fait nuit ou s'il n'y a pas de soleil (0 lux), les lampes s'allument automatiquement
+      N_active = N_total;
+      mode = 'Artificiel';
     }
 
-    // Fallback final : si pas de timeline et pas de climat → tout allumé
-    if (!hasTimeline && N_active === 0 && N_total > 0) {
+    // Fallback final : si pas de données de simulation (pas d'ajustement climatique) → tout allumé
+    const hasSimulation = climateResult && climateResult.adjusted !== undefined && climateResult.adjusted !== null;
+    if (!hasSimulation && N_active === 0 && N_total > 0) {
       N_active = N_total;
       mode = 'Artificiel';
     }
@@ -145,6 +153,7 @@ export default function RoomSimulation2D({
     if (N_active > N_total) N_active = N_total;
     return { N_active, E_nat: isDay ? E_nat : 0, mode, isOccupied };
   }, [naturalLightResult, usageResult, climateResult, N_total]);
+
 
 
   const drawSimulation = useCallback((timestamp = 0) => {
@@ -270,7 +279,7 @@ export default function RoomSimulation2D({
     if (showWindows && (formData?.naturalLight?.hasWindows !== false)) {
       const orientation = formData?.naturalLight?.orientation || formData?.location?.buildingOrientation || 'Sud';
       const windowType  = formData?.room?.windowType || 'Battante';
-      const isSunUp = currentHour >= 7 && currentHour <= 18;
+      const isSunUp = currentHour >= 7 && currentHour < 18;
       const windowArea  = parseFloat(formData?.naturalLight?.windowArea) || 2;
       const wPx = Math.min(roomPixelW * 0.35, windowArea * scale * 0.8);
 

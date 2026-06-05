@@ -1,9 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search, Check, X, Zap, Eye, Filter, ChevronDown,
-  LayoutGrid, Home, Building2, GraduationCap, ShoppingBag, Factory, Lightbulb, BarChart3, Palette
+  LayoutGrid, Home, Building2, GraduationCap, ShoppingBag, Factory, Lightbulb, BarChart3, Palette,
+  ExternalLink, ShoppingCart
 } from 'lucide-react';
 import { LUMINAIRES_LIBRARY } from '../data/luminaires-library';
+
+/* ── Boutiques en ligne par pays ──────────────────────────────────────── */
+const MARKET_LINKS = {
+  'Cameroun': { url: 'https://connectik-group.com/',                           label: 'Connectik Group', flag: '🇨🇲' },
+  'Bénin':    { url: 'https://www.latourboutique.com/fr/164-luminaires',        label: 'La Tour Boutique', flag: '🇧🇯' },
+  'Niger':    { url: 'https://kratosenergyltd.com/product-categories/luminaire',label: 'Kratos Energy',   flag: '🇳🇪' },
+  'Sénégal':  { url: 'https://orcatrend.com/502-luminaires',                    label: 'Orca Trend',      flag: '🇸🇳' },
+};
 
 /* ── Design Tokens ── */
 const C = {
@@ -383,6 +392,55 @@ export default function ScreenLuminaires({ formData, updateFormData, onNext, onP
           })}
         </div>
       </div>
+
+      {/* ── Bandeau boutique pays ── */}
+      {(() => {
+        const country = formData?.location?.country || '';
+        const shop = MARKET_LINKS[country];
+        if (!shop) return null;
+        return (
+          <div style={{
+            margin: '0.75rem 2rem 0',
+            padding: '0.65rem 1rem',
+            background: 'linear-gradient(90deg, rgba(90,132,213,0.12) 0%, rgba(255,184,77,0.10) 100%)',
+            border: '1px solid rgba(255,184,77,0.25)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}>
+            <ShoppingCart size={15} color="#FFB84D" style={{ flexShrink: 0 }} />
+            <span style={{ color: '#A0A0A5', fontSize: 12, flex: 1, minWidth: 160 }}>
+              {shop.flag} Voir les prix actuels du marché <strong style={{ color: '#fff' }}>{country}</strong> :
+            </span>
+            <a
+              href={shop.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#FFB84D',
+                color: '#000',
+                fontWeight: 700,
+                fontSize: 12,
+                padding: '0.4rem 0.9rem',
+                borderRadius: 7,
+                textDecoration: 'none',
+                flexShrink: 0,
+                transition: 'filter 0.15s',
+              }}
+              onMouseOver={e => e.currentTarget.style.filter = 'brightness(1.12)'}
+              onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
+            >
+              <ExternalLink size={12} />
+              {shop.label}
+            </a>
+          </div>
+        );
+      })()}
 
       {/* ── Grille des luminaires ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem 2rem' }}>

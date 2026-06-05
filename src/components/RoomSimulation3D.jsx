@@ -44,9 +44,16 @@ export default function RoomSimulation3D({
 }) {
   const containerRef = useRef(null);
 
-  const [currentHour, setCurrentHour] = useState(
-    formData?.results?.solarData?.simHour ?? 12
-  );
+  const [currentHour, setCurrentHour] = useState(() => {
+    return formData?.results?.solarData?.simHour ?? 12;
+  });
+  // Sync with external hour changes (e.g. from ScreenNaturel slider)
+  React.useEffect(() => {
+    const extHour = formData?.results?.solarData?.simHour;
+    if (extHour != null && extHour !== currentHour) {
+      setCurrentHour(extHour);
+    }
+  }, [formData?.results?.solarData?.simHour]);
   const [webGLFailed, setWebGLFailed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1000);
@@ -113,31 +120,32 @@ export default function RoomSimulation3D({
     const isOccupied = hasTimeline
       ? (usageResult.timeline[hour]?.active || false)
       : true; // Default: occupied (so lights turn on)
-    const isDay = hour >= 7 && hour <= 18;
+    const isDay = hour >= 7 && hour < 18;
 
     let mode = 'Inactif'; let N_active = 0; let E_nat = 0;
-    if (isOccupied) {
-      if (isDay) {
-        E_nat = climateResult?.naturalLight?.E_natural || 0;
-        const sunPeak = 1 - Math.abs(12 - hour) / 6;
-        E_nat = Math.max(0, E_nat * sunPeak);
-        // N_adjusted peut valoir 0 si la lumiere naturelle suffit —
-        // mais on garde quand meme les luminaires allumes en 3D pour la visualisation
-        const N_adj = climateResult?.adjusted?.N_adjusted;
-        N_active = (N_adj !== undefined && N_adj !== null) ? Math.max(0, N_adj) : N_total;
-        mode = N_active === 0 ? 'Naturel' : 'Mixte';
-      } else {
-        N_active = N_total; mode = 'Artificiel';
-      }
+    E_nat = climateResult?.naturalLight?.E_natural || 0;
+    const sunPeak = 1 - Math.abs(12 - hour) / 6;
+    E_nat = Math.max(0, E_nat * sunPeak);
+
+    if (isDay && E_nat > 0) {
+      // S'il y a du soleil (lumière naturelle > 0), les lampes s'éteignent seules
+      N_active = 0;
+      mode = 'Naturel';
+    } else {
+      // S'il fait nuit ou s'il n'y a pas de soleil (0 lux), les lampes s'allument automatiquement
+      N_active = N_total;
+      mode = 'Artificiel';
     }
-    // Fallback: si pas de donnees de simulation, allumer tous les luminaires
-    if (N_active === 0 && N_total > 0) {
+    // Fallback: si pas de données de simulation du tout (pas d'adjusted), allumer tous les luminaires
+    const hasSimulation = climateResult && climateResult.adjusted !== undefined && climateResult.adjusted !== null;
+    if (!hasSimulation && N_active === 0 && N_total > 0) {
       N_active = N_total;
       mode = 'Artificiel';
     }
     if (N_active > N_total) N_active = N_total;
     return { N_active, E_nat, mode, isOccupied, isDay };
   }, [naturalLightResult, usageResult, climateResult, N_total]);
+
 
   // ── Main scene setup ──
   useEffect(() => {
@@ -617,7 +625,7 @@ export default function RoomSimulation3D({
       const sunY = sunRad * Math.sin(elevation);
       const sunZ = centerZ - sunRad * Math.cos(elevation) * Math.cos(omega);
 
-      if (profile.isDay && sunY > 0) {
+      if (profile.isDay && sunY > 0.1) {
         sunObjRef.current.visible = true;
         sunObjRef.current.position.set(sunX, sunY, sunZ);
         const intensityStr = (profile.E_nat / 50000);

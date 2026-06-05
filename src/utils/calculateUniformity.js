@@ -123,14 +123,9 @@ export function calculateUniformity(formData, lightingResult) {
       statusColor = "#f59e0b";
     }
 
-    // STEP 6 — Spacing conformity
+    // STEP 6 — Spacing conformity (Disabled per user request)
     let spacingWarning = false;
     let warningMessage = null;
-
-    if (spacingX > S_max || spacingY > S_max) {
-      spacingWarning = true;
-      warningMessage = "Espacement trop grand, ajouter des luminaires";
-    }
 
     return {
       U0,
@@ -183,20 +178,20 @@ function generateLuminairePositions(N, length, width, height, workplane = 0.8, S
     if (roomRatio > 0.6) {
       return {
         positions: [
+          { x: length * 0.33, y: width * 0.50 },
+          { x: length * 0.67, y: width * 0.50 }
+        ],
+        cols: 2,
+        rows: 1
+      };
+    } else {
+      return {
+        positions: [
           { x: length * 0.50, y: width * 0.33 },
           { x: length * 0.50, y: width * 0.67 }
         ],
         cols: 1,
         rows: 2
-      };
-    } else {
-      return {
-        positions: [
-          { x: length * 0.33, y: width / 2 },
-          { x: length * 0.67, y: width / 2 }
-        ],
-        cols: 2,
-        rows: 1
       };
     }
   }

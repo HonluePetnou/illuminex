@@ -90,38 +90,87 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
       solarIrradiance = _defaultIrradiance(climate);
     }
 
-    // ── ÉTAPE 3 : Facteur d'orientation ────────────────────────────────────────
-    const cleanOrient = (orientation || '').trim().toUpperCase();
-    const ORIENTATION_FACTORS = {
-      'N': 0.7, 'NE': 0.8, 'E': 0.9, 'SE': 1.05,
-      'S': 1.2, 'SO': 1.1, 'O': 1.0, 'NO': 0.85,
-      'NORD': 0.7, 'SUD': 1.2, 'EST': 0.9, 'OUEST': 1.0,
-    };
-    const orientationFactor = ORIENTATION_FACTORS[cleanOrient] || 0.90;
+    // ── ÉTAPE 4 : Éclairement naturel intérieur (Daylight Factor) ───────────────
+    const R_moyen = parseFloat(formData?.materiaux?.rMoyen) || 0.50;
 
-    // ── ÉTAPE 4 : Éclairement naturel intérieur ─────────────────────────────────
-    // Formule : E_int = E_ext × τ_eff × (S_ouv / S_sol)
-    // où τ_eff = (S_vitre × Tv + S_porte × 1.0) / S_ouv
+    const WINDOW_TAU = {
+      'Simple vitrage': 0.88,
+      'Double standard': 0.75,
+      'Double low-E': 0.75,
+      'Triple vitrage': 0.65,
+      'Vitrage teinté': 0.55,
+      'Fenêtres jalousie': 0.60,
+      'Verre clair simple': 0.88,
+      'Double vitrage clair': 0.75,
+      'Verre teinté': 0.55,
+      'Jalousie vitrée': 0.60,
+      'Jalousie métallique': 0.20,
+    };
+    const DOOR_TAU = {
+      'Porte en bois plein': 0.00,
+      'Porte vitrée': 0.70,
+      'Porte mi-vitrée': 0.35,
+      'Porte métallique': 0.00,
+      'Porte aluminium': 0.00,
+      'Porte coulissante': 0.00,
+      'Porte pliante': 0.00,
+      'Porte accordéon': 0.00,
+      'Porte double battant': 0.00,
+      'Rideau métallique': 0.20,
+      'Porte automatique': 0.00,
+      'Portes jalousies': 0.60,
+      'Sans porte': 1.00,
+      'Porte pleine opaque': 0.00,
+      'Porte ouverte': 1.00,
+    };
+    const SKY_ANGLE_MAP = {
+      'Vue totalement dégagée': 6.28,
+      'Obstruction modérée': 3.14,
+      'Obstruction importante': 1.57,
+      'Fenêtre très obstruée': 0.78,
+    };
+
     const glazingType   = formData?.room?.glazingType || 'Double standard';
-    const GLAZING_TRANSMISSION = {
-      'Simple vitrage': 0.85,
-      'Double standard': 0.72,
-      'Double low-E': 0.65,
-      'Triple vitrage': 0.55,
-      'Vitrage teinté': 0.45,
-      'Fenêtres jalousie': 0.90,
-    };
-    const Tv = GLAZING_TRANSMISSION[glazingType] || 0.72;
-    let E_natural = 0;
+    const doorType      = formData?.room?.doorType || 'Porte en bois plein';
 
+    const tau_fenetre = WINDOW_TAU[glazingType] || 0.75;
     const windowsOpen = formData?.naturalLight?.windowsOpen !== false;
     const effectiveDoorArea = windowsOpen ? doorArea : 0;
-    const totalOpeningArea = (hasWindows ? windowArea : 0) + effectiveDoorArea;
+    const tau_porte = windowsOpen
+      ? 1.00
+      : (DOOR_TAU[doorType] !== undefined ? DOOR_TAU[doorType] : 0.00);
 
-    if (S > 0 && totalOpeningArea > 0) {
-      const effectiveArea = ((hasWindows ? windowArea : 0) * Tv) + (effectiveDoorArea * 1.0);
-      const tau_global = effectiveArea / totalOpeningArea;
-      E_natural = Math.round(E_exterior * tau_global * (totalOpeningArea / S) * orientationFactor);
+    const S_ouverture_totale = (hasWindows ? windowArea : 0) + effectiveDoorArea;
+    let E_natural = 0;
+    let DF = 0;
+
+    // Calcul de S_total (surface totale des parois intérieures de la pièce)
+    const length = parseFloat(formData?.room?.length) || 10;
+    const width = parseFloat(formData?.room?.width) || 10;
+    const ceilingHeight = parseFloat(formData?.room?.ceilingHeight) || 3.0;
+    const aPlafond = length * width;
+    const aMurs = 2 * (length + width) * ceilingHeight;
+    const aSol = length * width;
+    const aPortes = 1.89;
+    const aVitres = hasWindows ? windowArea : 0;
+    const aTables = 1.2;
+    const aChaises = 0.4;
+    const S_total = aPlafond + aMurs + aSol + aPortes + aVitres + aTables + aChaises;
+
+    if (S_total > 0 && S_ouverture_totale > 0) {
+      const denomTau = (hasWindows ? windowArea : 0) + effectiveDoorArea;
+      const tau_total = denomTau > 0
+        ? (((hasWindows ? windowArea : 0) * tau_fenetre) + (effectiveDoorArea * tau_porte)) / denomTau
+        : tau_fenetre;
+
+      const skyLabel = formData?.naturalLight?.skyObstruction || 'Obstruction modérée';
+      const theta = SKY_ANGLE_MAP[skyLabel] || 3.14;
+
+      const dfNum = tau_total * theta * S_ouverture_totale;
+      const dfDen = S_total * (1 - R_moyen * R_moyen);
+      DF = dfDen > 0 ? dfNum / dfDen : 0;
+
+      E_natural = Math.round(E_exterior * DF);
     }
 
     // ── ÉTAPE 5 : Besoin d'éclairement — réutilise la valeur du moteur photométrique
@@ -163,10 +212,10 @@ export function calculateClimateAdjustment(formData, lightingResult, solarData =
         solarIrradiance,
       },
       naturalLight: {
-        FLN:             S > 0 && totalOpeningArea > 0 ? Math.round(((windowArea * Tv) + (doorArea * 1.0)) / S * 10000) / 10000 : 0,
+        FLN:             Math.round(DF * 100 * 100) / 100, // DF en % (ex. 1.89%)
         E_natural:       Math.round(E_natural),
-        orientationFactor,
-        Tv,
+        orientationFactor: 0.90,
+        Tv:              tau_fenetre,
         windowArea,
         hasWindows,
       },

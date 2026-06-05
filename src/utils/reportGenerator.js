@@ -151,7 +151,10 @@ export function buildReportData(formData, allResults) {
       U0: ur.U0 || 0,
       U0_status: ur.status || 'Inconnu',
       U0_color: ur.statusColor || '#000',
-      layout: ur.layout || { rows: 0, cols: 0, spacingX: 0, spacingY: 0, spacingWarning: false, S_max: 0 },
+      layout: {
+        ...(ur.layout || { rows: 0, cols: 0, spacingX: 0, spacingY: 0, spacingWarning: false, S_max: 0 }),
+        positions: ur.positions || [],
+      },
       totalPower: lr.totalPower || 0,
       UGR: lr.UGR || 19,
       zones: ur.zones || []
@@ -601,27 +604,71 @@ export function exportToPDF(reportData) {
   doc.setLineWidth(0.5);
   doc.rect(margin, currentY, drawW, drawH);
   
-  const layout = reportData.lighting.layout || { rows: 2, cols: 2 };
-  const rows = layout.rows > 0 ? layout.rows : 2;
-  const cols = layout.cols > 0 ? layout.cols : 2;
-  const stepX = drawW / cols;
-  const stepY = drawH / rows;
+  const layout = reportData.lighting.layout || { rows: 2, cols: 2, positions: [] };
+  const N = Math.round(reportData.lighting.N) || 0;
+  const roomLen = reportData.inputs.room.length || 10;
+  const roomWid = reportData.inputs.room.width || 8;
 
-  doc.setDrawColor(29, 78, 216); // luminaires en bleu
-  doc.setLineWidth(0.3);
-
-  let lumIdx = 1;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (lumIdx > reportData.lighting.N) break;
-      const x = margin + (c + 0.5) * stepX;
-      const y = currentY + (r + 0.5) * stepY;
-      doc.rect(x - 3, y - 3, 6, 6);
-      lumIdx++;
+  // Use real positions if available; fall back to grid
+  let luminairePositions = [];
+  if (Array.isArray(layout.positions) && layout.positions.length > 0) {
+    luminairePositions = layout.positions.slice(0, N);
+  } else {
+    // Build grid positions as before
+    const rows = Math.max(1, layout.rows || 2);
+    const cols = Math.max(1, layout.cols || 2);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (luminairePositions.length >= N) break;
+        luminairePositions.push({
+          x: roomLen * (c + 0.5) / cols,
+          y: roomWid * (r + 0.5) / rows,
+        });
+      }
     }
   }
 
-  currentY += drawH + 20;
+  // Draw room dimension annotations
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text(`${roomLen.toFixed(1)} m`, margin + drawW / 2, currentY - 2, { align: 'center' });
+  doc.text(`${roomWid.toFixed(1)} m`, margin - 2, currentY + drawH / 2, { align: 'right', angle: 90 });
+
+  // Draw luminaires using real positions scaled to the canvas
+  doc.setDrawColor(29, 78, 216);
+  doc.setFillColor(29, 78, 216);
+  doc.setLineWidth(0.35);
+
+  luminairePositions.forEach((pos, idx) => {
+    const cx = margin + (pos.x / roomLen) * drawW;
+    const cy = currentY + (pos.y / roomWid) * drawH;
+    // Draw a small cross symbol + circle to represent the luminaire
+    doc.setLineWidth(0.4);
+    doc.circle(cx, cy, 3.2, 'S'); // outer circle
+    doc.line(cx - 2.2, cy, cx + 2.2, cy); // horizontal bar
+    doc.line(cx, cy - 2.2, cx, cy + 2.2); // vertical bar
+    // Label
+    doc.setFontSize(5.5);
+    doc.setTextColor(29, 78, 216);
+    doc.text(`L${idx + 1}`, cx + 3.8, cy + 1.5);
+  });
+
+  currentY += drawH + 6;
+
+  // Legend
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.setDrawColor(29, 78, 216);
+  doc.setLineWidth(0.35);
+  doc.circle(margin + 3, currentY, 3.2, 'S');
+  doc.line(margin + 0.8, currentY, margin + 5.2, currentY);
+  doc.line(margin + 3, currentY - 2.2, margin + 3, currentY + 2.2);
+  doc.text(`= Luminaire (${N} au total)`, margin + 9, currentY + 1.5);
+  doc.setTextColor(0, 0, 0);
+
+  currentY += 14;
 
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');

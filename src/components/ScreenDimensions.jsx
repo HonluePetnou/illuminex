@@ -419,6 +419,17 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                 step={1}
                 onChange={v => updateFormData('location', { day: parseInt(v) })}
               />
+              <SelectRow
+                label="Environnement extérieur"
+                value={formData?.naturalLight?.skyObstruction || 'Obstruction modérée'}
+                onChange={v => updateFormData('naturalLight', { ...formData?.naturalLight, skyObstruction: v })}
+                options={[
+                  { value: 'Vue totalement dégagée', label: 'Vue totalement dégagée (θ = 6.28 sr)' },
+                  { value: 'Obstruction modérée', label: 'Obstruction modérée (θ = 3.14 sr)' },
+                  { value: 'Obstruction importante', label: 'Obstruction importante (θ = 1.57 sr)' },
+                  { value: 'Fenêtre très obstruée', label: 'Fenêtre très obstruée (θ = 0.78 sr)' },
+                ]}
+              />
               <div style={{ marginTop: '0.25rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.75rem', color: C.muted }}>
                 Climat chargé: <strong style={{color:'#fff'}}>{location.climate}</strong> <br/>
                 Ville gisement: <span style={{color:'#fff'}}>{location.city || location.country}</span>
@@ -443,12 +454,11 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
                 value={room.glazingType || 'Double standard'}
                 onChange={v => updateFormData('room', { ...room, glazingType: v })}
                 options={[
-                  {value: 'Simple vitrage', label: 'Simple vitrage'},
-                  {value: 'Double standard', label: 'Double standard'},
-                  {value: 'Double low-E', label: 'Double low-E'},
-                  {value: 'Triple vitrage', label: 'Triple vitrage'},
-                  {value: 'Vitrage teinté', label: 'Vitrage teinté'},
-                  {value: 'Fenêtres jalousie', label: 'Fenêtres jalousie - reflectance (10%)'}
+                  {value: 'Verre clair simple', label: 'Verre clair simple (τ = 0.88)'},
+                  {value: 'Double vitrage clair', label: 'Double vitrage clair (τ = 0.75)'},
+                  {value: 'Verre teinté', label: 'Verre teinté (τ = 0.55)'},
+                  {value: 'Jalousie vitrée', label: 'Jalousie vitrée (τ = 0.60)'},
+                  {value: 'Jalousie métallique', label: 'Jalousie métallique (τ = 0.20)'}
                 ]}
               />
               <SelectRow
@@ -477,22 +487,12 @@ export default function ScreenDimensions({ formData, updateFormData, onNext, onP
               />
               <SelectRow
                 label="Type de porte"
-                value={room.doorType || 'Porte en bois plein'}
+                value={room.doorType || 'Porte pleine opaque'}
                 onChange={v => updateFormData('room', { ...room, doorType: v })}
                 options={[
-                  { value: 'Porte en bois plein',      label: 'Bois plein' },
-                  { value: 'Porte vitrée',             label: 'Vitrée' },
-                  { value: 'Porte mi-vitrée',          label: 'Mi-vitrée' },
-                  { value: 'Porte métallique',         label: 'Métallique' },
-                  { value: 'Porte aluminium',          label: 'Aluminium' },
-                  { value: 'Porte coulissante',        label: 'Coulissante' },
-                  { value: 'Porte pliante',            label: 'Pliante' },
-                  { value: 'Porte accordéon',          label: 'Accordéon' },
-                  { value: 'Porte double battant',     label: 'Double battant' },
-                  { value: 'Rideau métallique',        label: 'Rideau métallique' },
-                  { value: 'Porte automatique',        label: 'Automatique (capteur)' },
-                  { value: 'Portes jalousies',          label: 'Portes jalousies - reflectance (10%)' },
-                  { value: 'Sans porte',               label: 'Sans porte / Ouvert' },
+                  { value: 'Porte pleine opaque',      label: 'Porte pleine opaque (τ = 0.00)' },
+                  { value: 'Porte vitrée',             label: 'Porte vitrée (τ = 0.70)' },
+                  { value: 'Porte ouverte',            label: 'Porte ouverte (τ = 1.00)' },
                 ]}
               />
             </div>

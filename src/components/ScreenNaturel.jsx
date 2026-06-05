@@ -3,12 +3,10 @@ import {
   ArrowLeft, Calendar, MapPin, Cloud, CloudSun, Sun, Moon, Maximize,
   SlidersHorizontal, Compass, Eye, Loader2, Check, Download
 } from 'lucide-react';
-import { calculateSolarIrradiance, calculateDaylightContribution, approximateSunTimes, approximateSunPosition, calculateNaturalHeatmap } from '../utils/solar-calc';
+import { calculateSolarIrradiance, approximateSunTimes, calculateNaturalHeatmap } from '../utils/solar-calc';
 import CustomSlider from './CustomSlider';
 import RoomSimulation2D from './RoomSimulation2D';
 import RoomSimulation3D from './RoomSimulation3D';
-import { CATALOGUE_MATERIAUX } from '../data/materials-library';
-import { NORMS } from '../data/norms';
 
 const C = {
   bg: '#1C1D24',
@@ -99,21 +97,7 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.climate, location.latitude, simMonth, simHour]);
 
-  const vitresMatId = formData?.materiaux?.surfaces?.vitres?.materialId;
-  const vitresMat = CATALOGUE_MATERIAUX.find(m => m.id === vitresMatId);
-  const transmission = vitresMat?.transmittance || 0.70;
-
   const [viewMode, setViewMode] = useState('3d');
-
-  const luxInterieur = calculateDaylightContribution({
-    eExterieur: sunData.eExterieur,
-    windowArea: naturalLight.hasWindows ? naturalLight.windowArea : 0,
-    floorArea,
-    transmission,
-    orientation: naturalLight.orientation,
-    windowsOpen: naturalLight.windowsOpen !== false,
-    doorArea: naturalLight.doorArea || 0,
-  });
 
   // Dynamic simulation results for natural light (N=0)
   const simResults = useMemo(() => {
@@ -123,13 +107,13 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
 
     const nhm = calculateNaturalHeatmap(formData, sunData.eExterieur > 0 ? { eExterieur: sunData.eExterieur } : null);
 
-    if (!naturalLight.hasWindows || nhm.E_sol <= 0) {
+    if (!naturalLight.hasWindows || nhm.E_int <= 0) {
       const emptyZones = Array.from({ length: 12 }, (_, idx) => ({
         zone: '', e: 0, d: 0, ok: false,
       }));
       return {
         lighting: mockLighting,
-        E_ext: 0, E_sol: 0,
+        E_ext: 0, E_int: 0,
         uniformity: { U0: 0, E_min: 0, E_moy: 0, E_max: 0, layout: { cols: 0, rows: 0, spacingX: 0, spacingY: 0 }, positions: [] },
         climate: { naturalLight: { E_natural: 0, windowArea: 0, hasWindows: false } },
         naturalLight: { hourlyProfile: {}, E_natural: 0 },
@@ -149,7 +133,7 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
     return {
       lighting: mockLighting,
       E_ext: nhm.E_ext,
-      E_sol: nhm.E_sol,
+      E_int: nhm.E_int,
       uniformity: {
         U0: uniformity.U0,
         E_min: uniformity.E_min,
@@ -160,14 +144,14 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
       },
       climate: {
         naturalLight: {
-          E_natural: nhm.E_sol,
+          E_natural: nhm.E_int,
           windowArea: naturalLight.windowArea,
           hasWindows: true,
         }
       },
       naturalLight: {
         hourlyProfile: {},
-        E_natural: nhm.E_sol,
+        E_natural: nhm.E_int,
       },
       zones: zonesList,
     };
@@ -403,8 +387,8 @@ export default function ScreenNaturel({ formData, updateFormData, onNext, onPrev
                             <span style={{ color: C.text, fontWeight: 600 }}>{simResults.E_ext.toLocaleString('fr-FR')} lx</span>
                          </div>
                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                            <span style={{ color: C.muted }}>Éclairement au sol (E<sub>sol</sub>)</span>
-                            <span style={{ color: C.text, fontWeight: 600 }}>{simResults.E_sol.toLocaleString('fr-FR')} lx</span>
+                             <span style={{ color: C.muted }}>Éclairement intérieur (E<sub>int</sub>)</span>
+                             <span style={{ color: C.text, fontWeight: 600 }}>{simResults.E_int.toLocaleString('fr-FR')} lx</span>
                          </div>
                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
                             <span style={{ color: C.muted }}>Maximum brut (E<sub>max</sub>)</span>

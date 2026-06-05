@@ -145,12 +145,13 @@ export function approximateSunPosition(latitude, month, hour) {
 }
 
 /**
- * Calcule la carte thermique de l'éclairage naturel dans une pièce
- * E_int = E_ext × F_orientation × τ × (S_ouv / S_p)
- * La carte utilise un facteur de décroissance simple par rangée :
- *   Rangée 0 (proche ouverture) : ×1.0
- *   Rangée 1 (intermédiaire)    : ×0.6
- *   Rangée 2 (fond de pièce)    : ×0.3 (+ apport porte si ouverte)
+ * Calcule la carte de distribution de l'éclairage naturel dans une pièce
+ * DF = (τ × θ × S_ouv) / (S × (1 - Rm²))
+ * E_int = E_ext × DF / 100
+ * La carte utilise une matrice de coefficients 3×4 :
+ *   Rangée 0 (proche ouverture) : ×0.95-1.00
+ *   Rangée 1 (intermédiaire)    : ×0.65-0.80
+ *   Rangée 2 (fond de pièce)    : ×0.40-0.55
  */
 // Coefficient matrix per spec (row = depth, col = lateral)
 // Row 1 = proche ouverture, Row 2 = médiane, Row 3 = fond
@@ -161,10 +162,53 @@ const NATURAL_COEFFS = [
   [0.55, 0.50, 0.45, 0.40],
 ];
 
+// τ (transmittance) for window glazing types — Daylight Factor formula
+const WINDOW_TAU = {
+  'Simple vitrage': 0.88,
+  'Double standard': 0.75,
+  'Double low-E': 0.75,
+  'Triple vitrage': 0.65,
+  'Vitrage teinté': 0.55,
+  'Fenêtres jalousie': 0.60,
+  'Verre clair simple': 0.88,
+  'Double vitrage clair': 0.75,
+  'Verre teinté': 0.55,
+  'Jalousie vitrée': 0.60,
+  'Jalousie métallique': 0.20,
+};
+
+// τ (transmittance) for door types — Daylight Factor formula
+const DOOR_TAU = {
+  'Porte en bois plein': 0.00,
+  'Porte vitrée': 0.70,
+  'Porte mi-vitrée': 0.35,
+  'Porte métallique': 0.00,
+  'Porte aluminium': 0.00,
+  'Porte coulissante': 0.00,
+  'Porte pliante': 0.00,
+  'Porte accordéon': 0.00,
+  'Porte double battant': 0.00,
+  'Rideau métallique': 0.20,
+  'Porte automatique': 0.00,
+  'Portes jalousies': 0.60,
+  'Sans porte': 1.00,
+  'Porte pleine opaque': 0.00,
+  'Porte ouverte': 1.00,
+};
+
+// θ (sky angle in steradians) mapping
+const SKY_ANGLE_MAP = {
+  'Vue totalement dégagée': 6.28,
+  'Obstruction modérée': 3.14,
+  'Obstruction importante': 1.57,
+  'Fenêtre très obstruée': 0.78,
+};
+
 export function calculateNaturalHeatmap(formData, solarData = null) {
   try {
     const length   = parseFloat(formData?.room?.length)        || 10;
     const width    = parseFloat(formData?.room?.width)         || 10;
+    const ceilingHeight = parseFloat(formData?.room?.ceilingHeight) || 3.0;
     const S_p      = length * width;
 
     const hasWindows   = formData?.naturalLight?.hasWindows === true;
@@ -172,46 +216,65 @@ export function calculateNaturalHeatmap(formData, solarData = null) {
     const doorArea     = parseFloat(formData?.naturalLight?.doorArea)   || 0;
     const orientation  = formData?.naturalLight?.orientation    || 'S';
     const windowsOpen  = formData?.naturalLight?.windowsOpen    !== false;
-    const S_ouv        = windowArea + (windowsOpen ? doorArea : 0);
-
-    // Transmittance du vitrage selon le type sélectionné
-    const GLAZING_T = {
-      'Simple vitrage': 0.85,
-      'Double standard': 0.72,
-      'Double low-E': 0.65,
-      'Triple vitrage': 0.55,
-      'Vitrage teinté': 0.45,
-      'Fenêtres jalousie': 0.90,
-    };
-    const glazingType = formData?.room?.glazingType || 'Double standard';
-    const transmission = GLAZING_T[glazingType] || 0.72;
-
-    // Facteur d'orientation
-    const ORIENT_FACTORS = {
-      'N':0.7, 'NE':0.8, 'E':0.9, 'SE':1.05,
-      'S':1.2, 'SO':1.1, 'O':1.0, 'NO':0.85,
-      'NORD':0.7, 'SUD':1.2, 'EST':0.9, 'OUEST':1.0,
-    };
-    const cleanOrient = (orientation || '').trim().toUpperCase();
-    const F_orientation = hasWindows ? (ORIENT_FACTORS[cleanOrient] || 0.9) : 0;
 
     // Éclairement extérieur
     const E_ext = (solarData && solarData.eExterieur > 0)
       ? solarData.eExterieur
       : 60000;
 
-    // E_sol : éclairement naturel au sol après transmission (Spec: valeur qui entre dans la pièce)
-    let E_sol = 0;
-    if (hasWindows && S_p > 0 && S_ouv > 0) {
-      E_sol = E_ext * F_orientation * transmission * (S_ouv / S_p);
-    }
-    E_sol = Math.round(E_sol);
+    // R_moyen (reflectance moyenne des surfaces)
+    const R_moyen = parseFloat(formData?.materiaux?.rMoyen) || 0.50;
 
-    // Étape 1 — E_carré[i][j] = E_sol × COEFFICIENTS[i][j]
+    // τ_total : moyenne pondérée des transmissions fenêtre + porte
+    const glazingType = formData?.room?.glazingType || 'Double standard';
+    const doorType    = formData?.room?.doorType || 'Porte en bois plein';
+
+    const tau_fenetre = WINDOW_TAU[glazingType] || 0.75;
+    // Si la fenêtre est ouverte, transmission totale ; sinon celle du matériau
+    const tau_porte = windowsOpen
+      ? 1.00
+      : (DOOR_TAU[doorType] !== undefined ? DOOR_TAU[doorType] : 0.00);
+
+    const S_ouverture_totale = windowArea + (windowsOpen ? doorArea : 0);
+    let E_int = 0;
+    let tau_total = 0;
+    let theta = 3.14;
+    
+    // Calcul de S_total (surface totale des parois intérieures de la pièce)
+    const aPlafond = length * width;
+    const aMurs = 2 * (length + width) * ceilingHeight;
+    const aSol = length * width;
+    const aPortes = 1.89;
+    const aVitres = windowArea;
+    const aTables = 1.2;
+    const aChaises = 0.4;
+    const S_total = aPlafond + aMurs + aSol + aPortes + aVitres + aTables + aChaises;
+
+    if (hasWindows && S_total > 0 && S_ouverture_totale > 0) {
+      // τ_total pondéré
+      const denomTau = windowArea + (windowsOpen ? doorArea : 0);
+      tau_total = denomTau > 0
+        ? ((windowArea * tau_fenetre) + (windowsOpen ? doorArea * tau_porte : 0)) / denomTau
+        : tau_fenetre;
+
+      // θ : angle de ciel ouvert
+      const skyLabel = formData?.naturalLight?.skyObstruction || 'Obstruction modérée';
+      theta = SKY_ANGLE_MAP[skyLabel] || 3.14;
+
+      // Daylight Factor
+      const dfNum = tau_total * theta * S_ouverture_totale;
+      const dfDen = S_total * (1 - R_moyen * R_moyen);
+      const DF = dfDen > 0 ? dfNum / dfDen : 0;
+
+      // E_int = E_ext × DF (DF est déjà la forme décimale, ex. 0.0189)
+      E_int = Math.round(E_ext * DF);
+    }
+
+    // Étape 1 — E_carré[i][j] = E_int × COEFFICIENTS[i][j]
     const rawZones = [];
     for (let row = 0; row < 3; row++) {
       for (let col = 0; col < 4; col++) {
-        const e = Math.round(E_sol * NATURAL_COEFFS[row][col]);
+        const e = Math.round(E_int * NATURAL_COEFFS[row][col]);
         rawZones.push({ row, col, e });
       }
     }
@@ -238,13 +301,14 @@ export function calculateNaturalHeatmap(formData, solarData = null) {
 
     return {
       E_ext,
-      E_sol,
+      E_int,
       E_max,
       E_min: E_min_d,
       E_moy: Math.round(E_moy_d * 100) / 100,
-      F_orientation,
-      transmission,
-      S_ouv,
+      tau_total,
+      theta,
+      R_moyen,
+      S_ouv: S_ouverture_totale,
       orientation,
       zones,
       uniformity: { E_min: E_min_d, E_moy: Math.round(E_moy_d * 100) / 100, U0 }
@@ -253,8 +317,8 @@ export function calculateNaturalHeatmap(formData, solarData = null) {
   } catch (error) {
     console.error('Natural heatmap calculation failed:', error);
     return {
-      E_ext: 0, E_sol: 0, E_max: 0, E_min: 0, E_moy: 0,
-      F_orientation: 0, transmission: 0.7, S_ouv: 0, orientation: 'S',
+      E_ext: 0, E_int: 0, E_max: 0, E_min: 0, E_moy: 0,
+      R_moyen: 0.5, theta: 3.14, S_ouv: 0, orientation: 'S',
       zones: [],
       uniformity: { E_min: 0, E_moy: 0, U0: 0 }
     };
